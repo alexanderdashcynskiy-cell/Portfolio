@@ -59,3 +59,33 @@
   transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+
+/* ------------------------------------------------------------------
+   HERO — pixel-mapped to the 1536×1024 reference artwork.
+   --u is one "design pixel": everything scales with the viewport
+   while keeping the exact proportions of the reference.
+------------------------------------------------------------------- */
+:root {
+  --u: min(calc(100vw / 1536), calc(100vh / 1024));
+  --hero-ink: #0d0c0b;
+  --hero-bronze: #8a5526;
+}
+
+@media (max-width: 767px) {
+  :root {
+    --u: 0.52px;
+  }
+}
+
+.font-display {
+  font-family: "DM Serif Display", "Bodoni Moda", Georgia, serif;
+}
+
+.font-hero-sans {
+  font-family: "Inter", var(--font-sans);
+}
+
+.u-px {
+  padding-left: max(20px, calc(71 * var(--u)));
+  padding-right: max(20px, calc(51 * var(--u)));
+}
