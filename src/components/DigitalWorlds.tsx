@@ -9,64 +9,52 @@ interface DigitalWorldsProps {
 // One unit = one pixel of the 1536×1024 layout (same scale as the hero).
 const u = (n: number) => `calc(${n} * var(--u))`;
 
-// Stage = the 1536×1024 reference. Card faces and edges are measured there.
+// Stage = the 1536×1024 reference. The camera and every card pose below were
+// solved from the card corners measured on the reference (≈2px RMS), so the
+// real 3D slabs land exactly on the photo at rest.
 const STAGE_W = 1536;
 const STAGE_H = 1024;
-const CARD_W = 300;
+const PERSPECTIVE = 1805;
+const ORIGIN_X = 848;
+const ORIGIN_Y = 694;
+const CARD_W = 355;
 const CARD_H = 640;
-const EDGE_W = 20;
+const DEPTH = 26; // slab thickness
 
-type Pt = [number, number];
-type Quad = [Pt, Pt, Pt, Pt]; // TL, TR, BR, BL
-interface Slot {
-  face: Quad;
-  edge: number; // visible thickness: < 0 on the left side, > 0 on the right
+interface Pose {
+  tx: number;
+  ty: number;
+  tz: number;
+  th: number; // rotateY, radians
 }
 
-// Five resting slots — the exact card faces from the reference.
-const SLOTS: Slot[] = [
-  { face: [[381, 137], [629, 224], [625, 779], [381, 796]], edge: -12 },
-  { face: [[650, 244], [809, 290], [806, 772], [647, 778]], edge: -4 },
-  { face: [[838, 307], [1001, 338], [1000, 762], [837, 768]], edge: -7 },
-  { face: [[1031, 343], [1226, 360], [1225, 761], [1031, 764]], edge: -5 },
-  { face: [[1261, 366], [1483, 339], [1485, 770], [1261, 766]], edge: 6 },
+// Five resting slots.
+const SLOTS: Pose[] = [
+  { tx: 316.6, ty: 153.0, tz: -104.5, th: 0.958 },
+  { tx: 525.3, ty: 155.7, tz: -485.2, th: 1.029 },
+  { tx: 779.7, ty: 156.7, tz: -814.7, th: 0.799 },
+  { tx: 1111.4, ty: 160.9, tz: -1007.5, th: 0.41 },
+  { tx: 1473.3, ty: 168.2, tz: -979.2, th: -0.655 },
 ];
 
-const extrapolate = (a: Slot, b: Slot): Slot => ({
-  face: a.face.map((p, i) => [2 * p[0] - b.face[i][0], 2 * p[1] - b.face[i][1]]) as Quad,
-  edge: 2 * a.edge - b.edge,
-});
+const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
 // Slots used by n cards, plus a virtual slot on each side for wrapping.
-const pathFor = (n: number): Slot[] => {
+const pathFor = (n: number): Pose[] => {
   const used = SLOTS.slice(0, Math.max(1, n));
   const last = used[used.length - 1];
-  const beforeLast = used.length > 1 ? used[used.length - 2] : SLOTS[1];
-  return [extrapolate(SLOTS[0], SLOTS[1]), ...used, extrapolate(last, beforeLast)];
+  const prev = used.length > 1 ? used[used.length - 2] : SLOTS[0];
+  const before: Pose = { tx: SLOTS[0].tx - 330, ty: SLOTS[0].ty, tz: SLOTS[0].tz + 150, th: 1.0 };
+  const after: Pose = { tx: last.tx + 330, ty: last.ty, tz: last.tz - 60, th: clamp(2 * last.th - prev.th, -1.1, 1.1) };
+  return [before, ...used, after];
 };
 
-const lerpSlot = (a: Slot, b: Slot, t: number): Slot => ({
-  face: a.face.map((p, i) => [p[0] + (b.face[i][0] - p[0]) * t, p[1] + (b.face[i][1] - p[1]) * t]) as Quad,
-  edge: a.edge + (b.edge - a.edge) * t,
+const lerpPose = (a: Pose, b: Pose, t: number): Pose => ({
+  tx: a.tx + (b.tx - a.tx) * t,
+  ty: a.ty + (b.ty - a.ty) * t,
+  tz: a.tz + (b.tz - a.tz) * t,
+  th: a.th + (b.th - a.th) * t,
 });
-
-// Projective transform mapping a w×h rectangle onto a quad.
-const quadToMatrix3d = (q: Quad, w: number, h: number): string => {
-  const [[x0, y0], [x1, y1], [x2, y2], [x3, y3]] = q;
-  const dx1 = x1 - x2, dx2 = x3 - x2, dx3 = x0 - x1 + x2 - x3;
-  const dy1 = y1 - y2, dy2 = y3 - y2, dy3 = y0 - y1 + y2 - y3;
-  const den = dx1 * dy2 - dx2 * dy1 || 1e-6;
-  const g = (dx3 * dy2 - dx2 * dy3) / den;
-  const hh = (dx1 * dy3 - dx3 * dy1) / den;
-  const a = x1 - x0 + g * x1, b = x3 - x0 + hh * x3;
-  const d = y1 - y0 + g * y1, e = y3 - y0 + hh * y3;
-  return `matrix3d(${a / w},${d / w},0,${g / w},${b / h},${e / h},0,${hh / h},0,0,1,0,${x0},${y0},0,1)`;
-};
-
-const edgeQuad = ({ face: [tl, tr, br, bl], edge }: Slot): Quad =>
-  edge < 0
-    ? [[tl[0] + edge, tl[1] + 1], tl, bl, [bl[0] + edge, bl[1] - 1]]
-    : [tr, [tr[0] + edge, tr[1] + 1], [br[0] + edge, br[1] - 1], br];
 
 const mod = (n: number, m: number) => ((n % m) + m) % m;
 
@@ -82,7 +70,6 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact }) =
   const sectionRef = useRef<HTMLElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const edgeRefs = useRef<(HTMLDivElement | null)[]>([]);
   const offset = useRef(0);
   const target = useRef(0);
   const presence = useRef<number[]>(WORLDS.map(() => 0));
@@ -185,30 +172,24 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact }) =
 
       for (let k = 0; k < WORLDS.length; k++) {
         const el = cardRefs.current[k];
-        const edgeEl = edgeRefs.current[k];
-        if (!el || !edgeEl) continue;
+        if (!el) continue;
         const j = list.indexOf(k);
         presence.current[k] += ((j >= 0 ? 1 : 0) - presence.current[k]) * (reduceMotion ? 1 : 0.12);
+        if (Math.abs(presence.current[k] - (j >= 0 ? 1 : 0)) < 0.004) presence.current[k] = j >= 0 ? 1 : 0;
         el.style.pointerEvents = j >= 0 ? 'auto' : 'none';
 
         if (j >= 0) {
           const p = n > 1 ? slotOf(j, offset.current, n) : 0;
           const i = Math.max(0, Math.min(path.length - 2, Math.floor(p) + 1));
-          const slot = lerpSlot(path[i], path[i + 1], p + 1 - i);
+          const pose = lerpPose(path[i], path[i + 1], p + 1 - i);
           const float = reduceMotion ? 0 : Math.sin(t / 1200 + k * 1.4) * 3;
-          slot.face = slot.face.map(([x, y]) => [x, y + float]) as Quad;
-          el.style.transform = quadToMatrix3d(slot.face, CARD_W, CARD_H);
-          edgeEl.style.transform = quadToMatrix3d(edgeQuad(slot), EDGE_W, CARD_H);
-          edgeEl.dataset.side = slot.edge < 0 ? 'left' : 'right';
+          el.style.transform = `translate3d(${pose.tx}px, ${pose.ty + float}px, ${pose.tz}px) rotateY(${pose.th}rad)`;
+          el.style.zIndex = String(Math.round(3000 + pose.tz));
           baseOpacity.current[k] = p < 0 ? Math.max(0, 1 + 2 * p) : p > n - 1 ? Math.max(0, 1 - 2 * (p - (n - 1))) : 1;
-          const z = String(100 - Math.round(p * 10));
-          el.style.zIndex = z;
-          edgeEl.style.zIndex = z;
         }
 
-        const o = String(baseOpacity.current[k] * presence.current[k]);
-        el.style.opacity = o;
-        edgeEl.style.opacity = o;
+        // Opacity goes on the faces, not the slab: opacity on a 3D group would flatten it.
+        el.style.setProperty('--o', String(baseOpacity.current[k] * presence.current[k]));
       }
     };
     raf = requestAnimationFrame(frame);
@@ -284,38 +265,63 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact }) =
       onMouseLeave={() => (hovering.current = false)}
     >
       {/* Cards stage (reference coordinates) */}
-      <div ref={stageRef} className="absolute left-0 top-0 origin-top-left" style={{ width: STAGE_W, height: STAGE_H }}>
+      <div
+        ref={stageRef}
+        className="absolute left-0 top-0 origin-top-left"
+        style={{ width: STAGE_W, height: STAGE_H, perspective: PERSPECTIVE, perspectiveOrigin: `${ORIGIN_X}px ${ORIGIN_Y}px` }}
+      >
         {WORLDS.map((w, k) => (
-          <React.Fragment key={w.id}>
-            {/* Glass thickness */}
+          <div
+            key={w.id}
+            ref={(el) => {
+              cardRefs.current[k] = el;
+            }}
+            data-card={k}
+            className="group absolute left-0 top-0 will-change-transform"
+            style={{ width: CARD_W, height: CARD_H, transformStyle: 'preserve-3d', ['--o' as string]: 0 }}
+          >
+            {/* Contact shadow on the floor */}
             <div
-              ref={(el) => {
-                edgeRefs.current[k] = el;
+              className="slab-part absolute pointer-events-none"
+              style={{
+                left: -40,
+                top: CARD_H,
+                width: CARD_W + 80,
+                height: 170,
+                transformOrigin: 'top',
+                transform: 'rotateX(90deg)',
+                background: 'radial-gradient(ellipse 55% 60% at 50% 0%, rgba(38,24,12,0.42), transparent 70%)',
               }}
-              className="world-edge absolute left-0 top-0 origin-top-left rounded-[6px]"
-              style={{ width: EDGE_W, height: CARD_H, opacity: 0 }}
             />
-            {/* Face */}
+            {/* Mirror reflection on the polished floor */}
             <div
-              ref={(el) => {
-                cardRefs.current[k] = el;
-              }}
-              data-card={k}
-              className="world-card group absolute left-0 top-0 origin-top-left will-change-transform"
-              style={{ width: CARD_W, height: CARD_H, opacity: 0 }}
+              className="slab-part slab-reflection absolute overflow-hidden pointer-events-none"
+              style={{ left: 0, top: CARD_H + 3, width: CARD_W, height: CARD_H * 0.42, transform: 'scaleY(-1)' }}
             >
-              <span className="absolute font-hero-sans text-[#1d1a17]" style={{ left: 26, top: -34, fontSize: 21 }}>
-                {w.number}
-              </span>
-              <div className="absolute inset-0 overflow-hidden rounded-[12px] bg-black shadow-[0_30px_60px_-24px_rgba(20,14,8,0.6)] ring-1 ring-black/40">
+              <img src={w.image} alt="" draggable={false} className="absolute left-0 w-full object-fill" style={{ top: -CARD_H * 0.58, height: CARD_H }} />
+            </div>
+
+            {/* Slab body: back, sides, top, bottom */}
+            <div className="slab-part slab-back absolute inset-0" style={{ transform: `translateZ(${-DEPTH}px)` }} />
+            <div className="slab-part slab-side slab-left absolute left-0 top-0" style={{ width: DEPTH, height: CARD_H, transformOrigin: 'left', transform: 'rotateY(90deg)' }} />
+            <div className="slab-part slab-side slab-right absolute top-0" style={{ left: CARD_W, width: DEPTH, height: CARD_H, transformOrigin: 'left', transform: 'rotateY(90deg)' }} />
+            <div className="slab-part slab-cap absolute left-0 top-0" style={{ width: CARD_W, height: DEPTH, transformOrigin: 'top', transform: 'rotateX(-90deg)' }} />
+            <div className="slab-part slab-cap slab-bottom absolute left-0" style={{ top: CARD_H, width: CARD_W, height: DEPTH, transformOrigin: 'top', transform: 'rotateX(-90deg)' }} />
+
+            {/* Front face */}
+            <span className="slab-part absolute font-hero-sans text-[#1d1a17] leading-none" style={{ left: 30, top: -30, fontSize: 21, transform: 'translateZ(1px)' }}>
+              {w.number}
+            </span>
+            <div className="slab-part absolute inset-0" style={{ transform: 'translateZ(0.5px)' }}>
+              <div className="slab-face absolute inset-0 overflow-hidden rounded-[6px] bg-black">
                 <img
                   src={w.image}
                   alt=""
                   draggable={false}
-                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
+                  className="absolute inset-0 w-full h-full object-fill transition-transform duration-700 group-hover:scale-[1.04]"
                 />
                 <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/35" />
-                <div className="absolute inset-0 rounded-[12px] ring-1 ring-inset ring-white/15" />
+                <div className="slab-sheen absolute inset-0" />
                 <div className="absolute inset-0 text-white">
                   <svg className="absolute left-1/2 -translate-x-1/2 opacity-90" style={{ top: 38 }} width="17" height="17" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="0.9">
                     <path d="M8 1 15 8 8 15 1 8z" />
@@ -329,19 +335,19 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact }) =
                       {w.subtitle}
                     </div>
                   </div>
-                  <div className="absolute" style={{ left: 33, top: 462, fontSize: 18, lineHeight: 1.4 }}>
+                  <div className="absolute" style={{ left: 39, top: 462, fontSize: 18, lineHeight: 1.4 }}>
                     {w.tagline.map((l) => (
                       <div key={l}>{l}</div>
                     ))}
                   </div>
-                  <div className="absolute flex items-center uppercase" style={{ left: 33, bottom: 45, fontSize: 11.5, letterSpacing: '0.04em', gap: 10 }}>
+                  <div className="absolute flex items-center uppercase" style={{ left: 39, bottom: 45, fontSize: 11.5, letterSpacing: '0.04em', gap: 10 }}>
                     View project
                     <ArrowRight size={13} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
                   </div>
                 </div>
               </div>
             </div>
-          </React.Fragment>
+          </div>
         ))}
       </div>
 

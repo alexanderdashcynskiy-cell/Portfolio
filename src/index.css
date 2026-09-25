@@ -98,16 +98,38 @@
   font-family: "Cormorant Garamond", Georgia, serif;
 }
 
-/* Glossy floor reflection under the floating project cards */
-.world-card {
-  -webkit-box-reflect: below 6px linear-gradient(transparent 72%, rgba(0, 0, 0, 0.22));
+/* 3D glass slabs of the project cards */
+.slab-part {
+  opacity: var(--o, 0);
 }
-
-/* Visible glass thickness of the project cards */
-.world-edge {
-  background: linear-gradient(90deg, #f3ebe0 0%, #b9ad9f 35%, #3a332d 100%);
-  -webkit-box-reflect: below 6px linear-gradient(transparent 72%, rgba(0, 0, 0, 0.18));
+.slab-face {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16), inset 0 0 24px rgba(0, 0, 0, 0.45);
 }
-.world-edge[data-side="right"] {
-  background: linear-gradient(270deg, #e9dfd2 0%, #8f8377 35%, #2a2521 100%);
+.slab-sheen {
+  background: linear-gradient(118deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.04) 22%, transparent 40%, transparent 72%, rgba(255, 244, 228, 0.07) 100%);
+  mix-blend-mode: screen;
+}
+.slab-back {
+  background: linear-gradient(180deg, #1c1714, #0b0908);
+  border-radius: 6px;
+}
+.slab-side {
+  border-left: 1px solid rgba(255, 250, 240, 0.7);
+  background: linear-gradient(90deg, #f1e8dc 0%, #cbbfb1 28%, #71675d 70%, #2a2521 100%);
+}
+.slab-right {
+  background: linear-gradient(90deg, #8a7f73 0%, #4a413a 25%, #1c1815 70%, #0e0c0b 100%);
+}
+.slab-cap {
+  border-top: 1px solid rgba(255, 250, 240, 0.6);
+  background: linear-gradient(180deg, #b8ad9f 0%, #5a5047 40%, #1a1613 100%);
+}
+.slab-bottom {
+  border-top: none;
+  background: #0d0b0a;
+}
+.slab-reflection {
+  opacity: calc(var(--o, 0) * 0.4);
+  -webkit-mask-image: linear-gradient(to top, #000 0%, transparent 75%);
+  mask-image: linear-gradient(to top, #000 0%, transparent 75%);
 }
