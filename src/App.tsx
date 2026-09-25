@@ -5,7 +5,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { Navigation } from './components/Navigation';
-import { ArchitecturalBackdrop } from './components/ArchitecturalBackdrop';
 import { HeroContent } from './components/HeroContent';
 import { WorkShowcase } from './components/WorkShowcase';
 import { ServicesSection } from './components/ServicesSection';
@@ -19,27 +18,16 @@ export default function App() {
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [isContactOpen, setIsContactOpen] = useState(false);
   const [workFilter, setWorkFilter] = useState<string | null>(null);
-  const [mousePos, setMousePos] = useState({ x: 0.5, y: 0.5 });
   const [showBackToTop, setShowBackToTop] = useState(false);
 
-  // Mouse position tracker for scene parallax
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      setMousePos({
-        x: e.clientX / window.innerWidth,
-        y: e.clientY / window.innerHeight,
-      });
-    };
-
     const handleScroll = () => {
       setShowBackToTop(window.scrollY > 400);
     };
 
-    window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('scroll', handleScroll);
 
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('scroll', handleScroll);
     };
   }, []);
@@ -101,21 +89,9 @@ export default function App() {
         activeSection={activeSection}
       />
 
-      {/* HERO FIRST PAGE (Exact replica of user's photo) */}
-      <main className="relative w-full min-h-screen overflow-hidden flex flex-col justify-between">
-        {/* Layer 0: The Architectural Courtyard, 3D Glass Sphere, and Water Reflections */}
-        <ArchitecturalBackdrop
-          mousePos={mousePos}
-          onSphereHover={(hovered) => {
-            // Optional state tracking
-          }}
-        />
-
-        {/* Layer 1: Left-aligned Typography, Headings, Tags, and CTAs */}
-        <HeroContent
-          onExploreClick={scrollToWorks}
-          onTagClick={handleTagClick}
-        />
+      {/* HERO FIRST PAGE — reproduces the reference artwork */}
+      <main>
+        <HeroContent onExploreClick={scrollToWorks} onTagClick={handleTagClick} />
       </main>
 
       {/* SECOND SECTION: Selected Works Showcase */}
