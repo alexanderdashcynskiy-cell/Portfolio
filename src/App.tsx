@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Navigation } from './components/Navigation';
 import { HeroContent } from './components/HeroContent';
 import { WorkShowcase } from './components/WorkShowcase';
@@ -20,9 +20,14 @@ export default function App() {
   const [isContactOpen, setIsContactOpen] = useState(false);
   const [workFilter, setWorkFilter] = useState<string | null>(null);
   const [showBackToTop, setShowBackToTop] = useState(false);
+  const heroLayerRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => {
     const handleScroll = () => {
+      if (heroLayerRef.current) {
+        const fade = Math.min(1, Math.max(0, window.scrollY / (window.innerHeight * 0.75)));
+        heroLayerRef.current.style.opacity = String(1 - fade);
+      }
       setShowBackToTop(window.scrollY > window.innerHeight * 1.8);
     };
 
@@ -79,16 +84,25 @@ export default function App() {
         activeSection={activeSection}
       />
 
+      {/* ONE FIXED BACKDROP for the whole site; the sphere layer dissolves as the hero scrolls away */}
+      <div className="fixed inset-0 pointer-events-none" aria-hidden="true">
+        <img src="/worlds/bg.jpg" alt="" className="absolute inset-0 w-full h-full object-cover" draggable={false} />
+        <img
+          ref={heroLayerRef}
+          src="/hero.jpg"
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover will-change-[opacity]"
+          draggable={false}
+        />
+      </div>
+
       {/* HERO FIRST PAGE — reproduces the reference artwork */}
-      <main>
+      <main className="relative">
         <HeroContent onExploreClick={scrollToWorks} onTagClick={handleTagClick} />
       </main>
 
       {/* PAGE 2 ONWARD: one fixed backdrop, only the content blocks scroll over it */}
       <div className="relative">
-        <div className="sticky top-0 h-screen -mb-[100vh] overflow-hidden pointer-events-none" aria-hidden="true">
-          <img src="/worlds/bg.jpg" alt="" className="w-full h-full object-cover" draggable={false} />
-        </div>
 
         {/* SECOND SECTION: Digital Worlds carousel */}
         <DigitalWorlds onOpenAllWorks={() => openAllWorks()} onOpenContact={() => setIsContactOpen(true)} />
