@@ -10,7 +10,7 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({ onOpenContact 
   const [openPhase, setOpenPhase] = useState<string>('design');
 
   return (
-    <section id="services-section" className="relative w-full py-20 px-6 sm:px-10 lg:px-16 bg-[#eee8df] border-t border-[#dfd6c8]">
+    <section id="services-section" className="relative w-full py-28 px-6 sm:px-10 lg:px-16">
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center gap-3 mb-3">
           <span className="text-xs font-semibold tracking-widest text-[#9c6a3b] uppercase">03 — SERVICES & METHOD</span>
@@ -29,8 +29,8 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({ onOpenContact 
                 key={phase.id}
                 className={`transition-all duration-500 rounded-2xl border ${
                   isOpen
-                    ? 'bg-[#f7f3ec] border-[#c8bea9] shadow-lg p-8 sm:p-10'
-                    : 'bg-[#e4dcce]/60 border-[#d6ccbd] p-6 sm:p-8 hover:bg-[#e4dcce]'
+                    ? 'bg-[#f7f1e8]/85 backdrop-blur-md border-white/60 shadow-lg p-8 sm:p-10'
+                    : 'bg-[#f4ece2]/60 backdrop-blur-md border-white/50 p-6 sm:p-8 hover:bg-[#f4ece2]/80'
                 }`}
               >
                 <div

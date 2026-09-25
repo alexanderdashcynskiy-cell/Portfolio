@@ -7,6 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { Navigation } from './components/Navigation';
 import { HeroContent } from './components/HeroContent';
 import { WorkShowcase } from './components/WorkShowcase';
+import { DigitalWorlds } from './components/DigitalWorlds';
 import { ServicesSection } from './components/ServicesSection';
 import { AboutModal } from './components/AboutModal';
 import { ContactModal } from './components/ContactModal';
@@ -22,7 +23,7 @@ export default function App() {
 
   useEffect(() => {
     const handleScroll = () => {
-      setShowBackToTop(window.scrollY > 400);
+      setShowBackToTop(window.scrollY > window.innerHeight * 1.8);
     };
 
     window.addEventListener('scroll', handleScroll);
@@ -41,13 +42,7 @@ export default function App() {
     } else if (section === 'contact') {
       setIsContactOpen(true);
     } else if (section === 'work') {
-      setIsWorksModalOpen(true);
-      const el = document.getElementById('work-showcase');
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        const y = el.getBoundingClientRect().top + window.pageYOffset;
-        window.scrollTo({ top: y, behavior: 'smooth' });
-      }
+      scrollToWorks();
     } else if (section === 'services') {
       const el = document.getElementById('services-section');
       if (el) {
@@ -59,20 +54,15 @@ export default function App() {
   };
 
   const scrollToWorks = () => {
-    setIsWorksModalOpen(true);
-    const el = document.getElementById('work-showcase');
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      const y = el.getBoundingClientRect().top + window.pageYOffset;
-      window.scrollTo({ top: y, behavior: 'smooth' });
-    }
+    document.getElementById('work')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  const handleTagClick = (tag: string) => {
-    setWorkFilter(tag);
+  const openAllWorks = (filter: string | null = null) => {
+    setWorkFilter(filter);
     setIsWorksModalOpen(true);
-    scrollToWorks();
   };
+
+  const handleTagClick = (tag: string) => openAllWorks(tag);
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -94,51 +84,53 @@ export default function App() {
         <HeroContent onExploreClick={scrollToWorks} onTagClick={handleTagClick} />
       </main>
 
-      {/* SECOND SECTION: Selected Works Showcase */}
-      <WorkShowcase
-        initialFilter={workFilter}
-        onOpenContact={() => setIsContactOpen(true)}
-      />
-
-      {/* THIRD SECTION: Services & End-to-End Workflow */}
-      <ServicesSection
-        onOpenContact={() => setIsContactOpen(true)}
-      />
-
-      {/* FOOTER */}
-      <footer className="py-12 px-6 sm:px-10 lg:px-16 bg-[#e3dcce] border-t border-[#d8cfc0] flex flex-col sm:flex-row items-center justify-between gap-6 text-xs text-[#6e6457]">
-        <div className="flex items-center gap-3">
-          <span className="font-serif text-lg font-bold text-[#141312]">A.</span>
-          <span>© 2026 Alexander Dashcynskiy. All rights reserved.</span>
+      {/* PAGE 2 ONWARD: one fixed backdrop, only the content blocks scroll over it */}
+      <div className="relative">
+        <div className="sticky top-0 h-screen -mb-[100vh] overflow-hidden pointer-events-none" aria-hidden="true">
+          <img src="/worlds/bg.jpg" alt="" className="w-full h-full object-cover" draggable={false} />
         </div>
 
-        <div className="flex items-center gap-8 font-medium tracking-wider uppercase text-[#3a352e]">
-          <button
-            onClick={() => setIsAboutOpen(true)}
-            className="hover:text-[#9c6a3b] transition-colors cursor-pointer"
-          >
-            About
-          </button>
-          <button
-            onClick={scrollToWorks}
-            className="hover:text-[#9c6a3b] transition-colors cursor-pointer"
-          >
-            Works
-          </button>
-          <button
-            onClick={() => setIsContactOpen(true)}
-            className="hover:text-[#9c6a3b] transition-colors cursor-pointer"
-          >
-            Contact
-          </button>
-          <a
-            href="mailto:alexanderdashcynskiy@gmail.com"
-            className="hover:text-[#9c6a3b] transition-colors"
-          >
-            Email
-          </a>
-        </div>
-      </footer>
+        {/* SECOND SECTION: Digital Worlds carousel */}
+        <DigitalWorlds onOpenAllWorks={() => openAllWorks()} onOpenContact={() => setIsContactOpen(true)} />
+
+        {/* THIRD SECTION: Services & End-to-End Workflow */}
+        <ServicesSection onOpenContact={() => setIsContactOpen(true)} />
+
+        {/* FOOTER */}
+        <footer className="py-12 px-6 sm:px-10 lg:px-16 relative bg-[#f4ece2]/75 backdrop-blur-md border-t border-white/40 flex flex-col sm:flex-row items-center justify-between gap-6 text-xs text-[#6e6457]">
+          <div className="flex items-center gap-3">
+            <span className="font-serif text-lg font-bold text-[#141312]">A.</span>
+            <span>© 2026 Alexander Dashcynskiy. All rights reserved.</span>
+          </div>
+
+          <div className="flex items-center gap-8 font-medium tracking-wider uppercase text-[#3a352e]">
+            <button
+              onClick={() => setIsAboutOpen(true)}
+              className="hover:text-[#9c6a3b] transition-colors cursor-pointer"
+            >
+              About
+            </button>
+            <button
+              onClick={scrollToWorks}
+              className="hover:text-[#9c6a3b] transition-colors cursor-pointer"
+            >
+              Works
+            </button>
+            <button
+              onClick={() => setIsContactOpen(true)}
+              className="hover:text-[#9c6a3b] transition-colors cursor-pointer"
+            >
+              Contact
+            </button>
+            <a
+              href="mailto:alexanderdashcynskiy@gmail.com"
+              className="hover:text-[#9c6a3b] transition-colors"
+            >
+              Email
+            </a>
+          </div>
+        </footer>
+      </div>
 
       {/* Back to Top floating button */}
       {showBackToTop && (
