@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+@theme {
+  --font-serif: "Cormorant Garamond", Georgia, serif;
+  --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --color-gold: #9c6a3b;
+  --color-gold-light: #d19f63;
+  --color-stone-bg: #ece6dc;
+  --color-charcoal-dark: #141312;
+}
+
+@layer base {
+  body {
+    font-family: var(--font-sans);
+    background-color: #e9e3da;
+    color: #1a1918;
+  }
+}
+
+/* Custom subtle noise texture */
+.bg-noise {
+  background-image: radial-gradient(rgba(0, 0, 0, 0.03) 1px, transparent 0);
+  background-size: 24px 24px;
+}
+
+/* Glass & optical highlights */
+@keyframes shimmerPulse {
+  0%, 100% {
+    opacity: 0.85;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.03);
+  }
+}
+
+.animate-shimmer-pulse {
+  animation: shimmerPulse 6s ease-in-out infinite;
+}
+
+@keyframes waterGlint {
+  0%, 100% {
+    opacity: 0.3;
+    transform: translateY(0px) scale(0.98);
+  }
+  50% {
+    opacity: 0.85;
+    transform: translateY(-2px) scale(1.02);
+  }
+}
+
+.animate-glint {
+  animation: waterGlint 4s ease-in-out infinite;
+}
+
+/* Smooth transitions for interactive elements */
+.transition-smooth {
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
