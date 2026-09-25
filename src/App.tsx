@@ -40,8 +40,12 @@ export default function App() {
 
   const [isWorksModalOpen, setIsWorksModalOpen] = useState(false);
 
-  const handleOpenSection = (section: 'about' | 'work' | 'services' | 'contact') => {
+  const handleOpenSection = (section: 'home' | 'about' | 'work' | 'services' | 'contact') => {
     setActiveSection(section);
+    if (section === 'home') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
     if (section === 'about') {
       setIsAboutOpen(true);
     } else if (section === 'contact') {
@@ -105,7 +109,7 @@ export default function App() {
       <div className="relative">
 
         {/* SECOND SECTION: Digital Worlds carousel */}
-        <DigitalWorlds onOpenAllWorks={() => openAllWorks()} onOpenContact={() => setIsContactOpen(true)} />
+        <DigitalWorlds onOpenContact={() => setIsContactOpen(true)} />
 
         {/* THIRD SECTION: Services & End-to-End Workflow */}
         <ServicesSection onOpenContact={() => setIsContactOpen(true)} />

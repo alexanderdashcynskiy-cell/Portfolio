@@ -102,3 +102,12 @@
 .world-card {
   -webkit-box-reflect: below 6px linear-gradient(transparent 72%, rgba(0, 0, 0, 0.22));
 }
+
+/* Visible glass thickness of the project cards */
+.world-edge {
+  background: linear-gradient(90deg, #f3ebe0 0%, #b9ad9f 35%, #3a332d 100%);
+  -webkit-box-reflect: below 6px linear-gradient(transparent 72%, rgba(0, 0, 0, 0.18));
+}
+.world-edge[data-side="right"] {
+  background: linear-gradient(270deg, #e9dfd2 0%, #8f8377 35%, #2a2521 100%);
+}

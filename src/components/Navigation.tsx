@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ArrowRight, Menu, X, CheckCircle2 } from 'lucide-react';
 
 interface NavigationProps {
-  onOpenSection: (section: 'about' | 'work' | 'services' | 'contact') => void;
+  onOpenSection: (section: 'home' | 'about' | 'work' | 'services' | 'contact') => void;
   activeSection?: string;
 }
 
@@ -13,16 +13,17 @@ export const Navigation: React.FC<NavigationProps> = ({ onOpenSection, activeSec
   const [showStatusTooltip, setShowStatusTooltip] = useState(false);
 
   const navLinks = [
-    { id: 'about', label: 'ABOUT' },
+    { id: 'home', label: 'HOME' },
     { id: 'work', label: 'WORK' },
+    { id: 'about', label: 'ABOUT' },
     { id: 'services', label: 'SERVICES' },
     { id: 'contact', label: 'CONTACT' },
   ] as const;
 
   return (
     <header
-      className="font-hero-sans u-px fixed top-0 inset-x-0 z-50 flex items-center justify-between pointer-events-none text-[var(--hero-ink)]"
-      style={{ height: `max(72px, ${u(94)})` }}
+      className="font-hero-sans fixed top-0 inset-x-0 z-50 flex items-center justify-between pointer-events-none text-[var(--hero-ink)]"
+      style={{ height: `max(72px, ${u(92)})`, paddingLeft: `max(20px, ${u(57)})`, paddingRight: `max(20px, ${u(58)})` }}
     >
       {/* LEFT: "A." + links */}
       <div className="flex items-center pointer-events-auto">
@@ -37,7 +38,7 @@ export const Navigation: React.FC<NavigationProps> = ({ onOpenSection, activeSec
 
         <nav
           className="hidden md:flex items-center"
-          style={{ marginLeft: u(72), gap: u(43) }}
+          style={{ marginLeft: u(73), gap: u(47) }}
           aria-label="Main Navigation"
         >
           {navLinks.map((link) => {
@@ -49,7 +50,7 @@ export const Navigation: React.FC<NavigationProps> = ({ onOpenSection, activeSec
                 className={`group relative py-1 font-normal tracking-[0.02em] uppercase transition-colors duration-300 cursor-pointer ${
                   isActive ? 'text-[var(--hero-bronze)]' : 'hover:text-[var(--hero-bronze)]'
                 }`}
-                style={{ fontSize: `max(11px, ${u(12.5)})` }}
+                style={{ fontSize: `max(11px, ${u(13.5)})` }}
               >
                 {link.label}
                 <span
@@ -64,21 +65,21 @@ export const Navigation: React.FC<NavigationProps> = ({ onOpenSection, activeSec
       </div>
 
       {/* RIGHT: status + LET'S TALK */}
-      <div className="flex items-center pointer-events-auto" style={{ gap: u(55) }}>
+      <div className="flex items-center pointer-events-auto" style={{ gap: u(40) }}>
         <div
           className="relative hidden sm:flex items-center cursor-pointer group"
-          style={{ gap: u(19) }}
+          style={{ gap: u(16) }}
           onMouseEnter={() => setShowStatusTooltip(true)}
           onMouseLeave={() => setShowStatusTooltip(false)}
           onClick={() => onOpenSection('contact')}
         >
           <span
             className="rounded-full bg-[var(--hero-ink)] transition-colors duration-300 group-hover:bg-[var(--hero-bronze)]"
-            style={{ width: `max(9px, ${u(12)})`, height: `max(9px, ${u(12)})` }}
+            style={{ width: `max(9px, ${u(13)})`, height: `max(9px, ${u(13)})` }}
           />
           <div
-            className="flex flex-col uppercase leading-[1.38] tracking-[0.01em] transition-colors duration-300 group-hover:text-[var(--hero-bronze)]"
-            style={{ fontSize: `max(10px, ${u(11.5)})` }}
+            className="flex flex-col uppercase leading-[1.25] tracking-[0.01em] transition-colors duration-300 group-hover:text-[var(--hero-bronze)]"
+            style={{ fontSize: `max(10px, ${u(13.5)})` }}
           >
             <span>Available</span>
             <span>For new projects</span>
@@ -101,10 +102,10 @@ export const Navigation: React.FC<NavigationProps> = ({ onOpenSection, activeSec
           onClick={() => onOpenSection('contact')}
           className="group inline-flex items-center justify-center bg-[var(--hero-ink)] text-white uppercase tracking-[0.02em] rounded-full transition-all duration-300 hover:bg-[var(--hero-bronze)] active:scale-95 cursor-pointer"
           style={{
-            width: `max(128px, ${u(162)})`,
-            height: `max(38px, ${u(46)})`,
+            width: `max(128px, ${u(167)})`,
+            height: `max(38px, ${u(44)})`,
             gap: u(12),
-            fontSize: `max(11px, ${u(13)})`,
+            fontSize: `max(11px, ${u(13.5)})`,
           }}
         >
           <span>Let’s talk</span>
