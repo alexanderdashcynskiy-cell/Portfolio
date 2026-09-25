@@ -89,3 +89,16 @@
   padding-left: max(20px, calc(71 * var(--u)));
   padding-right: max(20px, calc(51 * var(--u)));
 }
+
+.font-condensed {
+  font-family: "Barlow Condensed", "Oswald", sans-serif;
+}
+
+.font-cormorant {
+  font-family: "Cormorant Garamond", Georgia, serif;
+}
+
+/* Glossy floor reflection under the floating project cards */
+.world-card {
+  -webkit-box-reflect: below 6px linear-gradient(transparent 72%, rgba(0, 0, 0, 0.22));
+}

@@ -13,20 +13,13 @@ const capabilities = ['UX/UI', 'WEB', 'APPS', 'MINI APPS', 'DASHBOARDS'];
 
 export const HeroContent: React.FC<HeroContentProps> = ({ onExploreClick, onTagClick }) => {
   return (
-    <section className="relative w-full h-screen min-h-[640px] overflow-hidden bg-[#e9dfd2]">
-      {/* Scene */}
-      <img
-        src="/hero.jpg"
-        alt="Glass sphere resting on a stone in a sunlit travertine courtyard"
-        className="absolute inset-0 w-full h-full object-cover object-[68%_50%] md:object-center select-none pointer-events-none"
-        draggable={false}
-      />
+    <section className="relative w-full h-screen min-h-[640px] overflow-hidden">
       {/* Mobile legibility veil */}
       <div className="absolute inset-0 md:hidden bg-gradient-to-r from-[#f1e6d8]/85 via-[#f1e6d8]/50 to-transparent pointer-events-none" />
 
       <div
         className="font-hero-sans u-px relative z-10 h-full flex flex-col text-[var(--hero-ink)]"
-        style={{ paddingTop: `max(110px, ${u(165)})` }}
+        style={{ paddingTop: `max(110px, ${u(188)})` }}
       >
         {/* 01 — DIGITAL PRODUCTS FOR REAL BUSINESSES */}
         <div className="flex items-start">
@@ -52,7 +45,7 @@ export const HeroContent: React.FC<HeroContentProps> = ({ onExploreClick, onTagC
           style={{
             fontSize: u(137),
             lineHeight: 0.775,
-            letterSpacing: '-0.02em',
+            letterSpacing: '-0.01em',
             marginTop: u(20),
           }}
         >
@@ -64,7 +57,7 @@ export const HeroContent: React.FC<HeroContentProps> = ({ onExploreClick, onTagC
         {/* Subtitle */}
         <p
           className="leading-[1.24] tracking-[-0.005em] text-[#141312]"
-          style={{ fontSize: `max(16px, ${u(24)})`, marginTop: u(8), maxWidth: `max(300px, ${u(380)})` }}
+          style={{ fontSize: `max(16px, ${u(24)})`, marginTop: u(13), maxWidth: `max(300px, ${u(380)})` }}
         >
           From the first idea to a working digital product.
         </p>
@@ -72,7 +65,7 @@ export const HeroContent: React.FC<HeroContentProps> = ({ onExploreClick, onTagC
         {/* Capabilities */}
         <div
           className="flex flex-wrap items-center uppercase tracking-[0.01em]"
-          style={{ fontSize: `max(11px, ${u(15)})`, marginTop: u(22), columnGap: u(16) }}
+          style={{ fontSize: `max(11px, ${u(15)})`, marginTop: u(23), columnGap: u(16) }}
         >
           {capabilities.map((item, idx) => (
             <React.Fragment key={item}>
@@ -96,7 +89,7 @@ export const HeroContent: React.FC<HeroContentProps> = ({ onExploreClick, onTagC
         <button
           onClick={onExploreClick}
           className="group self-start inline-flex items-center cursor-pointer"
-          style={{ marginTop: u(31), gap: u(22) }}
+          style={{ marginTop: u(35), gap: u(22) }}
           aria-label="Explore my work"
         >
           <span
@@ -121,7 +114,7 @@ export const HeroContent: React.FC<HeroContentProps> = ({ onExploreClick, onTagC
         <button
           onClick={onExploreClick}
           className="group absolute flex flex-col items-start cursor-pointer"
-          style={{ left: `max(20px, ${u(71)})`, top: u(920), gap: u(12) }}
+          style={{ left: `max(20px, ${u(71)})`, top: u(932), gap: u(12) }}
           aria-label="Scroll down"
         >
           <span className="uppercase leading-none" style={{ fontSize: `max(10px, ${u(12)})` }}>
