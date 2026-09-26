@@ -98,35 +98,55 @@
   font-family: "Cormorant Garamond", Georgia, serif;
 }
 
-/* 3D glass slabs of the project cards */
+/* 3D glass slabs of the project cards: bronze frame, glass front */
 .slab-part {
   opacity: var(--o, 0);
 }
 .slab-face {
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16), inset 0 0 24px rgba(0, 0, 0, 0.45);
+  box-shadow: inset 0 0 0 1.5px #150d08, inset 0 0 26px rgba(0, 0, 0, 0.55);
 }
-.slab-sheen {
-  background: linear-gradient(118deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.04) 22%, transparent 40%, transparent 72%, rgba(255, 244, 228, 0.07) 100%);
+.slab-glass {
+  /* thin bright rim on the top edge, darker bezel below, faint cool tint */
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 238, 214, 0.55),
+    inset 1px 0 0 rgba(255, 238, 214, 0.18),
+    inset -1px 0 0 rgba(0, 0, 0, 0.5),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.5);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.07) 0%, transparent 18%),
+    radial-gradient(120% 60% at 100% 0%, rgba(255, 226, 190, 0.14), transparent 55%),
+    linear-gradient(120deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.04) 20%, transparent 34%);
+}
+.slab-glare {
+  background: linear-gradient(105deg, transparent 38%, rgba(255, 246, 232, 0.13) 46%, rgba(255, 255, 255, 0.2) 49%, rgba(255, 246, 232, 0.08) 53%, transparent 62%);
+  background-size: 260% 100%;
+  background-position: var(--glare, 50%) 0;
   mix-blend-mode: screen;
 }
 .slab-back {
-  background: linear-gradient(180deg, #1c1714, #0b0908);
-  border-radius: 6px;
+  background: linear-gradient(180deg, #2b1c11, #140c07);
 }
+/* Bronze metal band: darker at the top, warmer toward the floor */
 .slab-side {
-  border-left: 1px solid rgba(255, 250, 240, 0.7);
-  background: linear-gradient(90deg, #f1e8dc 0%, #cbbfb1 28%, #71675d 70%, #2a2521 100%);
+  border-left: 1px solid #1a0f08;
+  box-shadow: inset -1px 0 0 rgba(255, 214, 170, 0.35);
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.25) 0%, transparent 30%, rgba(255, 210, 160, 0.12) 85%, rgba(255, 225, 190, 0.25) 100%),
+    linear-gradient(180deg, #3b2817 0%, #3e2a19 22%, #5a3c25 48%, #6f4a2f 72%, #744f33 88%, #6a452a 100%);
 }
 .slab-right {
-  background: linear-gradient(90deg, #8a7f73 0%, #4a413a 25%, #1c1815 70%, #0e0c0b 100%);
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.35) 0%, transparent 40%, rgba(255, 210, 160, 0.08) 100%),
+    linear-gradient(180deg, #2c1e12 0%, #3a2718 30%, #4d3320 65%, #5a3c25 100%);
 }
 .slab-cap {
-  border-top: 1px solid rgba(255, 250, 240, 0.6);
-  background: linear-gradient(180deg, #b8ad9f 0%, #5a5047 40%, #1a1613 100%);
+  border-top: 1px solid #1a0f08;
+  box-shadow: inset 0 -1px 0 rgba(255, 220, 180, 0.4);
+  background: linear-gradient(180deg, #2e1f13 0%, #4b3321 60%, #69543f 100%);
 }
 .slab-bottom {
-  border-top: none;
-  background: #0d0b0a;
+  box-shadow: none;
+  background: #1d130b;
 }
 .slab-reflection {
   opacity: calc(var(--o, 0) * 0.4);

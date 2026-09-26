@@ -185,6 +185,8 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact }) =
           const float = reduceMotion ? 0 : Math.sin(t / 1200 + k * 1.4) * 3;
           el.style.transform = `translate3d(${pose.tx}px, ${pose.ty + float}px, ${pose.tz}px) rotateY(${pose.th}rad)`;
           el.style.zIndex = String(Math.round(3000 + pose.tz));
+          // Glare slides across the glass as the slab turns.
+          el.style.setProperty('--glare', `${50 + pose.th * 45}%`);
           baseOpacity.current[k] = p < 0 ? Math.max(0, 1 + 2 * p) : p > n - 1 ? Math.max(0, 1 - 2 * (p - (n - 1))) : 1;
         }
 
@@ -302,18 +304,23 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact }) =
             </div>
 
             {/* Slab body: back, sides, top, bottom */}
-            <div className="slab-part slab-back absolute inset-0" style={{ transform: `translateZ(${-DEPTH}px)` }} />
+            <div className="slab-part slab-back absolute inset-0 rounded-[10px]" style={{ transform: `translateZ(${-DEPTH}px)` }} />
             <div className="slab-part slab-side slab-left absolute left-0 top-0" style={{ width: DEPTH, height: CARD_H, transformOrigin: 'left', transform: 'rotateY(90deg)' }} />
             <div className="slab-part slab-side slab-right absolute top-0" style={{ left: CARD_W, width: DEPTH, height: CARD_H, transformOrigin: 'left', transform: 'rotateY(90deg)' }} />
             <div className="slab-part slab-cap absolute left-0 top-0" style={{ width: CARD_W, height: DEPTH, transformOrigin: 'top', transform: 'rotateX(-90deg)' }} />
             <div className="slab-part slab-cap slab-bottom absolute left-0" style={{ top: CARD_H, width: CARD_W, height: DEPTH, transformOrigin: 'top', transform: 'rotateX(-90deg)' }} />
 
-            {/* Front face */}
+            {/* Glass pane in front of the recessed artwork */}
+            <div className="slab-part slab-glass absolute inset-0 rounded-[10px] pointer-events-none" style={{ transform: 'translateZ(0.5px)' }}>
+              <div className="slab-glare absolute inset-0 rounded-[10px]" />
+            </div>
+
+            {/* Front face (artwork sits just behind the glass) */}
             <span className="slab-part absolute font-hero-sans text-[#1d1a17] leading-none" style={{ left: 30, top: -30, fontSize: 21, transform: 'translateZ(1px)' }}>
               {w.number}
             </span>
-            <div className="slab-part absolute inset-0" style={{ transform: 'translateZ(0.5px)' }}>
-              <div className="slab-face absolute inset-0 overflow-hidden rounded-[6px] bg-black">
+            <div className="slab-part absolute inset-0" style={{ transform: 'translateZ(-3px)' }}>
+              <div className="slab-face absolute inset-0 overflow-hidden rounded-[10px] bg-black">
                 <img
                   src={w.image}
                   alt=""
@@ -321,7 +328,6 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact }) =
                   className="absolute inset-0 w-full h-full object-fill transition-transform duration-700 group-hover:scale-[1.04]"
                 />
                 <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/35" />
-                <div className="slab-sheen absolute inset-0" />
                 <div className="absolute inset-0 text-white">
                   <svg className="absolute left-1/2 -translate-x-1/2 opacity-90" style={{ top: 38 }} width="17" height="17" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="0.9">
                     <path d="M8 1 15 8 8 15 1 8z" />
