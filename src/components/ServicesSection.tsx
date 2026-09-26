@@ -10,18 +10,18 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({ onOpenContact 
   const [openPhase, setOpenPhase] = useState<string>('design');
 
   return (
-    <section id="services-section" className="relative w-full py-28 px-6 sm:px-10 lg:px-16">
+    <section id="services-section" className="relative w-full pt-[112px] pb-10 px-6 sm:px-10 lg:px-16">
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center gap-3 mb-3">
           <span className="text-xs font-semibold tracking-widest text-[#9c6a3b] uppercase">03 — SERVICES & METHOD</span>
           <span className="w-8 h-[1px] bg-[#9c6a3b]" />
         </div>
-        <h2 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-bold text-[#141312] tracking-tight mb-12 sm:mb-16">
+        <h2 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-bold text-[#141312] tracking-tight mb-8 sm:mb-10">
           The End-to-End Workflow.
         </h2>
 
         {/* 3 Step Phase Accordion / Cards */}
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-4">
           {SERVICE_PHASES.map((phase) => {
             const isOpen = openPhase === phase.id;
             return (
@@ -29,8 +29,8 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({ onOpenContact 
                 key={phase.id}
                 className={`transition-all duration-500 rounded-2xl border ${
                   isOpen
-                    ? 'bg-[#f7f1e8]/85 backdrop-blur-md border-white/60 shadow-lg p-8 sm:p-10'
-                    : 'bg-[#f4ece2]/60 backdrop-blur-md border-white/50 p-6 sm:p-8 hover:bg-[#f4ece2]/80'
+                    ? 'bg-[#f7f1e8]/85 backdrop-blur-md border-white/60 shadow-lg p-6 sm:p-8'
+                    : 'bg-[#f4ece2]/60 backdrop-blur-md border-white/50 p-5 sm:p-6 hover:bg-[#f4ece2]/80'
                 }`}
               >
                 <div
@@ -57,7 +57,7 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({ onOpenContact 
                 </div>
 
                 {isOpen && (
-                  <div className="mt-8 pt-6 border-t border-[#dfd6c7] grid grid-cols-1 md:grid-cols-2 gap-8 animate-in fade-in duration-300">
+                  <div className="mt-6 pt-5 border-t border-[#dfd6c7] grid grid-cols-1 md:grid-cols-2 gap-8 animate-in fade-in duration-300">
                     <div>
                       <p className="text-sm leading-relaxed text-[#3b352f] mb-6">
                         {phase.description}

@@ -4,6 +4,7 @@ import { WORLDS, WORLD_FILTERS, WorldCard } from '../data/worldsData';
 
 interface DigitalWorldsProps {
   onOpenContact: () => void;
+  isActive?: boolean;
 }
 
 // One unit = one pixel of the 1536×1024 layout (same scale as the hero).
@@ -90,7 +91,7 @@ const slotOf = (j: number, offset: number, n: number) => {
 
 const matches = (w: WorldCard, filter: string) => filter === 'ALL WORK' || w.tags.includes(filter);
 
-export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact }) => {
+export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isActive = true }) => {
   const sectionRef = useRef<HTMLElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -160,14 +161,11 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact }) =
     return () => window.removeEventListener('resize', layout);
   }, []);
 
-  // Pause the animation loop while the section is off screen.
+  // Pause the animation loop and keyboard while this page is not shown.
   useEffect(() => {
-    const el = sectionRef.current;
-    if (!el) return;
-    const io = new IntersectionObserver(([entry]) => (visible.current = entry.isIntersecting));
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
+    visible.current = isActive;
+    if (isActive) lastInteraction.current = performance.now();
+  }, [isActive]);
 
   // Animation loop: easing toward target, filter fades, gentle float, autoplay.
   useEffect(() => {
@@ -470,6 +468,7 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact }) =
       {openCard && (
         <div
           data-control
+          data-modal
           className="fixed inset-0 z-[60] flex items-center justify-center p-5 bg-[#1a1512]/60 backdrop-blur-sm cursor-default"
           onClick={() => setOpenCard(null)}
         >

@@ -28,7 +28,7 @@ export const Navigation: React.FC<NavigationProps> = ({ onOpenSection, activeSec
       {/* LEFT: "A." + links */}
       <div className="flex items-center pointer-events-auto">
         <button
-          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          onClick={() => onOpenSection('home')}
           className="font-hero-sans font-bold leading-none tracking-[-0.04em] transition-colors duration-300 hover:text-[var(--hero-bronze)] cursor-pointer"
           style={{ fontSize: `max(26px, ${u(36)})` }}
           aria-label="Alexander Dashcynskiy — Home"

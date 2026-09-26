@@ -155,3 +155,64 @@
   -webkit-mask-image: linear-gradient(to top, #000 0%, transparent 75%);
   mask-image: linear-gradient(to top, #000 0%, transparent 75%);
 }
+
+/* ------------------------------------------------------------------
+   Full-screen pages: fixed exposure, content cross-fades between pages
+------------------------------------------------------------------- */
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+}
+
+.site-page {
+  position: fixed;
+  inset: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  transition:
+    opacity 0.7s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.9s cubic-bezier(0.16, 1, 0.3, 1),
+    filter 0.7s ease,
+    visibility 0s linear 0.9s;
+}
+.site-page::-webkit-scrollbar {
+  display: none;
+}
+.site-page.is-active {
+  opacity: 1;
+  transform: none;
+  filter: none;
+  visibility: visible;
+  transition-delay: 0.35s, 0.35s, 0.35s, 0s;
+}
+.site-page.is-above,
+.site-page.is-below {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  filter: blur(6px);
+}
+.site-page.is-above {
+  transform: translate3d(0, -6vh, 0);
+}
+.site-page.is-below {
+  transform: translate3d(0, 6vh, 0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-page,
+  .site-page.is-active {
+    transition-duration: 0.01s;
+    transition-delay: 0s;
+    transform: none;
+  }
+}
+
+/* Content scrolled under the fixed navigation fades out instead of colliding with it */
+.site-page:has(.page-scroll-fade) {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, transparent 70px, #000 110px);
+  mask-image: linear-gradient(to bottom, transparent 0, transparent 70px, #000 110px);
+}
