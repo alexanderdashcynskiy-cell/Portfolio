@@ -21,6 +21,7 @@ const ORIGIN_Y = 694;
 const CARD_W = 355;
 const CARD_H = 640;
 const DEPTH = 26; // slab thickness
+const GLASS = 4; // how far the domed glass stands proud of the artwork
 const CARDS_DROP = 36; // vertical offset of the whole card group on desktop
 const RADIUS = 16; // corner radius of the slab
 
@@ -341,13 +342,17 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
             <div className="slab-part slab-cap absolute top-0" style={{ left: RADIUS, width: CARD_W - 2 * RADIUS, height: DEPTH, transformOrigin: 'top', transform: 'rotateX(-90deg)' }} />
             <div className="slab-part slab-cap slab-bottom absolute" style={{ left: RADIUS, top: CARD_H, width: CARD_W - 2 * RADIUS, height: DEPTH, transformOrigin: 'top', transform: 'rotateX(-90deg)' }} />
 
-            {/* Glass pane in front of the recessed artwork */}
-            <div className="slab-part slab-glass absolute inset-0 rounded-[var(--r)] pointer-events-none" style={{ transform: 'translateZ(0.8px)' }}>
+            {/* Domed glass lens raised above the artwork, with its own clear rim */}
+            <div className="slab-part slab-glass-rim absolute top-0" style={{ left: 0, top: RADIUS, width: GLASS, height: CARD_H - 2 * RADIUS, transformOrigin: 'left', transform: `translateZ(${GLASS}px) rotateY(90deg)` }} />
+            <div className="slab-part slab-glass-rim absolute" style={{ left: CARD_W, top: RADIUS, width: GLASS, height: CARD_H - 2 * RADIUS, transformOrigin: 'left', transform: `translateZ(${GLASS}px) rotateY(90deg)` }} />
+            <div className="slab-part slab-glass-rim absolute" style={{ left: RADIUS, top: 0, width: CARD_W - 2 * RADIUS, height: GLASS, transformOrigin: 'top', transform: `translateZ(${GLASS}px) rotateX(-90deg)` }} />
+            <div className="slab-part slab-glass absolute inset-0 rounded-[var(--r)] pointer-events-none" style={{ transform: `translateZ(${GLASS}px)` }}>
+              <div className="slab-glass-dome absolute inset-0 rounded-[var(--r)]" />
               <div className="slab-glare absolute inset-0 rounded-[var(--r)]" />
             </div>
 
             {/* Front face, flush with the front edge of the frame */}
-            <span className="slab-part absolute font-hero-sans text-[#1d1a17] leading-none" style={{ left: 30, top: -30, fontSize: 21, transform: 'translateZ(1px)' }}>
+            <span className="slab-part absolute font-hero-sans text-[#1d1a17] leading-none" style={{ left: 30, top: -30, fontSize: 21, transform: `translateZ(${GLASS + 1}px)` }}>
               {w.number}
             </span>
             <div className="slab-part absolute inset-0" style={{ transform: 'translateZ(0.2px)' }}>
