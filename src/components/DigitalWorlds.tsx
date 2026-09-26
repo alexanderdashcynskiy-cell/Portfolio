@@ -342,15 +342,15 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact }) =
             <div className="slab-part slab-cap slab-bottom absolute" style={{ left: RADIUS, top: CARD_H, width: CARD_W - 2 * RADIUS, height: DEPTH, transformOrigin: 'top', transform: 'rotateX(-90deg)' }} />
 
             {/* Glass pane in front of the recessed artwork */}
-            <div className="slab-part slab-glass absolute inset-0 rounded-[var(--r)] pointer-events-none" style={{ transform: 'translateZ(0.5px)' }}>
+            <div className="slab-part slab-glass absolute inset-0 rounded-[var(--r)] pointer-events-none" style={{ transform: 'translateZ(0.8px)' }}>
               <div className="slab-glare absolute inset-0 rounded-[var(--r)]" />
             </div>
 
-            {/* Front face (artwork sits just behind the glass) */}
+            {/* Front face, flush with the front edge of the frame */}
             <span className="slab-part absolute font-hero-sans text-[#1d1a17] leading-none" style={{ left: 30, top: -30, fontSize: 21, transform: 'translateZ(1px)' }}>
               {w.number}
             </span>
-            <div className="slab-part absolute inset-0" style={{ transform: 'translateZ(-3px)' }}>
+            <div className="slab-part absolute inset-0" style={{ transform: 'translateZ(0.2px)' }}>
               <div className="slab-face absolute inset-0 overflow-hidden rounded-[var(--r)] bg-black">
                 <img
                   src={w.image}
