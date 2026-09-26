@@ -98,7 +98,134 @@
   font-family: "Cormorant Garamond", Georgia, serif;
 }
 
-/* Glossy floor reflection under the floating project cards */
-.world-card {
-  -webkit-box-reflect: below 6px linear-gradient(transparent 72%, rgba(0, 0, 0, 0.22));
+/* 3D glass slabs of the project cards: bronze frame, glass front */
+.slab-part {
+  opacity: var(--o, 0);
+}
+.slab-face {
+  box-shadow: none;
+}
+.slab-glass {
+  /* rounded bevel: light catches the top/left curve, the bottom/right curve falls into shade */
+  box-shadow:
+    inset 0 2px 1px rgba(255, 250, 240, 0.6),
+    inset 2px 0 2px rgba(255, 246, 232, 0.28),
+    inset -2px 0 3px rgba(0, 0, 0, 0.35),
+    inset 0 -3px 4px rgba(0, 0, 0, 0.45),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+    inset 0 0 14px 3px rgba(255, 244, 228, 0.1),
+    inset 0 0 46px 6px rgba(0, 0, 0, 0.28);
+}
+.slab-glass-dome {
+  /* the convex surface: a broad soft highlight near the top and a warm caustic at the bottom */
+  background:
+    radial-gradient(ellipse 130% 55% at 35% -8%, rgba(255, 255, 255, 0.26), rgba(255, 255, 255, 0.06) 45%, transparent 62%),
+    radial-gradient(ellipse 90% 40% at 55% 112%, rgba(255, 222, 180, 0.14), transparent 60%),
+    radial-gradient(ellipse 70% 90% at 50% 50%, transparent 60%, rgba(0, 0, 0, 0.12) 100%);
+}
+.slab-glass-rim {
+  background: linear-gradient(90deg, rgba(255, 250, 242, 0.75), rgba(214, 200, 184, 0.45));
+}
+.slab-glare {
+  background: linear-gradient(105deg, transparent 38%, rgba(255, 246, 232, 0.13) 46%, rgba(255, 255, 255, 0.2) 49%, rgba(255, 246, 232, 0.08) 53%, transparent 62%);
+  background-size: 260% 100%;
+  background-position: var(--glare, 50%) 0;
+  mix-blend-mode: screen;
+}
+.slab-back {
+  background: linear-gradient(180deg, #2b1c11, #140c07);
+}
+/* Bronze metal band: darker at the top, warmer toward the floor */
+.slab-side {
+  border-left: 1px solid #1a0f08;
+  box-shadow: inset -1px 0 0 rgba(255, 214, 170, 0.35);
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.25) 0%, transparent 30%, rgba(255, 210, 160, 0.12) 85%, rgba(255, 225, 190, 0.25) 100%),
+    linear-gradient(180deg, #3b2817 0%, #3e2a19 22%, #5a3c25 48%, #6f4a2f 72%, #744f33 88%, #6a452a 100%);
+}
+.slab-right {
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.35) 0%, transparent 40%, rgba(255, 210, 160, 0.08) 100%),
+    linear-gradient(180deg, #2c1e12 0%, #3a2718 30%, #4d3320 65%, #5a3c25 100%);
+}
+.slab-cap {
+  border-top: 1px solid #1a0f08;
+  box-shadow: inset 0 -1px 0 rgba(255, 220, 180, 0.4);
+  background: linear-gradient(180deg, #2e1f13 0%, #4b3321 60%, #69543f 100%);
+}
+.slab-corner {
+  background: linear-gradient(180deg, #2e1f13 0%, #4b3321 60%, #69543f 100%);
+}
+.slab-corner-bottom {
+  background: linear-gradient(180deg, #5a3c25 0%, #6f4a2f 100%);
+}
+.slab-bottom {
+  box-shadow: none;
+  background: #1d130b;
+}
+.slab-reflection {
+  opacity: calc(var(--o, 0) * 0.4);
+  -webkit-mask-image: linear-gradient(to top, #000 0%, transparent 75%);
+  mask-image: linear-gradient(to top, #000 0%, transparent 75%);
+}
+
+/* ------------------------------------------------------------------
+   Full-screen pages: fixed exposure, content cross-fades between pages
+------------------------------------------------------------------- */
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+}
+
+.site-page {
+  position: fixed;
+  inset: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  transition:
+    opacity 0.7s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.9s cubic-bezier(0.16, 1, 0.3, 1),
+    filter 0.7s ease,
+    visibility 0s linear 0.9s;
+}
+.site-page::-webkit-scrollbar {
+  display: none;
+}
+.site-page.is-active {
+  opacity: 1;
+  transform: none;
+  filter: none;
+  visibility: visible;
+  transition-delay: 0.35s, 0.35s, 0.35s, 0s;
+}
+.site-page.is-above,
+.site-page.is-below {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  filter: blur(6px);
+}
+.site-page.is-above {
+  transform: translate3d(0, -6vh, 0);
+}
+.site-page.is-below {
+  transform: translate3d(0, 6vh, 0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-page,
+  .site-page.is-active {
+    transition-duration: 0.01s;
+    transition-delay: 0s;
+    transform: none;
+  }
+}
+
+/* Content scrolled under the fixed navigation fades out instead of colliding with it */
+.site-page:has(.page-scroll-fade) {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, transparent 70px, #000 110px);
+  mask-image: linear-gradient(to bottom, transparent 0, transparent 70px, #000 110px);
 }
