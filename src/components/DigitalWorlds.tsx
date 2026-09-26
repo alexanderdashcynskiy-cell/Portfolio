@@ -20,6 +20,7 @@ const ORIGIN_Y = 694;
 const CARD_W = 355;
 const CARD_H = 640;
 const DEPTH = 26; // slab thickness
+const CARDS_DROP = 36; // vertical offset of the whole card group on desktop
 const RADIUS = 16; // corner radius of the slab
 
 // The band around each rounded corner, approximated by short flat strips along the arc.
@@ -148,7 +149,8 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact }) =
       } else {
         s = Math.min(vw / STAGE_W, vh / STAGE_H);
         ox = (vw - STAGE_W * s) / 2;
-        oy = (vh - STAGE_H * s) / 2;
+        // Lowered so the cards line up with the text column ("02" … "Drag to explore").
+        oy = (vh - STAGE_H * s) / 2 + CARDS_DROP * s;
       }
       stageScale.current = s;
       stage.style.transform = `translate(${ox}px, ${oy}px) scale(${s})`;
