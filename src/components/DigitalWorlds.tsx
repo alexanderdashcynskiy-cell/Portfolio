@@ -397,7 +397,7 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
       <div className="absolute inset-x-0 top-0 h-[46%] md:hidden bg-gradient-to-b from-[#f4ebe0]/90 via-[#f4ebe0]/60 to-transparent pointer-events-none" />
 
       {/* Left column */}
-      <div className="absolute" style={{ left: `max(20px, ${u(56)})`, top: `max(88px, ${u(165)})` }}>
+      <div className="absolute" style={{ left: `max(20px, ${u(56)})`, top: `max(88px, ${u(176)})` }}>
         <div className="leading-none" style={{ fontSize: `max(13px, ${u(19)})` }}>02</div>
         <div className="flex items-center" style={{ marginTop: u(19), gap: u(10) }}>
           <span className="block h-px bg-[var(--hero-ink)]" style={{ width: u(37) }} />
@@ -418,7 +418,7 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
           {WORLD_FILTERS.map((f, i) => {
             const on = filter === f;
             return (
-              <li key={f} style={{ height: u(47) }}>
+              <li key={f} style={{ height: u(45) }}>
                 <button onClick={() => selectFilter(f)} className="group flex items-center h-full cursor-pointer" style={{ gap: u(27) }}>
                   <span
                     className={`flex items-center justify-center rounded-full tabular-nums transition-all duration-300 ${
@@ -446,8 +446,8 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
         </ul>
       </div>
 
-      {/* Drag to explore */}
-      <div className="absolute hidden md:flex items-center pointer-events-none" style={{ left: u(53), top: u(811), gap: u(22) }}>
+      {/* Drag to explore — its bottom lines up with the bottom of the front card */}
+      <div className="absolute hidden md:flex items-center pointer-events-none" style={{ left: u(53), top: u(781), gap: u(22) }}>
         <span className="flex items-center justify-center rounded-full border border-[var(--hero-ink)]/80" style={{ width: u(50), height: u(50) }}>
           <ArrowUpRight style={{ width: u(19), height: u(19) }} strokeWidth={1.4} />
         </span>
