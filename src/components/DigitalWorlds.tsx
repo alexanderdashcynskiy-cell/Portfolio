@@ -20,7 +20,29 @@ const ORIGIN_Y = 694;
 const CARD_W = 355;
 const CARD_H = 640;
 const DEPTH = 26; // slab thickness
-const RADIUS = 6; // corner radius of the slab
+const RADIUS = 16; // corner radius of the slab
+
+// The band around each rounded corner, approximated by short flat strips along the arc.
+const CORNER_STRIPS = (() => {
+  const steps = 5;
+  const corners = [
+    { cx: RADIUS, cy: RADIUS, from: Math.PI, bottom: false },
+    { cx: CARD_W - RADIUS, cy: RADIUS, from: 1.5 * Math.PI, bottom: false },
+    { cx: CARD_W - RADIUS, cy: CARD_H - RADIUS, from: 0, bottom: true },
+    { cx: RADIUS, cy: CARD_H - RADIUS, from: 0.5 * Math.PI, bottom: true },
+  ];
+  return corners.flatMap(({ cx, cy, from, bottom }) =>
+    Array.from({ length: steps }, (_, i) => {
+      const a0 = from + (i / steps) * (Math.PI / 2);
+      const a1 = from + ((i + 1) / steps) * (Math.PI / 2);
+      const x = cx + RADIUS * Math.cos(a0);
+      const y = cy + RADIUS * Math.sin(a0);
+      const dx = cx + RADIUS * Math.cos(a1) - x;
+      const dy = cy + RADIUS * Math.sin(a1) - y;
+      return { x, y, len: Math.hypot(dx, dy) + 0.6, angle: Math.atan2(dy, dx), bottom };
+    })
+  );
+})();
 
 interface Pose {
   tx: number;
@@ -281,7 +303,7 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact }) =
             }}
             data-card={k}
             className="group absolute left-0 top-0 will-change-transform"
-            style={{ width: CARD_W, height: CARD_H, transformStyle: 'preserve-3d', ['--o' as string]: 0 }}
+            style={{ width: CARD_W, height: CARD_H, transformStyle: 'preserve-3d', ['--o' as string]: 0, ['--r' as string]: `${RADIUS}px` }}
           >
             {/* Contact shadow on the floor */}
             <div
@@ -305,15 +327,23 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact }) =
             </div>
 
             {/* Slab body: back, sides, top, bottom */}
-            <div className="slab-part slab-back absolute inset-0 rounded-[6px]" style={{ transform: `translateZ(${-DEPTH}px)` }} />
-            <div className="slab-part slab-side slab-left absolute left-0 top-0" style={{ width: DEPTH, height: CARD_H, transformOrigin: 'left', transform: 'rotateY(90deg)' }} />
-            <div className="slab-part slab-side slab-right absolute top-0" style={{ left: CARD_W, width: DEPTH, height: CARD_H, transformOrigin: 'left', transform: 'rotateY(90deg)' }} />
+            <div className="slab-part slab-back absolute inset-0 rounded-[var(--r)]" style={{ transform: `translateZ(${-DEPTH}px)` }} />
+            <div className="slab-part slab-side slab-left absolute left-0" style={{ top: RADIUS, width: DEPTH, height: CARD_H - 2 * RADIUS, transformOrigin: 'left', transform: 'rotateY(90deg)' }} />
+            <div className="slab-part slab-side slab-right absolute" style={{ left: CARD_W, top: RADIUS, width: DEPTH, height: CARD_H - 2 * RADIUS, transformOrigin: 'left', transform: 'rotateY(90deg)' }} />
+            {/* Rounded corners of the bronze band */}
+            {CORNER_STRIPS.map((c, i) => (
+              <div
+                key={i}
+                className={`slab-part slab-corner absolute ${c.bottom ? 'slab-corner-bottom' : ''}`}
+                style={{ left: c.x, top: c.y, width: c.len, height: DEPTH, transformOrigin: '0 0', transform: `rotateZ(${c.angle}rad) rotateX(-90deg)` }}
+              />
+            ))}
             <div className="slab-part slab-cap absolute top-0" style={{ left: RADIUS, width: CARD_W - 2 * RADIUS, height: DEPTH, transformOrigin: 'top', transform: 'rotateX(-90deg)' }} />
             <div className="slab-part slab-cap slab-bottom absolute" style={{ left: RADIUS, top: CARD_H, width: CARD_W - 2 * RADIUS, height: DEPTH, transformOrigin: 'top', transform: 'rotateX(-90deg)' }} />
 
             {/* Glass pane in front of the recessed artwork */}
-            <div className="slab-part slab-glass absolute inset-0 rounded-[6px] pointer-events-none" style={{ transform: 'translateZ(0.5px)' }}>
-              <div className="slab-glare absolute inset-0 rounded-[6px]" />
+            <div className="slab-part slab-glass absolute inset-0 rounded-[var(--r)] pointer-events-none" style={{ transform: 'translateZ(0.5px)' }}>
+              <div className="slab-glare absolute inset-0 rounded-[var(--r)]" />
             </div>
 
             {/* Front face (artwork sits just behind the glass) */}
@@ -321,7 +351,7 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact }) =
               {w.number}
             </span>
             <div className="slab-part absolute inset-0" style={{ transform: 'translateZ(-3px)' }}>
-              <div className="slab-face absolute inset-0 overflow-hidden rounded-[6px] bg-black">
+              <div className="slab-face absolute inset-0 overflow-hidden rounded-[var(--r)] bg-black">
                 <img
                   src={w.image}
                   alt=""
