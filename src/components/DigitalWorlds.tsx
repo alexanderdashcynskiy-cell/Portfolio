@@ -20,6 +20,7 @@ const ORIGIN_Y = 694;
 const CARD_W = 355;
 const CARD_H = 640;
 const DEPTH = 26; // slab thickness
+const RADIUS = 6; // corner radius of the slab
 
 interface Pose {
   tx: number;
@@ -304,15 +305,15 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact }) =
             </div>
 
             {/* Slab body: back, sides, top, bottom */}
-            <div className="slab-part slab-back absolute inset-0 rounded-[10px]" style={{ transform: `translateZ(${-DEPTH}px)` }} />
+            <div className="slab-part slab-back absolute inset-0 rounded-[6px]" style={{ transform: `translateZ(${-DEPTH}px)` }} />
             <div className="slab-part slab-side slab-left absolute left-0 top-0" style={{ width: DEPTH, height: CARD_H, transformOrigin: 'left', transform: 'rotateY(90deg)' }} />
             <div className="slab-part slab-side slab-right absolute top-0" style={{ left: CARD_W, width: DEPTH, height: CARD_H, transformOrigin: 'left', transform: 'rotateY(90deg)' }} />
-            <div className="slab-part slab-cap absolute left-0 top-0" style={{ width: CARD_W, height: DEPTH, transformOrigin: 'top', transform: 'rotateX(-90deg)' }} />
-            <div className="slab-part slab-cap slab-bottom absolute left-0" style={{ top: CARD_H, width: CARD_W, height: DEPTH, transformOrigin: 'top', transform: 'rotateX(-90deg)' }} />
+            <div className="slab-part slab-cap absolute top-0" style={{ left: RADIUS, width: CARD_W - 2 * RADIUS, height: DEPTH, transformOrigin: 'top', transform: 'rotateX(-90deg)' }} />
+            <div className="slab-part slab-cap slab-bottom absolute" style={{ left: RADIUS, top: CARD_H, width: CARD_W - 2 * RADIUS, height: DEPTH, transformOrigin: 'top', transform: 'rotateX(-90deg)' }} />
 
             {/* Glass pane in front of the recessed artwork */}
-            <div className="slab-part slab-glass absolute inset-0 rounded-[10px] pointer-events-none" style={{ transform: 'translateZ(0.5px)' }}>
-              <div className="slab-glare absolute inset-0 rounded-[10px]" />
+            <div className="slab-part slab-glass absolute inset-0 rounded-[6px] pointer-events-none" style={{ transform: 'translateZ(0.5px)' }}>
+              <div className="slab-glare absolute inset-0 rounded-[6px]" />
             </div>
 
             {/* Front face (artwork sits just behind the glass) */}
@@ -320,7 +321,7 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact }) =
               {w.number}
             </span>
             <div className="slab-part absolute inset-0" style={{ transform: 'translateZ(-3px)' }}>
-              <div className="slab-face absolute inset-0 overflow-hidden rounded-[10px] bg-black">
+              <div className="slab-face absolute inset-0 overflow-hidden rounded-[6px] bg-black">
                 <img
                   src={w.image}
                   alt=""
