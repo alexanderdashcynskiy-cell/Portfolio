@@ -229,3 +229,80 @@ body {
   -webkit-mask-image: linear-gradient(to bottom, transparent 0, transparent 70px, #000 110px);
   mask-image: linear-gradient(to bottom, transparent 0, transparent 70px, #000 110px);
 }
+
+/* ------------------------------------------------------------------
+   ABOUT — the type and the principle row are positioned on the same
+   1536 × 1024 grid as the supplied reference.
+------------------------------------------------------------------- */
+.about-copy {
+  position: absolute;
+  z-index: 1;
+  width: calc(430 * var(--u));
+}
+
+.about-title {
+  font-size: calc(91 * var(--u));
+  font-weight: 400;
+  line-height: 0.905;
+  letter-spacing: -0.045em;
+}
+
+.about-title span {
+  display: block;
+}
+
+.about-intro {
+  max-width: calc(405 * var(--u));
+  font-size: calc(23 * var(--u));
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.about-principles {
+  position: absolute;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 1fr 1.03fr 1.26fr 1.16fr;
+}
+
+.about-principle + .about-principle {
+  border-left: 1px solid rgba(13, 12, 11, 0.5);
+}
+
+.about-principle h2 {
+  line-height: 1;
+  letter-spacing: -0.035em;
+}
+
+.about-principle-copy {
+  max-width: calc(238 * var(--u));
+  line-height: 1.05;
+}
+
+@media (max-width: 767px) {
+  .about-page {
+    overflow-y: auto;
+    background: rgba(247, 236, 222, 0.6);
+  }
+  .about-copy {
+    position: relative;
+    left: auto !important;
+    top: auto !important;
+    width: auto;
+    padding: 132px 24px 48px;
+  }
+  .about-title { font-size: clamp(56px, 16vw, 74px); }
+  .about-intro { max-width: 340px; font-size: 18px; }
+  .about-principles {
+    position: relative;
+    left: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    grid-template-columns: 1fr;
+    margin: 0 24px 40px;
+  }
+  .about-principle { padding: 24px 0 !important; }
+  .about-principle + .about-principle { border-left: 0; border-top: 1px solid rgba(13, 12, 11, 0.35); }
+  .about-principle h2 { font-size: 22px !important; }
+  .about-principle-copy { max-width: 300px; font-size: 15px !important; line-height: 1.25; }
+}
