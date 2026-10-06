@@ -481,7 +481,7 @@ body {
     position: static;
     width: auto;
     height: auto;
-    padding: 132px 24px 40px;
+    padding: var(--eyebrow-y) var(--eyebrow-x) 40px;
   }
   .about-copy { position: static; width: auto; }
   .stage-scene { display: none; }
