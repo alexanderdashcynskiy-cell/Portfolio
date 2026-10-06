@@ -45,7 +45,7 @@ export const AboutPage: React.FC = () => (
   <section className="about-page font-hero-sans text-[var(--hero-ink)]">
     <div className="about-stage">
       <div className="about-copy">
-        <span data-reveal className="about-eyebrow">03 / ABOUT</span>
+        <span data-reveal className="page-eyebrow">03 / ABOUT</span>
 
         <h1 className="about-title font-display uppercase" style={{ marginLeft: c(19), marginTop: c(35) }}>
           <span data-reveal="line">I Design</span>

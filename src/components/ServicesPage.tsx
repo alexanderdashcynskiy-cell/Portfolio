@@ -45,7 +45,7 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({ onOpenContact }) => 
   <section className="services-page about-page font-hero-sans text-[var(--hero-ink)]">
     <div className="about-stage">
       <div className="services-copy">
-        <span data-reveal className="services-eyebrow">04 / SERVICES</span>
+        <span data-reveal className="page-eyebrow">04 / SERVICES</span>
 
         <h1 className="services-title font-display uppercase">
           <span data-reveal="line">Ideas</span>

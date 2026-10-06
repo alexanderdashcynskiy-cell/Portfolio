@@ -202,6 +202,20 @@ body {
   overflow: hidden;
 }
 
+/* The page label ("0N / SECTION") above each page's headline: one style everywhere. */
+.page-eyebrow {
+  display: block;
+  width: fit-content;
+  padding-bottom: max(10px, calc(15 * var(--u)));
+  font-size: max(12px, calc(15 * var(--u)));
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  background: linear-gradient(currentColor, currentColor) left bottom / max(18px, calc(24 * var(--u))) 1px no-repeat;
+}
+
 /* ------------------------------------------------------------------
    Page transitions — one choreography for every page.
    · The scene of the arriving page fades in over the old one and settles
@@ -381,14 +395,6 @@ body {
   width: calc(460 * var(--c));
 }
 
-.about-eyebrow {
-  display: inline-block;
-  padding-bottom: calc(14 * var(--c));
-  font-size: calc(14.5 * var(--c));
-  font-weight: 700;
-  line-height: 1;
-  background: linear-gradient(currentColor, currentColor) left bottom / calc(22 * var(--c)) 1px no-repeat;
-}
 
 .about-title {
   font-size: calc(89 * var(--c));
@@ -474,7 +480,6 @@ body {
   .about-copy { position: static; width: auto; }
   .stage-scene { display: none; }
   .about-copy > * { margin-left: 0 !important; }
-  .about-eyebrow { font-size: 13px; padding-bottom: 10px; background-size: 22px 1px; }
   .about-title { font-size: clamp(56px, 16vw, 74px); transform: none; }
   .about-intro { max-width: 340px; font-size: 18px; }
   .about-divider { display: none; }
@@ -514,15 +519,6 @@ body {
   left: max(calc(83 * var(--c)), calc(16px - var(--stage-left)));
   top: max(calc(231 * var(--c)), calc(var(--nav-h) + 16px - var(--stage-top)));
   width: calc(560 * var(--c));
-}
-.services-eyebrow {
-  display: block;
-  width: fit-content;
-  padding-bottom: calc(17 * var(--c));
-  font-size: calc(17.5 * var(--c));
-  line-height: 1;
-  letter-spacing: 0.01em;
-  background: linear-gradient(currentColor, currentColor) left bottom / calc(23 * var(--c)) 1px no-repeat;
 }
 .services-title {
   margin-top: calc(22 * var(--c));
@@ -691,7 +687,6 @@ body {
 /* Phones, portrait and near-square screens: everything stacks. */
 @media (max-width: 767px), (max-aspect-ratio: 4/3) {
   .services-copy { position: static; width: auto; }
-  .services-eyebrow { font-size: 14px; padding-bottom: 12px; background-size: 22px 1px; }
   .services-title { margin-top: 22px; font-size: clamp(54px, 15vw, 74px); transform: none; }
   .services-intro { margin-top: 22px; max-width: 360px; font-size: 18px; line-height: 1.25; }
   .services-cta { height: 48px; margin-top: 24px; padding: 0 22px; gap: 12px; font-size: 13px; }
@@ -754,16 +749,6 @@ body {
   left: max(calc(145 * var(--c)), calc(16px - var(--stage-left)));
   top: max(calc(171 * var(--c)), calc(var(--nav-h) + 16px - var(--stage-top)));
   width: calc(620 * var(--c));
-}
-.contact-eyebrow {
-  display: block;
-  width: fit-content;
-  padding-bottom: calc(19 * var(--c));
-  font-size: calc(14.5 * var(--c));
-  font-weight: 500;
-  line-height: 1;
-  letter-spacing: 0.01em;
-  background: linear-gradient(currentColor, currentColor) left bottom / calc(26 * var(--c)) 1px no-repeat;
 }
 .contact-title {
   margin-top: calc(31 * var(--c));
@@ -991,7 +976,6 @@ body {
 @media (max-width: 767px), (max-aspect-ratio: 4/3) {
   .contact-page { background: rgba(34, 17, 7, 0.35); }
   .contact-copy { position: static; width: auto; }
-  .contact-eyebrow { font-size: 13px; padding-bottom: 12px; background-size: 22px 1px; }
   .contact-title { margin-top: 22px; font-size: clamp(50px, 14vw, 74px); transform: none; }
   .contact-intro { margin-top: 20px; font-size: 18px; }
   .contact-channels { grid-template-columns: 1fr; gap: 14px; margin-top: 26px; }

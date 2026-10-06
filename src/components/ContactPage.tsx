@@ -50,7 +50,7 @@ export const ContactPage: React.FC = () => {
     <section className="contact-page about-page font-hero-sans text-[#f7efe6]">
       <div className="about-stage">
         <div className="contact-copy">
-          <span data-reveal className="contact-eyebrow">05 / CONTACT</span>
+          <span data-reveal className="page-eyebrow">05 / CONTACT</span>
 
           <h1 className="contact-title font-display uppercase">
             <span data-reveal="line">Let’s</span>
