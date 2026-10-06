@@ -234,40 +234,36 @@ body {
    ABOUT — the type and the principle row are positioned on the same
    1536 × 1024 grid as the supplied reference.
 ------------------------------------------------------------------- */
-/* The stage covers the viewport exactly like an `object-cover` image anchored at
-   43% / 40% (the crop split that keeps the copy on screen), so the type is pinned
-   to the scene at every screen size. */
+/* The stage is the scene: it carries its own copy of the artwork, so every element is
+   pinned to it. It covers the viewport like `object-cover` (anchored 43% / 40%) unless
+   that would push the copy under the nav or below the fold; then it shrinks just enough
+   for the content band (artwork y 150–930) to fit, and any side gap is feathered into
+   the full-bleed backdrop. */
 :root {
-  --c: max(calc(100vw / 1536), calc(100vh / 1024));
-  --ax: 0.43;
+  --c-cover: max(calc(100vw / 1536), calc(100vh / 1024));
+  --nav-clear: calc(max(72px, calc(92 * var(--u))) + 12px);
+  --c: min(var(--c-cover), calc((100vh - var(--nav-clear) - 10px) / 780));
+  --stage-gap: max(0px, calc((100vw - 1536 * var(--c)) * 0.43));
+  --stage-feather: min(140px, calc(var(--stage-gap) * 3));
 }
 
 .about-scene {
   object-position: 43% 40%;
 }
 .about-stage-scene {
-  display: none;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 var(--stage-feather), #000 calc(100% - var(--stage-feather)), transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 var(--stage-feather), #000 calc(100% - var(--stage-feather)), transparent);
 }
 
-/* Ultra-wide: covering would crop the copy off the top and bottom, so the stage fits the
-   height and carries its own copy of the scene; the backdrop becomes a blurred fill. */
+/* Ultra-wide: the side gaps are wide, so the backdrop becomes a soft blurred fill. */
 @media (min-aspect-ratio: 19/10) {
-  :root {
-    --c: calc(100vh / 1024);
-    --ax: 0.5;
-  }
   .about-scene {
     filter: blur(28px);
     transform: scale(1.08);
-  }
-  .about-stage-scene {
-    display: block;
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    -webkit-mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
-    mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
   }
 }
 
@@ -287,8 +283,12 @@ body {
 
 .about-stage {
   position: absolute;
-  left: calc((100vw - 1536 * var(--c)) * var(--ax));
-  top: calc((100vh - 1024 * var(--c)) * 0.4);
+  left: calc((100vw - 1536 * var(--c)) * 0.43);
+  top: clamp(
+    calc(var(--nav-clear) - 150 * var(--c)),
+    calc((100vh - 1024 * var(--c)) * 0.4),
+    calc(100vh - 10px - 930 * var(--c))
+  );
   width: calc(1536 * var(--c));
   height: calc(1024 * var(--c));
 }
