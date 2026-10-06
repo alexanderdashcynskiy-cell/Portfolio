@@ -9,11 +9,12 @@ import { HeroContent } from './components/HeroContent';
 import { WorkShowcase } from './components/WorkShowcase';
 import { DigitalWorlds } from './components/DigitalWorlds';
 import { AboutPage } from './components/AboutPage';
+import { ServicesPage } from './components/ServicesPage';
 import { AboutModal } from './components/AboutModal';
 import { ContactModal } from './components/ContactModal';
 import { CustomCursor } from './components/CustomCursor';
 
-const PAGE_COUNT = 3;
+const PAGE_COUNT = 4;
 const PAGE_LOCK_MS = 1100;
 
 export default function App() {
@@ -41,7 +42,7 @@ export default function App() {
     lockUntil.current = performance.now() + PAGE_LOCK_MS;
     const el = pageEls.current[target];
     if (el) el.scrollTop = target > page ? 0 : el.scrollTop;
-    setActiveSection(['home', 'work', 'about'][target]);
+    setActiveSection(['home', 'work', 'about', 'services'][target]);
     setPage(target);
   }, [page]);
 
@@ -110,7 +111,8 @@ export default function App() {
     setActiveSection(section);
     if (section === 'home') goToPage(0);
     else if (section === 'work') goToPage(1);
-    else if (section === 'services' || section === 'about') goToPage(2);
+    else if (section === 'about') goToPage(2);
+    else if (section === 'services') goToPage(3);
     else if (section === 'contact') setIsContactOpen(true);
   };
 
@@ -150,15 +152,23 @@ export default function App() {
 
       <Navigation onOpenSection={handleOpenSection} activeSection={activeSection} />
 
-      {/* ONE FIXED BACKDROP: each page has its own scene, which settles in as the page arrives */}
+      {/* ONE FIXED BACKDROP: each page has its own scene; scenes only cross-fade. Pages 3 and 4
+          lay theirs out on the shared stage, so 3 → 4 dissolves the figure out of the terrace. */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
         {[
-          { src: '/hero.jpg', cls: '', pinned: true },
-          { src: '/worlds/bg.jpg', cls: '', pinned: true },
-          { src: '/about.jpg', cls: 'about-scene' },
-        ].map(({ src, cls, pinned }, i) => (
-          <div key={src} className={`scene-layer ${pinned ? 'is-pinned' : ''} ${stateOf(i)}`}>
-            <img src={src} alt="" className={`absolute inset-0 w-full h-full object-cover ${cls}`} draggable={false} />
+          { src: '/hero.jpg', staged: false },
+          { src: '/worlds/bg.jpg', staged: false },
+          { src: '/about.jpg', staged: true },
+          { src: '/services.jpg', staged: true },
+        ].map(({ src, staged }, i) => (
+          <div key={src} className={`scene-layer ${stateOf(i)}`}>
+            <img
+              src={src}
+              alt=""
+              className={`absolute inset-0 w-full h-full object-cover ${staged ? 'scene-fill' : ''}`}
+              draggable={false}
+            />
+            {staged && <img src={src} alt="" className="stage-scene" draggable={false} />}
           </div>
         ))}
       </div>
@@ -178,6 +188,11 @@ export default function App() {
       {/* PAGE 3 — About */}
       <div {...pageProps(2)}>
         <AboutPage />
+      </div>
+
+      {/* PAGE 4 — Services */}
+      <div {...pageProps(3)}>
+        <ServicesPage onOpenContact={() => setIsContactOpen(true)} />
       </div>
 
       {/* Interactive Works Fullscreen Modal (for direct instant access on WORK / EXPLORE clicks) */}

@@ -44,7 +44,6 @@ const dividers = [448, 776, 1141];
 export const AboutPage: React.FC = () => (
   <section className="about-page font-hero-sans text-[var(--hero-ink)]">
     <div className="about-stage">
-      <img src="/about.jpg" alt="" className="about-stage-scene" draggable={false} aria-hidden="true" />
       <div className="about-copy">
         <span data-reveal className="about-eyebrow">03 / ABOUT</span>
 
