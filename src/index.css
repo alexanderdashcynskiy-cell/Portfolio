@@ -1197,10 +1197,21 @@ body {
   border-radius: var(--r);
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
+  /* The rim is the glass lens and bronze band around it; this is only the cast shadow. */
+  box-shadow: 0 calc(60px * var(--lift, 1)) 120px -40px rgba(20, 10, 4, calc(0.65 * var(--lift, 1)));
+}
+.lift-glass-part {
+  pointer-events: none;
+}
+.lift-card .slab-glass {
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+/* The opened panel keeps a fine bronze edge of its own. */
+.lift-back {
   box-shadow:
-    0 0 0 3px #5a3c25,
-    0 0 0 4px rgba(255, 214, 170, 0.35),
-    0 calc(60px * var(--lift, 1)) 120px -40px rgba(20, 10, 4, 0.65);
+    inset 0 0 0 1px rgba(255, 214, 170, 0.22),
+    0 60px 120px -40px rgba(20, 10, 4, 0.65);
 }
 .lift-front {
   background: #000;
