@@ -1,10 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowRight, ArrowUpRight, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ArrowUpRight, LayoutGrid, X } from 'lucide-react';
 import { WORLDS, WORLD_FILTERS, WorldCard } from '../data/worldsData';
 
 interface DigitalWorldsProps {
   onOpenContact: () => void;
   isActive?: boolean;
+  /** Opens the overview (every card in a row), optionally filtered; `id` makes each request new. */
+  overviewRequest?: { filter: string | null; id: number } | null;
 }
 
 // One unit = one pixel of the 1536×1024 layout (same scale as the hero).
@@ -123,6 +125,12 @@ const FLIP_MS = 1000;
 const RETURN_MS = 680;
 const easeInOutCubic = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
 
+// Overview: the deck straightens into a row (two rows on phones) facing the viewer.
+const OVERVIEW_MS = 1150; // whole cascade, first card to last
+const OVERVIEW_STAGGER = 0.11; // share of the cascade between neighbouring cards
+const OVERVIEW_GAP_X = 46; // between cards, stage units
+const OVERVIEW_GAP_Y = 60;
+
 type LiftPhase = 'lifting' | 'front' | 'flipping' | 'open' | 'unflipping' | 'returning';
 interface Lift {
   k: number;
@@ -158,7 +166,7 @@ const slotOf = (j: number, offset: number, n: number) => {
 
 const matches = (w: WorldCard, filter: string) => filter === 'ALL WORK' || w.tags.includes(filter);
 
-export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isActive = true }) => {
+export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isActive = true, overviewRequest = null }) => {
   const sectionRef = useRef<HTMLElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -183,6 +191,9 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
   const [lifted, setLifted] = useState<number | null>(null); // WORLDS index of the lifted card
   const [liftOpen, setLiftOpen] = useState(false); // back face fully turned to the viewer
   const lift = useRef<Lift | null>(null);
+  const [overview, setOverview] = useState(false);
+  const ov = useRef({ from: 0, to: 0, start: 0 }); // overview progress, animated in the loop
+  const drawn = useRef<(Pose | null)[]>(WORLDS.map(() => null)); // pose each card was last drawn at
   const liftRef = useRef<HTMLDivElement>(null); // the lifted card (overlay copy)
   const liftStageRef = useRef<HTMLDivElement>(null); // overlay stage, laid out like the card stage
   const stageOffset = useRef({ ox: 0, oy: 0 });
@@ -233,6 +244,59 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
     return () => window.removeEventListener('resize', layout);
   }, []);
 
+  // ---- Overview ----------------------------------------------------------------------
+  const ovProgress = (t: number) => {
+    const o = ov.current;
+    return o.from + (o.to - o.from) * clamp((t - o.start) / OVERVIEW_MS, 0, 1);
+  };
+  const setOverviewTo = (on: boolean, delay = 0) => {
+    const t = performance.now();
+    ov.current = { from: ovProgress(t), to: on ? 1 : 0, start: t + delay };
+    if (on) target.current = Math.round(target.current); // the row is read from a resting deck
+    lastInteraction.current = t;
+    setOverview(on);
+  };
+
+  // Row (or two rows on phones) facing the viewer, centred in the free area of the page.
+  const overviewPoses = (n: number): Pose[] => {
+    const section = sectionRef.current;
+    const vw = section?.clientWidth ?? window.innerWidth;
+    const vh = section?.clientHeight ?? window.innerHeight;
+    const s = stageScale.current;
+    const { ox, oy } = stageOffset.current;
+    const mobile = vw < 768;
+    const cols = mobile ? Math.min(3, n) : n;
+    const rows = Math.ceil(n / cols);
+    const left = mobile ? 16 : Math.max(vw * 0.215, 300);
+    const right = vw - (mobile ? 16 : Math.max(56, vw * 0.045));
+    const top = mobile ? vh * 0.2 : vh * 0.17;
+    const bottom = mobile ? vh - 120 : vh * 0.9;
+    const gw = cols * CARD_W + (cols - 1) * OVERVIEW_GAP_X;
+    const gh = rows * CARD_H + (rows - 1) * OVERVIEW_GAP_Y;
+    const k = Math.min((right - left) / (gw * s), (bottom - top) / (gh * s));
+    const tz = PERSPECTIVE * (1 - 1 / k);
+    const cxs = (left + right) / 2;
+    const cys = (top + bottom) / 2;
+    return Array.from({ length: n }, (_, i) => {
+      const c = i % cols;
+      const r = Math.floor(i / cols);
+      const inRow = Math.min(cols, n - r * cols); // centre a short last row
+      const sx = cxs + (c - (inRow - 1) / 2) * (CARD_W + OVERVIEW_GAP_X) * s * k;
+      const sy = cys + (r - (rows - 1) / 2) * (CARD_H + OVERVIEW_GAP_Y) * s * k;
+      const cx = ORIGIN_X + ((sx - ox) / s - ORIGIN_X) / k;
+      const cy = ORIGIN_Y + ((sy - oy) / s - ORIGIN_Y) / k;
+      return { tx: cx - CARD_W / 2, ty: cy - CARD_H / 2, tz, th: 0 };
+    });
+  };
+
+  // Requests from outside (the hero's capability tags): filter, then fan the deck out.
+  useEffect(() => {
+    if (!overviewRequest) return;
+    setFilter(overviewRequest.filter ?? 'ALL WORK');
+    setOverviewTo(true, 450);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [overviewRequest?.id]);
+
   // ---- Lifted card -------------------------------------------------------------------
   // The pose that shows a card of the given width square to the viewer, centred on screen at
   // a comfortable size. Solved through the stage's perspective so the overlay copy projects
@@ -255,7 +319,7 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
 
   const openLift = (k: number) => {
     if (lift.current) return;
-    const from = shown.current[k];
+    const from = drawn.current[k];
     if (!from) return;
     const vw = sectionRef.current?.clientWidth ?? window.innerWidth;
     const { pose: front, k: scale } = facingPose(CARD_W, vw);
@@ -304,7 +368,7 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
     if (l.phase === 'lifting' || l.phase === 'returning') {
       const x = prog(l.phase === 'lifting' ? LIFT_MS : RETURN_MS);
       // Returning goes back to the card's live slot in the deck.
-      const deck = l.phase === 'lifting' ? l.from : shown.current[l.k] ?? l.from;
+      const deck = l.phase === 'lifting' ? l.from : drawn.current[l.k] ?? l.from;
       const e = easeInOutCubic(x);
       lifted = l.phase === 'lifting' ? e : 1 - e;
       pose = lerpPose(deck, l.front, lifted);
@@ -354,7 +418,12 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
 
   // Leaving the page drops a lifted card back without ceremony.
   useEffect(() => {
-    if (isActive || !lift.current) return;
+    if (isActive) return;
+    if (ov.current.to === 1) {
+      ov.current = { from: 0, to: 0, start: 0 };
+      setOverview(false);
+    }
+    if (!lift.current) return;
     lift.current = null;
     setLifted(null);
     setLiftOpen(false);
@@ -389,12 +458,14 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
       const list = itemsRef.current;
       const n = list.length;
       const path = pathFor(n);
+      const g = ovProgress(t);
+      const grid = g > 0 ? overviewPoses(n) : null;
       const replay = visible.current && replayReveal.current;
       if (replay) replayReveal.current = false;
       const leave = leaving.current;
       leaving.current = false;
 
-      const idle = visible.current && !lift.current && !drag.current && !hovering.current && t - lastInteraction.current > 6000;
+      const idle = visible.current && g === 0 && !lift.current && !drag.current && !hovering.current && t - lastInteraction.current > 6000;
       if (idle && !reduceMotion && n > 1 && t - lastAuto > 5000) {
         target.current = Math.round(target.current) + 1;
         lastAuto = t;
@@ -452,6 +523,17 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
             pose = lerpPose(prev, pose, 1 - Math.exp(-dt / 170));
           }
           shown.current[k] = pose;
+          // Blend toward the row: each card follows on a cascade, left to right.
+          let e = 0;
+          if (grid) {
+            const col = mod(j - Math.round(offset.current), n);
+            const local = clamp(g * (1 + OVERVIEW_STAGGER * (n - 1)) - OVERVIEW_STAGGER * col, 0, 1);
+            e = reduceMotion ? Math.round(g) : easeInOutCubic(local);
+            pose = lerpPose(pose, grid[col], e);
+            // A little lift toward the viewer mid-move so cards pass over one another cleanly.
+            pose = { ...pose, tz: pose.tz + Math.sin(Math.PI * e) * 60 };
+          }
+          drawn.current[k] = pose;
           const rest = 1 - v; // 0 once the card has fully arrived
           const out = reveal.current[k].to === 0; // leaving: drift on instead of back
           const shift = (out ? LEAVE_SHIFT_X : ENTER_SHIFT_X) * rest;
@@ -462,7 +544,8 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
           el.style.setProperty('--glare', `${50 + pose.th * 45}%`);
           // Soft fade at both ends of the path as cards wrap around.
           const edge = p < 0 ? 1 + 2 * p : p > n - 1 ? 1 - 2 * (p - (n - 1)) : 1;
-          baseOpacity.current[k] = smoothstep(clamp(edge, 0, 1));
+          const deckOpacity = smoothstep(clamp(edge, 0, 1));
+          baseOpacity.current[k] = deckOpacity + (1 - deckOpacity) * e;
         }
 
         // Opacity goes on the faces, not the slab: opacity on a 3D group would flatten it.
@@ -482,6 +565,8 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
       if (!visible.current) return;
       if (e.key === 'Escape' && lift.current) return closeLift();
       if (lift.current) return;
+      if (e.key === 'Escape' && ov.current.to === 1) return setOverviewTo(false);
+      if (ov.current.to === 1) return;
       if (e.key === 'ArrowRight') step(1);
       if (e.key === 'ArrowLeft') step(-1);
     };
@@ -496,7 +581,7 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
 
   const onPointerMove = (e: React.PointerEvent) => {
     const d = drag.current;
-    if (!d || itemsRef.current.length < 2) return;
+    if (!d || itemsRef.current.length < 2 || ov.current.to === 1) return;
     const dx = e.clientX - d.x;
     if (!d.moved && Math.abs(dx) > 6) {
       d.moved = true;
@@ -540,7 +625,7 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
     <section
       ref={sectionRef}
       id="work"
-      className="worlds-page font-hero-sans relative w-full h-viewport min-h-[600px] overflow-hidden text-[var(--hero-ink)] select-none touch-pan-y cursor-grab active:cursor-grabbing"
+      className={`worlds-page ${overview ? 'is-overview' : ''} font-hero-sans relative w-full h-viewport min-h-[600px] overflow-hidden text-[var(--hero-ink)] select-none touch-pan-y cursor-grab active:cursor-grabbing`}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
@@ -661,11 +746,11 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
       {/* Left column */}
       <div className="absolute" style={{ left: 'var(--eyebrow-x)', top: 'var(--eyebrow-y)' }}>
         <span data-reveal className="page-eyebrow">02 / WORK</span>
-        <h2 className="font-condensed uppercase" style={{ fontSize: `max(46px, ${u(93)})`, lineHeight: 0.87, marginTop: u(31) }}>
+        <h2 className="worlds-hide font-condensed uppercase" style={{ fontSize: `max(46px, ${u(93)})`, lineHeight: 0.87, marginTop: u(31) }}>
           <span data-reveal="line" className="block font-extralight tracking-[-0.08em]">Digital</span>
           <span data-reveal="line" className="block font-extrabold tracking-[-0.065em]">Worlds</span>
         </h2>
-        <p data-reveal className="uppercase" style={{ fontSize: `max(13px, ${u(18.5)})`, lineHeight: 1.15, marginTop: u(17) }}>
+        <p data-reveal className="worlds-hide uppercase" style={{ fontSize: `max(13px, ${u(18.5)})`, lineHeight: 1.15, marginTop: u(17) }}>
           Real products.
           <br />
           Different worlds.
@@ -705,12 +790,28 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
       </div>
 
       {/* Drag to explore — its bottom lines up with the bottom of the front card */}
-      <div data-reveal className="absolute hidden md:flex items-center pointer-events-none" style={{ left: u(53), top: u(781), gap: u(22) }}>
+      <div data-reveal className="worlds-hide absolute hidden md:flex items-center pointer-events-none" style={{ left: u(53), top: u(781), gap: u(22) }}>
         <span className="flex items-center justify-center rounded-full border border-[var(--hero-ink)]/80" style={{ width: u(50), height: u(50) }}>
           <ArrowUpRight style={{ width: u(19), height: u(19) }} strokeWidth={1.4} />
         </span>
         <span className="uppercase" style={{ fontSize: u(13.5) }}>Drag to explore</span>
       </div>
+
+      {/* Overview toggle: the deck straightens into a row, and back */}
+      <button
+        data-control
+        data-reveal
+        onClick={() => setOverviewTo(!overview)}
+        className="worlds-toggle group"
+        aria-pressed={overview}
+      >
+        {overview ? (
+          <ArrowLeft strokeWidth={1.5} className="transition-transform duration-300 group-hover:-translate-x-1" />
+        ) : (
+          <LayoutGrid strokeWidth={1.5} />
+        )}
+        <span>{overview ? 'Back to the deck' : 'View all projects'}</span>
+      </button>
 
       {/* Mobile filter chips */}
       <div data-control data-reveal className="md:hidden absolute left-5 right-5 bottom-6 flex gap-2 overflow-x-auto">

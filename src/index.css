@@ -1405,3 +1405,60 @@ body {
 @media (prefers-reduced-motion: reduce) {
   [data-lift-reveal], .lift-card.is-open [data-lift-reveal] { filter: none; transition-duration: 0.3s; transition-delay: 0s; }
 }
+
+/* ------------------------------------------------------------------
+   Page 2 overview: the deck straightens into a row. The headline and the
+   drag hint step aside; reflections go (cards may stand in two rows).
+------------------------------------------------------------------- */
+.worlds-hide {
+  transition: opacity 0.6s var(--ease-out), filter 0.6s var(--ease-out);
+}
+.is-overview .worlds-hide {
+  opacity: 0 !important;
+  filter: blur(8px) !important;
+  pointer-events: none;
+}
+.slab-reflection {
+  transition: opacity 0.6s var(--ease-out);
+}
+.is-overview .slab-reflection {
+  opacity: 0;
+}
+.worlds-toggle {
+  position: absolute;
+  left: var(--eyebrow-x);
+  top: calc(var(--u) * 866);
+  display: none;
+  align-items: center;
+  gap: calc(12 * var(--u));
+  padding: calc(8 * var(--u)) 0;
+  font-size: max(11px, calc(13.5 * var(--u)));
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--hero-ink);
+  cursor: pointer;
+}
+.worlds-toggle svg {
+  width: max(14px, calc(17 * var(--u)));
+  height: max(14px, calc(17 * var(--u)));
+}
+.worlds-toggle span {
+  background: linear-gradient(currentColor, currentColor) left bottom / 0 1px no-repeat;
+  padding-bottom: 2px;
+  transition: background-size 0.45s var(--ease-out);
+}
+.worlds-toggle:hover span {
+  background-size: 100% 1px;
+}
+@media (min-width: 768px) {
+  .worlds-toggle { display: inline-flex; }
+}
+@media (max-width: 767px) {
+  .worlds-toggle {
+    display: inline-flex;
+    top: auto;
+    left: 20px;
+    bottom: 64px;
+    font-size: 12px;
+  }
+}
