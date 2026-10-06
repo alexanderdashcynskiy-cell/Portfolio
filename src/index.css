@@ -1179,10 +1179,13 @@ body {
   pointer-events: none;
 }
 .lift-card {
+  --o: 1;
   position: absolute;
   left: 0;
   top: 0;
   transform-style: preserve-3d;
+  /* Turn about the middle of the slab's thickness. */
+  transform-origin: 50% 50% -13px;
   will-change: transform, width;
   pointer-events: auto;
   cursor: default;
@@ -1255,7 +1258,8 @@ body {
 
 /* Back: the project panel */
 .lift-back {
-  transform: rotateY(180deg);
+  /* The back of the slab: behind the bronze band, facing the other way. */
+  transform: translateZ(-27px) rotateY(180deg);
   display: grid;
   grid-template-columns: 38% 1fr;
   background: linear-gradient(160deg, #2a1c12, #170f09 70%);
