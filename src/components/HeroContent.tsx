@@ -13,7 +13,7 @@ const capabilities = ['UX/UI', 'WEB', 'APPS', 'MINI APPS', 'DASHBOARDS'];
 
 export const HeroContent: React.FC<HeroContentProps> = ({ onExploreClick, onTagClick }) => {
   return (
-    <section className="relative w-full h-screen min-h-[640px] overflow-hidden">
+    <section className="hero-page relative w-full h-screen min-h-[640px] overflow-hidden">
       {/* Mobile legibility veil */}
       <div className="absolute inset-0 md:hidden bg-gradient-to-r from-[#f1e6d8]/85 via-[#f1e6d8]/50 to-transparent pointer-events-none" />
 
