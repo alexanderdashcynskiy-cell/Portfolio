@@ -235,20 +235,21 @@ body {
    1536 × 1024 grid as the supplied reference.
 ------------------------------------------------------------------- */
 /* The stage is the scene: it carries its own copy of the artwork, so every element is
-   pinned to it. It covers the viewport like `object-cover` (anchored 43% / 40%) unless
-   that would push the copy under the nav or below the fold; then it shrinks just enough
-   for the content band (artwork y 150–930) to fit, and any side gap is feathered into
-   the full-bleed backdrop. */
+   pinned to it. It covers the viewport like `object-cover` unless the content band
+   (artwork y 156–960) would not fit between the nav and the fold with at least 32px on
+   each side; then it shrinks just enough, and any side gap is feathered into the
+   backdrop. Vertically it sits so the gap under the nav equals the gap under the
+   bottom row, as far as covering the viewport allows. */
 :root {
   --c-cover: max(calc(100vw / 1536), calc(100vh / 1024));
-  --nav-clear: calc(max(72px, calc(92 * var(--u))) + 12px);
-  --c: min(var(--c-cover), calc((100vh - var(--nav-clear) - 10px) / 780));
-  --stage-gap: max(0px, calc((100vw - 1536 * var(--c)) * 0.43));
+  --nav-h: max(72px, calc(92 * var(--u)));
+  --c: min(var(--c-cover), calc((100vh - var(--nav-h) - 64px) / 804));
+  --stage-gap: max(0px, calc((100vw - 1536 * var(--c)) / 2));
   --stage-feather: min(140px, calc(var(--stage-gap) * 3));
 }
 
 .about-scene {
-  object-position: 43% 40%;
+  object-position: 50% 50%;
 }
 .about-stage-scene {
   position: absolute;
@@ -259,12 +260,11 @@ body {
   mask-image: linear-gradient(90deg, transparent, #000 var(--stage-feather), #000 calc(100% - var(--stage-feather)), transparent);
 }
 
-/* Ultra-wide: the side gaps are wide, so the backdrop becomes a soft blurred fill. */
-@media (min-aspect-ratio: 19/10) {
-  .about-scene {
-    filter: blur(28px);
-    transform: scale(1.08);
-  }
+/* The full-bleed backdrop is only a soft fill behind the stage's own sharp scene, so a
+   feathered side gap never shows the artwork twice. */
+.about-scene {
+  filter: blur(28px);
+  transform: scale(1.08);
 }
 
 /* The page only fades: nothing on it slides or drifts against the backdrop. */
@@ -283,23 +283,35 @@ body {
 
 .about-stage {
   position: absolute;
-  left: calc((100vw - 1536 * var(--c)) * 0.43);
+  left: calc((100vw - 1536 * var(--c)) / 2);
   top: clamp(
-    calc(var(--nav-clear) - 150 * var(--c)),
-    calc((100vh - 1024 * var(--c)) * 0.4),
-    calc(100vh - 10px - 930 * var(--c))
+    calc(100vh - 1024 * var(--c)),
+    calc((100vh + var(--nav-h) - 1116 * var(--c)) / 2),
+    0px
   );
   width: calc(1536 * var(--c));
   height: calc(1024 * var(--c));
 }
 
+/* One layout system for the page, in artwork pixels: equal side margins, one left edge,
+   the same gap between every block of the copy, and a bottom margin that mirrors the
+   gap between the nav and the eyebrow. */
+.about-stage {
+  --m: 98;
+  --gap: 34;
+  --row-gap: 14;
+}
+
 .about-copy {
   position: absolute;
+  left: calc(var(--m) * var(--c));
+  top: calc(156 * var(--c));
   width: calc(460 * var(--c));
 }
 
 .about-eyebrow {
-  display: inline-block;
+  display: block;
+  width: fit-content;
   padding-bottom: calc(14 * var(--c));
   font-size: calc(14.5 * var(--c));
   font-weight: 700;
@@ -308,6 +320,7 @@ body {
 }
 
 .about-title {
+  margin-top: calc(var(--gap) * var(--c));
   font-size: calc(89 * var(--c));
   font-weight: 400;
   line-height: 0.945;
@@ -320,22 +333,34 @@ body {
 }
 
 .about-intro {
+  margin-top: calc((var(--gap) - 2) * var(--c));
   max-width: calc(374 * var(--c));
   font-size: calc(22.2 * var(--c));
   line-height: 1.26;
   letter-spacing: -0.005em;
 }
 
-.about-divider {
+/* Four equal columns between the side margins; each divider sits in the middle of its gutter. */
+.about-principles {
   position: absolute;
-  top: calc(815 * var(--c));
-  height: calc(104 * var(--c));
-  width: 1px;
-  background: rgba(13, 12, 11, 0.5);
+  left: calc(var(--m) * var(--c));
+  right: calc(var(--m) * var(--c));
+  bottom: calc(64 * var(--c));
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  column-gap: calc(80 * var(--c));
 }
 .about-principle {
+  position: relative;
+}
+.about-principle + .about-principle::before {
+  content: "";
   position: absolute;
-  top: calc(809 * var(--c));
+  top: 0;
+  bottom: 0;
+  left: calc(-40 * var(--c));
+  width: 1px;
+  background: rgba(13, 12, 11, 0.5);
 }
 .about-principle-number {
   padding-bottom: calc(5 * var(--c));
@@ -347,23 +372,23 @@ body {
 .about-principle-icon {
   width: calc(24 * var(--c));
   height: calc(24 * var(--c));
-  margin-left: calc(20 * var(--c));
+  margin-left: calc(var(--row-gap) * var(--c));
 }
 .about-principle-dash {
-  width: calc(42 * var(--c));
+  width: calc(32 * var(--c));
   height: 1px;
-  margin-left: calc(30 * var(--c));
+  margin-left: calc(var(--row-gap) * var(--c));
   background: rgba(13, 12, 11, 0.45);
 }
 .about-principle-title {
-  margin-top: calc(13 * var(--c));
+  margin-top: calc(var(--row-gap) * var(--c));
   font-size: calc(18.5 * var(--c));
   line-height: 1;
   letter-spacing: 0;
   white-space: nowrap;
 }
 .about-principle-copy {
-  margin-top: calc(9 * var(--c));
+  margin-top: calc((var(--row-gap) - 3) * var(--c));
   font-size: calc(14 * var(--c));
   line-height: 1.2;
 }
@@ -372,7 +397,7 @@ body {
 }
 
 /* Phones and portrait tablets: the copy stacks over a softened backdrop. */
-@media (max-width: 767px), (max-aspect-ratio: 27/20) {
+@media (max-width: 767px), (max-aspect-ratio: 7/5) {
   .site-page:has(.about-page) { overflow-y: auto; }
   .about-page {
     height: auto;
@@ -388,18 +413,18 @@ body {
   }
   .about-copy { position: static; width: auto; }
   .about-stage-scene { display: none; }
-  .about-copy > * { margin-left: 0 !important; }
   .about-eyebrow { font-size: 13px; padding-bottom: 10px; background-size: 22px 1px; }
   .about-title { font-size: clamp(56px, 16vw, 74px); transform: none; }
   .about-intro { max-width: 340px; font-size: 18px; }
-  .about-divider { display: none; }
-  .about-principle { position: static; padding: 22px 0; }
-  .about-principle:first-of-type { margin-top: 32px; }
+  .about-title, .about-intro { margin-top: 24px; }
+  .about-principles { position: static; display: block; margin-top: 32px; }
+  .about-principle { padding: 22px 0; }
+  .about-principle + .about-principle::before { display: none; }
   .about-principle + .about-principle { border-top: 1px solid rgba(13, 12, 11, 0.35); }
   .about-principle-number { font-size: 14px; }
   .about-principle-icon { width: 22px; height: 22px; margin-left: 14px; }
   .about-principle-dash { width: 32px; margin-left: 14px; }
-  .about-principle-title { margin-top: 10px; font-size: 22px; white-space: normal; }
-  .about-principle-copy { margin-top: 6px; font-size: 15px; line-height: 1.3; }
+  .about-principle-title { margin-top: 12px; font-size: 22px; white-space: normal; }
+  .about-principle-copy { margin-top: 8px; font-size: 15px; line-height: 1.3; }
   .about-principle-copy span { display: inline; }
 }
