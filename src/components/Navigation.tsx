@@ -48,13 +48,14 @@ export const Navigation: React.FC<NavigationProps> = ({ onOpenSection, activeSec
                 key={link.id}
                 onClick={() => onOpenSection(link.id)}
                 className={`group relative py-1 font-normal tracking-[0.02em] uppercase transition-colors duration-300 cursor-pointer ${
-                  isActive ? 'text-[var(--hero-bronze)]' : 'hover:text-[var(--hero-bronze)]'
+                  isActive ? 'font-semibold' : 'hover:text-[var(--hero-bronze)]'
                 }`}
                 style={{ fontSize: `max(11px, ${u(13.5)})` }}
               >
                 {link.label}
                 <span
-                  className={`absolute bottom-0 left-0 h-px bg-current transition-all duration-300 ${
+                  style={{ bottom: `calc(-14 * var(--u))` }}
+                  className={`absolute left-0 h-px bg-current transition-all duration-300 ${
                     isActive ? 'w-full' : 'w-0 group-hover:w-full'
                   }`}
                 />
