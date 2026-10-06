@@ -11,16 +11,15 @@ import { DigitalWorlds } from './components/DigitalWorlds';
 import { AboutPage } from './components/AboutPage';
 import { ServicesPage } from './components/ServicesPage';
 import { AboutModal } from './components/AboutModal';
-import { ContactModal } from './components/ContactModal';
+import { ContactPage } from './components/ContactPage';
 import { CustomCursor } from './components/CustomCursor';
 
-const PAGE_COUNT = 4;
+const PAGE_COUNT = 5;
 const PAGE_LOCK_MS = 1100;
 
 export default function App() {
   const [activeSection, setActiveSection] = useState<string>('home');
   const [isAboutOpen, setIsAboutOpen] = useState(false);
-  const [isContactOpen, setIsContactOpen] = useState(false);
   const [workFilter, setWorkFilter] = useState<string | null>(null);
   const [isWorksModalOpen, setIsWorksModalOpen] = useState(false);
 
@@ -33,7 +32,7 @@ export default function App() {
   const lockUntil = useRef(0);
   const pageEls = useRef<(HTMLDivElement | null)[]>([]);
   const modalOpen = useRef(false);
-  modalOpen.current = isAboutOpen || isContactOpen || isWorksModalOpen;
+  modalOpen.current = isAboutOpen || isWorksModalOpen;
 
   const goToPage = useCallback((next: number) => {
     const target = Math.max(0, Math.min(PAGE_COUNT - 1, next));
@@ -42,7 +41,7 @@ export default function App() {
     lockUntil.current = performance.now() + PAGE_LOCK_MS;
     const el = pageEls.current[target];
     if (el) el.scrollTop = target > page ? 0 : el.scrollTop;
-    setActiveSection(['home', 'work', 'about', 'services'][target]);
+    setActiveSection(['home', 'work', 'about', 'services', 'contact'][target]);
     setPage(target);
   }, [page]);
 
@@ -113,10 +112,15 @@ export default function App() {
     else if (section === 'work') goToPage(1);
     else if (section === 'about') goToPage(2);
     else if (section === 'services') goToPage(3);
-    else if (section === 'contact') setIsContactOpen(true);
+    else if (section === 'contact') goToPage(4);
   };
 
   const scrollToWorks = () => goToPage(1);
+  const openContact = () => {
+    setIsAboutOpen(false);
+    setIsWorksModalOpen(false);
+    goToPage(4);
+  };
 
   const openAllWorks = (filter: string | null = null) => {
     setWorkFilter(filter);
@@ -150,7 +154,7 @@ export default function App() {
       {/* Custom magnetic follower cursor */}
       <CustomCursor />
 
-      <Navigation onOpenSection={handleOpenSection} activeSection={activeSection} />
+      <Navigation onOpenSection={handleOpenSection} activeSection={activeSection} light={page === 4} />
 
       {/* ONE FIXED BACKDROP: each page has its own scene; scenes only cross-fade. Pages 3 and 4
           lay theirs out on the shared stage, so 3 → 4 dissolves the figure out of the terrace. */}
@@ -160,7 +164,8 @@ export default function App() {
           { src: '/worlds/bg.jpg', staged: false },
           { src: '/about.jpg', staged: true },
           { src: '/services.jpg', staged: true },
-        ].map(({ src, staged }, i) => (
+          { src: '/contact.jpg', staged: true, tint: 'scene-tint-contact' },
+        ].map(({ src, staged, tint }, i) => (
           <div key={src} className={`scene-layer ${stateOf(i)}`}>
             <img
               src={src}
@@ -169,6 +174,7 @@ export default function App() {
               draggable={false}
             />
             {staged && <img src={src} alt="" className="stage-scene" draggable={false} />}
+            {tint && <div className={tint} />}
           </div>
         ))}
       </div>
@@ -182,7 +188,7 @@ export default function App() {
 
       {/* PAGE 2 — Digital Worlds carousel */}
       <div {...pageProps(1)}>
-        <DigitalWorlds isActive={page === 1} onOpenContact={() => setIsContactOpen(true)} />
+        <DigitalWorlds isActive={page === 1} onOpenContact={openContact} />
       </div>
 
       {/* PAGE 3 — About */}
@@ -192,7 +198,12 @@ export default function App() {
 
       {/* PAGE 4 — Services */}
       <div {...pageProps(3)}>
-        <ServicesPage onOpenContact={() => setIsContactOpen(true)} />
+        <ServicesPage onOpenContact={openContact} />
+      </div>
+
+      {/* PAGE 5 — Contact */}
+      <div {...pageProps(4)}>
+        <ContactPage />
       </div>
 
       {/* Interactive Works Fullscreen Modal (for direct instant access on WORK / EXPLORE clicks) */}
@@ -201,10 +212,7 @@ export default function App() {
           isModal={true}
           initialFilter={workFilter}
           onClose={() => setIsWorksModalOpen(false)}
-          onOpenContact={() => {
-            setIsWorksModalOpen(false);
-            setIsContactOpen(true);
-          }}
+          onOpenContact={openContact}
         />
       )}
 
@@ -212,13 +220,7 @@ export default function App() {
       <AboutModal
         isOpen={isAboutOpen}
         onClose={() => setIsAboutOpen(false)}
-        onOpenContact={() => setIsContactOpen(true)}
-      />
-
-      {/* Interactive Contact Modal */}
-      <ContactModal
-        isOpen={isContactOpen}
-        onClose={() => setIsContactOpen(false)}
+        onOpenContact={openContact}
       />
     </div>
   );

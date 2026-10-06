@@ -4,11 +4,13 @@ import { ArrowRight, Menu, X, CheckCircle2 } from 'lucide-react';
 interface NavigationProps {
   onOpenSection: (section: 'home' | 'about' | 'work' | 'services' | 'contact') => void;
   activeSection?: string;
+  /** Light logo and links, for pages with a dark scene. */
+  light?: boolean;
 }
 
 const u = (n: number) => `calc(${n} * var(--u))`;
 
-export const Navigation: React.FC<NavigationProps> = ({ onOpenSection, activeSection }) => {
+export const Navigation: React.FC<NavigationProps> = ({ onOpenSection, activeSection, light = false }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showStatusTooltip, setShowStatusTooltip] = useState(false);
 
@@ -22,7 +24,7 @@ export const Navigation: React.FC<NavigationProps> = ({ onOpenSection, activeSec
 
   return (
     <header
-      className="font-hero-sans fixed top-0 inset-x-0 z-50 flex items-center justify-between pointer-events-none text-[var(--hero-ink)]"
+      className={`font-hero-sans fixed top-0 inset-x-0 z-50 flex items-center justify-between pointer-events-none text-[var(--hero-ink)] ${light ? 'nav-light' : ''}`}
       style={{ height: `max(72px, ${u(92)})`, paddingLeft: `max(20px, ${u(57)})`, paddingRight: `max(20px, ${u(58)})` }}
     >
       {/* LEFT: "A." + links */}

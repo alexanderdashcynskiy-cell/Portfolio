@@ -18,26 +18,10 @@ export const HeroContent: React.FC<HeroContentProps> = ({ onExploreClick, onTagC
       <div className="absolute inset-0 md:hidden bg-gradient-to-r from-[#f1e6d8]/85 via-[#f1e6d8]/50 to-transparent pointer-events-none" />
 
       <div
-        className="font-hero-sans u-px relative z-10 h-full flex flex-col text-[var(--hero-ink)]"
-        style={{ paddingTop: `max(110px, ${u(188)})` }}
+        className="font-hero-sans relative z-10 h-full flex flex-col text-[var(--hero-ink)]"
+        style={{ paddingTop: 'var(--eyebrow-y)', paddingLeft: 'var(--eyebrow-x)', paddingRight: `max(20px, ${u(51)})` }}
       >
-        {/* 01 — DIGITAL PRODUCTS FOR REAL BUSINESSES */}
-        <div data-reveal className="flex items-start">
-          <div className="flex flex-col" style={{ width: u(32) }}>
-            <span className="leading-none" style={{ fontSize: `max(15px, ${u(19)})`, marginTop: u(6) }}>
-              01
-            </span>
-            <span className="block h-px bg-[var(--hero-ink)]/60" style={{ width: u(32), marginTop: u(14) }} />
-          </div>
-          <span className="block h-px bg-[var(--hero-ink)]" style={{ width: u(45), marginLeft: u(14), marginTop: u(14) }} />
-          <div
-            className="flex flex-col uppercase leading-[1.4] tracking-[0.01em]"
-            style={{ fontSize: `max(10px, ${u(12)})`, marginLeft: u(21) }}
-          >
-            <span>Digital products</span>
-            <span>For real businesses</span>
-          </div>
-        </div>
+        <span data-reveal className="page-eyebrow">01 / HOME</span>
 
         {/* I DESIGN. I BUILD. I SHIP. */}
         <h1
@@ -46,7 +30,7 @@ export const HeroContent: React.FC<HeroContentProps> = ({ onExploreClick, onTagC
             fontSize: u(137),
             lineHeight: 0.775,
             letterSpacing: '-0.01em',
-            marginTop: u(20),
+            marginTop: u(30),
           }}
         >
           <span data-reveal="line" className="block">I Design.</span>

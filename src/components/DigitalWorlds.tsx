@@ -453,13 +453,9 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
       <div className="absolute inset-x-0 top-0 h-[46%] md:hidden bg-gradient-to-b from-[#f4ebe0]/90 via-[#f4ebe0]/60 to-transparent pointer-events-none" />
 
       {/* Left column */}
-      <div className="absolute" style={{ left: `max(20px, ${u(56)})`, top: `max(88px, ${u(176)})` }}>
-        <div data-reveal className="leading-none" style={{ fontSize: `max(13px, ${u(19)})` }}>02</div>
-        <div data-reveal className="flex items-center" style={{ marginTop: u(19), gap: u(10) }}>
-          <span className="block h-px bg-[var(--hero-ink)]" style={{ width: u(37) }} />
-          <span className="block rounded-full bg-[var(--hero-ink)]" style={{ width: 2, height: 2 }} />
-        </div>
-        <h2 className="font-condensed uppercase" style={{ fontSize: `max(46px, ${u(93)})`, lineHeight: 0.87, marginTop: u(23) }}>
+      <div className="absolute" style={{ left: 'var(--eyebrow-x)', top: 'var(--eyebrow-y)' }}>
+        <span data-reveal className="page-eyebrow">02 / WORK</span>
+        <h2 className="font-condensed uppercase" style={{ fontSize: `max(46px, ${u(93)})`, lineHeight: 0.87, marginTop: u(31) }}>
           <span data-reveal="line" className="block font-extralight tracking-[-0.08em]">Digital</span>
           <span data-reveal="line" className="block font-extrabold tracking-[-0.065em]">Worlds</span>
         </h2>
