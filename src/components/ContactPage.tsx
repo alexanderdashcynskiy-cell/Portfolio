@@ -4,9 +4,8 @@ import { ArrowRight, Mail, MessageSquare, Send, User } from 'lucide-react';
 const EMAIL = 'alexanderdashcynskiy@gmail.com';
 // TODO: replace the placeholder LinkedIn handle with the real one.
 const LINKEDIN = 'yourname';
-// WhatsApp and Telegram share one number.
+// WhatsApp and Telegram open a chat on this number; the number itself is not shown.
 const PHONE = '375333604902'; // international format, digits only
-const PHONE_DISPLAY = '+375 33 360-49-02';
 
 const PROJECT_TYPES = ['Website', 'App', 'Mini App', 'Dashboard', 'UX/UI', 'Other'];
 
@@ -25,8 +24,8 @@ const WhatsAppMark = (props: React.SVGProps<SVGSVGElement>) => (
 
 const channels = [
   { label: 'Email', value: EMAIL, href: `mailto:${EMAIL}`, Icon: Mail },
-  { label: 'WhatsApp', value: PHONE_DISPLAY, href: `https://wa.me/${PHONE}`, Icon: WhatsAppMark },
-  { label: 'Telegram', value: PHONE_DISPLAY, href: `https://t.me/+${PHONE}`, Icon: Send },
+  { label: 'WhatsApp', value: 'Chat with me', href: `https://wa.me/${PHONE}`, Icon: WhatsAppMark },
+  { label: 'Telegram', value: 'Message me', href: `https://t.me/+${PHONE}`, Icon: Send },
   { label: 'LinkedIn', value: `/${LINKEDIN}`, href: `https://www.linkedin.com/in/${LINKEDIN}`, Icon: LinkedInMark },
 ];
 
