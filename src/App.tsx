@@ -154,10 +154,10 @@ export default function App() {
       <div className="fixed inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
         {[
           { src: '/hero.jpg', cls: '' },
-          { src: '/worlds/bg.jpg', cls: '' },
+          { src: '/worlds/bg.jpg', cls: '', pinned: true },
           { src: '/about.jpg', cls: 'about-scene' },
-        ].map(({ src, cls }, i) => (
-          <div key={src} className={`scene-layer ${stateOf(i)}`}>
+        ].map(({ src, cls, pinned }, i) => (
+          <div key={src} className={`scene-layer ${pinned ? 'is-pinned' : ''} ${stateOf(i)}`}>
             <img src={src} alt="" className={`absolute inset-0 w-full h-full object-cover ${cls}`} draggable={false} />
           </div>
         ))}

@@ -316,6 +316,13 @@ body {
     transform 1.8s var(--ease-out) 0.45s;
 }
 
+/* Page 2 is pinned: its scene, copy and card stage never slide or zoom (the cards stand
+   on that floor), they only dissolve in place. */
+.scene-layer.is-pinned,
+.site-page:has(.worlds-page) [data-reveal] {
+  transform: none !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .scene-layer,
   .scene-layer.is-active,
