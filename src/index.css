@@ -147,9 +147,6 @@
   background-position: var(--glare, 50%) 0;
   mix-blend-mode: screen;
 }
-.slab-back {
-  background: linear-gradient(180deg, #2b1c11, #140c07);
-}
 /* Bronze metal band: darker at the top, warmer toward the floor */
 .slab-side {
   border-left: 1px solid #1a0f08;
@@ -183,11 +180,9 @@
   -webkit-mask-image: linear-gradient(to top, #000 0%, transparent 75%);
   mask-image: linear-gradient(to top, #000 0%, transparent 75%);
 }
-/* While a slab fades in or out its faces are see-through, and the dark back, the bronze
-   band and the glass's inner shading would show through the artwork as a shadow. The
-   hidden parts therefore fade on a much steeper curve (o⁴): gone by half-opacity, fully
-   there at rest. */
-.slab-back,
+/* While a slab fades in or out its faces are see-through, and the bronze band and the
+   glass's inner shading would show through the artwork as a shadow. Those parts
+   therefore fade on a much steeper curve (o⁴): gone by half-opacity, fully there at rest. */
 .slab-side,
 .slab-cap,
 .slab-corner,

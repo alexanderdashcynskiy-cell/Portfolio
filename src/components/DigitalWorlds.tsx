@@ -306,12 +306,13 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
               className="group absolute left-0 top-0 will-change-transform"
               style={{ width: CARD_W, height: CARD_H, transformStyle: 'preserve-3d', ['--o' as string]: 0, ['--r' as string]: `${RADIUS}px` }}
             >
-              {/* Contact shadow on the floor */}
+              {/* Contact shadow on the floor, 1px below the slab's bottom so the two planes are
+                  never coplanar (Safari mis-sorts coplanar 3D planes) */}
               <div
                 className="slab-part absolute pointer-events-none"
                 style={{
                   left: -40,
-                  top: CARD_H,
+                  top: CARD_H + 1,
                   width: CARD_W + 80,
                   height: 170,
                   transformOrigin: 'top',
@@ -327,8 +328,9 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
                 <img src={w.image} alt="" draggable={false} className="absolute left-0 w-full object-fill" style={{ top: -CARD_H * 0.58, height: CARD_H }} />
               </div>
 
-              {/* Slab body: back, sides, top, bottom */}
-              <div className="slab-part slab-back absolute inset-0 rounded-[var(--r)]" style={{ transform: `translateZ(${-DEPTH}px)` }} />
+              {/* Slab body: sides, top, bottom. There is no back plate: it can never be seen from
+                  the front, and Safari's 3D sorting would sometimes paint pieces of it over the
+                  artwork. */}
               <div className="slab-part slab-side slab-left absolute left-0" style={{ top: RADIUS, width: DEPTH, height: CARD_H - 2 * RADIUS, transformOrigin: 'left', transform: 'rotateY(90deg)' }} />
               <div className="slab-part slab-side slab-right absolute" style={{ left: CARD_W, top: RADIUS, width: DEPTH, height: CARD_H - 2 * RADIUS, transformOrigin: 'left', transform: 'rotateY(90deg)' }} />
               {/* Rounded corners of the bronze band */}
