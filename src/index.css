@@ -241,124 +241,60 @@ body {
   pointer-events: none;
 }
 
-/* Scenes */
+/* Scenes. Every scene is pinned: it never zooms or drifts, it only cross-fades, so pages
+   whose scenes share a composition (3 → 4: the same terrace, without the figure) dissolve
+   into each other in place. The arriving scene fades in on top; the leaving one stays
+   opaque underneath until it is covered. */
 .scene-layer {
   position: absolute;
   inset: 0;
   z-index: 1;
   opacity: 0;
-  will-change: opacity, transform;
-  transition:
-    opacity 0.01s linear 1.3s,
-    transform 1.6s var(--ease-in-out);
-}
-.scene-layer.is-above {
-  transform: scale(1.06) translate3d(0, -2.5%, 0);
-}
-.scene-layer.is-below {
-  transform: scale(1.06) translate3d(0, 2.5%, 0);
+  transition: opacity 0.01s linear 1.4s;
 }
 .scene-layer.is-active {
   z-index: 2;
   opacity: 1;
-  transform: none;
-  transition:
-    opacity 1.2s var(--ease-in-out) 0.1s,
-    transform 2.2s var(--ease-out) 0.1s;
+  transition: opacity 1.3s var(--ease-in-out) 0.05s;
 }
 
-/* The about page carries its own pinned copy of the scene: it settles with the backdrop. */
-.about-stage {
-  transition: transform 1.6s var(--ease-in-out);
-}
-.site-page.is-above .about-stage {
-  transform: scale(1.06) translate3d(0, -2.5%, 0);
-}
-.site-page.is-below .about-stage {
-  transform: scale(1.06) translate3d(0, 2.5%, 0);
-}
-.site-page.is-active .about-stage {
-  transform: none;
-  transition: transform 2.2s var(--ease-out) 0.1s;
-}
-.about-stage-scene {
-  opacity: 0;
-  transition: opacity 0.9s var(--ease-in-out);
-}
-.site-page.is-active .about-stage-scene {
-  opacity: 1;
-  transition: opacity 1.2s var(--ease-in-out) 0.1s;
-}
-
-/* Content */
+/* Content: nothing slides; elements dissolve in place out of a soft blur, in reading order. */
 [data-reveal] {
-  --travel: 42px;
-  will-change: opacity, transform, filter;
+  will-change: opacity, filter;
   transition:
     opacity 0.42s var(--ease-in) calc(var(--i, 0) * 0.02s),
-    transform 0.5s var(--ease-in) calc(var(--i, 0) * 0.02s),
     filter 0.42s var(--ease-in) calc(var(--i, 0) * 0.02s);
 }
 [data-reveal="line"] {
-  --travel: 0.42em;
   display: block;
 }
-[data-reveal="stage"] {
-  --travel: calc(var(--vh) * 0.07);
-}
-.site-page.is-below [data-reveal] {
-  opacity: 0;
-  transform: translate3d(0, var(--travel), 0);
-  filter: blur(10px);
-}
+.site-page.is-below [data-reveal],
 .site-page.is-above [data-reveal] {
   opacity: 0;
-  transform: translate3d(0, calc(var(--travel) * -0.6), 0);
-  filter: blur(8px);
+  filter: blur(10px);
 }
-/* The 3D card stage only fades and scales: a blur would flatten and cost too much. */
+/* The 3D card stage only fades: a blur would flatten it and cost too much. */
 .site-page.is-below [data-reveal="stage"],
 .site-page.is-above [data-reveal="stage"] {
   filter: none;
-  transform: translate3d(0, var(--travel), 0) scale(0.94);
-}
-.site-page.is-above [data-reveal="stage"] {
-  transform: translate3d(0, calc(var(--travel) * -0.6), 0) scale(1.03);
 }
 .site-page.is-active [data-reveal] {
   opacity: 1;
-  transform: none;
   filter: none;
   transition:
     opacity 1s var(--ease-out) calc(0.55s + var(--i, 0) * 0.075s),
-    transform 1.3s var(--ease-out) calc(0.55s + var(--i, 0) * 0.075s),
     filter 1s var(--ease-out) calc(0.55s + var(--i, 0) * 0.075s);
 }
 .site-page.is-active [data-reveal="stage"] {
   /* Quick: the cards then cascade in on their own (see DigitalWorlds). */
-  transition:
-    opacity 0.6s var(--ease-out) 0.2s,
-    transform 1.8s var(--ease-out) 0.2s;
-}
-
-/* Pages 1 and 2 are pinned: their scene and copy (and the card stage, which stands on
-   the floor of its scene) never slide or zoom, they only dissolve in place. */
-.scene-layer.is-pinned,
-.site-page:has(.hero-page) [data-reveal],
-.site-page:has(.worlds-page) [data-reveal] {
-  transform: none !important;
+  transition: opacity 0.6s var(--ease-out) 0.2s;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .scene-layer,
   .scene-layer.is-active,
-  .about-stage,
-  .site-page.is-active .about-stage,
-  .about-stage-scene,
-  .site-page.is-active .about-stage-scene,
   [data-reveal],
   .site-page.is-active [data-reveal] {
-    transform: none !important;
     filter: none !important;
     transition-property: opacity;
     transition-duration: 0.4s;
@@ -390,16 +326,19 @@ body {
   --row-lift: min(0px, calc(var(--vh) - max(16px, calc(28 * var(--c))) - var(--stage-top) - 925 * var(--c)));
 }
 
-.about-scene {
-  object-position: 50% 50%;
+/* Scenes laid out on the stage (pages 3 and 4): a sharp copy placed exactly where the
+   stage is, over a blurred full-bleed fill that only shows where the stage stops short. */
+.scene-fill {
   filter: blur(28px);
   transform: scale(1.08);
 }
-.about-stage-scene {
+.stage-scene {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  left: var(--stage-left);
+  top: var(--stage-top);
+  width: calc(1536 * var(--c));
+  height: calc(1024 * var(--c));
+  max-width: none;
 }
 
 /* Ultra-wide windows (beyond 21:10) would crop so much floor that the lifted row would sit
@@ -410,7 +349,7 @@ body {
     --c: min(max(calc(100vw / 1536), calc(var(--vh) / 1024)), calc(var(--vh) / 860));
     --feather-x: min(140px, calc(max(0px, var(--stage-left)) * 3));
   }
-  .about-stage-scene {
+  .stage-scene {
     -webkit-mask-image: linear-gradient(90deg, transparent, #000 var(--feather-x), #000 calc(100% - var(--feather-x)), transparent);
     mask-image: linear-gradient(90deg, transparent, #000 var(--feather-x), #000 calc(100% - var(--feather-x)), transparent);
   }
@@ -519,7 +458,7 @@ body {
    principle row): the copy stacks over the backdrop. */
 @media (max-width: 767px), (max-aspect-ratio: 4/3) {
   .site-page:has(.about-page) { overflow-y: auto; }
-  .about-scene { filter: none; transform: none; }
+  .scene-fill { filter: none; transform: none; }
   .about-page {
     height: auto;
     min-height: var(--vh);
@@ -533,7 +472,7 @@ body {
     padding: 132px 24px 40px;
   }
   .about-copy { position: static; width: auto; }
-  .about-stage-scene { display: none; }
+  .stage-scene { display: none; }
   .about-copy > * { margin-left: 0 !important; }
   .about-eyebrow { font-size: 13px; padding-bottom: 10px; background-size: 22px 1px; }
   .about-title { font-size: clamp(56px, 16vw, 74px); transform: none; }
@@ -548,4 +487,243 @@ body {
   .about-principle-title { margin-top: 10px; font-size: 22px; white-space: normal; }
   .about-principle-copy { margin-top: 6px; font-size: 15px; line-height: 1.3; }
   .about-principle-copy span { display: inline; }
+}
+
+/* ------------------------------------------------------------------
+   SERVICES — page 4, on the same stage as the about page. Positions are
+   artwork pixels (the reference at 16:9 mapped onto the 1536×1024 stage).
+------------------------------------------------------------------- */
+:root {
+  /* Negative when the bottom of the tech stack bar (artwork y 900) would fall off screen. */
+  --bar-lift: min(0px, calc(var(--vh) - max(16px, calc(28 * var(--c))) - var(--stage-top) - 900 * var(--c)));
+}
+
+.glass {
+  background: linear-gradient(165deg, rgba(255, 252, 248, 0.46), rgba(255, 246, 236, 0.2));
+  -webkit-backdrop-filter: blur(calc(18 * var(--c))) saturate(1.2);
+  backdrop-filter: blur(calc(18 * var(--c))) saturate(1.2);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.75),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.18),
+    0 calc(24 * var(--c)) calc(50 * var(--c)) calc(-22 * var(--c)) rgba(70, 42, 18, 0.35);
+}
+
+.services-copy {
+  position: absolute;
+  left: max(calc(83 * var(--c)), calc(16px - var(--stage-left)));
+  top: max(calc(231 * var(--c)), calc(var(--nav-h) + 16px - var(--stage-top)));
+  width: calc(560 * var(--c));
+}
+.services-eyebrow {
+  display: block;
+  width: fit-content;
+  padding-bottom: calc(17 * var(--c));
+  font-size: calc(17.5 * var(--c));
+  line-height: 1;
+  letter-spacing: 0.01em;
+  background: linear-gradient(currentColor, currentColor) left bottom / calc(23 * var(--c)) 1px no-repeat;
+}
+.services-title {
+  margin-top: calc(22 * var(--c));
+  font-size: calc(100 * var(--c));
+  font-weight: 400;
+  line-height: 0.81;
+  letter-spacing: -0.035em;
+  transform: scaleX(1.08);
+  transform-origin: left;
+}
+.services-title span {
+  display: block;
+}
+.services-intro {
+  margin-top: calc(24 * var(--c));
+  max-width: calc(385 * var(--c));
+  font-size: calc(22 * var(--c));
+  line-height: 1.09;
+  letter-spacing: -0.005em;
+}
+.services-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(14 * var(--c));
+  height: calc(50.5 * var(--c));
+  margin-top: calc(38 * var(--c));
+  padding: 0 calc(30 * var(--c));
+  border-radius: 999px;
+  background: var(--hero-ink);
+  color: #fff;
+  font-size: calc(13.8 * var(--c));
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+.services-cta:hover {
+  background: var(--hero-bronze);
+}
+.services-cta-arrow {
+  width: calc(17 * var(--c));
+  height: calc(17 * var(--c));
+  transition: transform 0.3s ease;
+}
+.services-cta:hover .services-cta-arrow {
+  transform: translateX(3px);
+}
+
+/* Two columns of glass cards, turned slightly away to the right. */
+.services-grid {
+  position: absolute;
+  left: calc(744 * var(--c));
+  top: calc(254 * var(--c));
+  display: grid;
+  grid-template-columns: repeat(2, calc(294 * var(--c)));
+  gap: calc(14 * var(--c)) calc(20 * var(--c));
+  transform: perspective(calc(1500 * var(--c))) rotateY(7deg);
+  transform-origin: 0 60%;
+}
+.services-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: calc(240 * var(--c));
+  padding: calc(24 * var(--c)) calc(26 * var(--c)) calc(16 * var(--c)) calc(35 * var(--c));
+  border-radius: calc(18 * var(--c));
+}
+.services-card-number {
+  margin-left: calc(-16 * var(--c));
+  font-size: calc(13.8 * var(--c));
+  line-height: 1;
+}
+.services-card-icon {
+  width: calc(35 * var(--c));
+  height: calc(35 * var(--c));
+  margin-top: calc(12 * var(--c));
+}
+.services-card-rule {
+  height: 1px;
+  margin-top: calc(12 * var(--c));
+  background: linear-gradient(90deg, rgba(13, 12, 11, 0.05), rgba(13, 12, 11, 0.28) 30%, rgba(13, 12, 11, 0.12));
+}
+.services-card-title {
+  margin-top: calc(9 * var(--c));
+  font-size: calc(20.5 * var(--c));
+  line-height: 1;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+.services-card-copy {
+  margin-top: calc(8 * var(--c));
+  font-size: calc(13.8 * var(--c));
+  line-height: 1.2;
+}
+.services-card-copy span {
+  display: block;
+}
+.services-card-arrow {
+  position: absolute;
+  right: calc(18 * var(--c));
+  bottom: calc(16 * var(--c));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(35 * var(--c));
+  height: calc(35 * var(--c));
+  border: 1.2px solid var(--hero-ink);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+.services-card-arrow svg {
+  width: calc(16 * var(--c));
+  height: calc(16 * var(--c));
+}
+.services-card-arrow:hover {
+  background: var(--hero-ink);
+  color: #fff;
+}
+
+/* Tech stack bar */
+.services-stack {
+  position: absolute;
+  left: calc(92 * var(--c));
+  top: calc(815 * var(--c) + var(--bar-lift));
+  width: calc(1352 * var(--c));
+  height: calc(85.5 * var(--c));
+  border-radius: calc(18 * var(--c));
+}
+.services-stack-label {
+  position: absolute;
+  left: calc(71.6 * var(--c));
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: calc(11 * var(--c));
+  font-weight: 500;
+  letter-spacing: 0.38em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.services-stack-divider {
+  position: absolute;
+  top: calc(22 * var(--c));
+  bottom: calc(22 * var(--c));
+  width: 1px;
+  background: rgba(13, 12, 11, 0.32);
+}
+.services-stack-item {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(8 * var(--c));
+  transform: translateX(-50%);
+  font-size: calc(11 * var(--c));
+  white-space: nowrap;
+}
+.services-stack-icon {
+  width: calc(29 * var(--c));
+  height: calc(29 * var(--c));
+}
+
+/* Phones, portrait and near-square screens: everything stacks. */
+@media (max-width: 767px), (max-aspect-ratio: 4/3) {
+  .services-copy { position: static; width: auto; }
+  .services-eyebrow { font-size: 14px; padding-bottom: 12px; background-size: 22px 1px; }
+  .services-title { margin-top: 22px; font-size: clamp(54px, 15vw, 74px); transform: none; }
+  .services-intro { margin-top: 22px; max-width: 360px; font-size: 18px; line-height: 1.25; }
+  .services-cta { height: 48px; margin-top: 24px; padding: 0 22px; gap: 12px; font-size: 13px; }
+  .services-cta-arrow { width: 16px; height: 16px; }
+  .services-grid {
+    position: static;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 14px;
+    margin-top: 36px;
+    transform: none;
+  }
+  .glass { -webkit-backdrop-filter: blur(16px) saturate(1.2); backdrop-filter: blur(16px) saturate(1.2); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75), 0 18px 40px -22px rgba(70, 42, 18, 0.35); }
+  .services-card { height: auto; padding: 22px 22px 62px 26px; border-radius: 18px; }
+  .services-card-number { margin-left: 0; font-size: 13px; }
+  .services-card-icon { width: 32px; height: 32px; margin-top: 12px; }
+  .services-card-rule { margin-top: 14px; }
+  .services-card-title { margin-top: 14px; font-size: 22px; white-space: normal; }
+  .services-card-copy { margin-top: 8px; font-size: 15px; line-height: 1.3; }
+  .services-card-copy span { display: inline; }
+  .services-card-arrow { right: 18px; bottom: 16px; width: 36px; height: 36px; }
+  .services-card-arrow svg { width: 16px; height: 16px; }
+  .services-stack {
+    position: static;
+    width: auto;
+    height: auto;
+    margin-top: 16px;
+    padding: 18px 18px 20px;
+    border-radius: 18px;
+  }
+  .services-stack-label { position: static; display: block; transform: none; margin-bottom: 14px; font-size: 11px; }
+  .services-stack-divider { display: none; }
+  .services-stack ul { display: grid; grid-template-columns: repeat(auto-fill, minmax(74px, 1fr)); gap: 16px 8px; }
+  .services-stack-item { position: static; left: auto !important; transform: none; gap: 6px; font-size: 11px; }
+  .services-stack-icon { width: 28px; height: 28px; }
 }
