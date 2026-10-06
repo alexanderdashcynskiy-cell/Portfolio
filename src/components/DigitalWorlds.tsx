@@ -84,6 +84,29 @@ const lerpPose = (a: Pose, b: Pose, t: number): Pose => ({
 
 const mod = (n: number, m: number) => ((n % m) + m) % m;
 
+// Card reveal choreography (Apple-style): cards cascade in left to right, each easing in
+// from slightly to the right while turning into place; leaving cards fade out quickly.
+const ENTER_MS = 1100;
+const EXIT_MS = 380;
+const STAGGER_MS = 90;
+const PAGE_ENTER_DELAY_MS = 320; // lets the page's own fade begin first
+const ENTER_SHIFT_X = 70; // px in stage space
+const ENTER_TURN = 0.14; // extra rotateY, radians
+const easeOutQuint = (x: number) => 1 - Math.pow(1 - x, 5);
+const easeOutCubic = (x: number) => 1 - Math.pow(1 - x, 3);
+const smoothstep = (x: number) => x * x * (3 - 2 * x);
+
+interface Reveal {
+  from: number;
+  to: 0 | 1;
+  start: number;
+  dur: number;
+}
+const revealAt = (r: Reveal, t: number) => {
+  const x = clamp((t - r.start) / r.dur, 0, 1);
+  return r.from + (r.to - r.from) * (r.to === 1 ? easeOutQuint(x) : easeOutCubic(x));
+};
+
 // Position of item j on the path for a given offset, in [-0.5, n - 0.5).
 const slotOf = (j: number, offset: number, n: number) => {
   const p = mod(j - offset, n);
@@ -98,7 +121,11 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
   const offset = useRef(0);
   const target = useRef(0);
-  const presence = useRef<number[]>(WORLDS.map(() => 0));
+  const reveal = useRef<Reveal[]>(WORLDS.map(() => ({ from: 0, to: 0, start: 0, dur: 1 })));
+  const replayReveal = useRef(true);
+  // Pose each card is drawn at; after a filter change, cards that stay glide to their new slot.
+  const shown = useRef<(Pose | null)[]>(WORLDS.map(() => null));
+  const glideUntil = useRef(0);
   const baseOpacity = useRef<number[]>(WORLDS.map(() => 0));
   const drag = useRef<{ x: number; start: number; moved: boolean; lastX: number; lastT: number; v: number } | null>(null);
   const hovering = useRef(false);
@@ -117,6 +144,7 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
     itemsRef.current = items;
     offset.current = 0;
     target.current = 0;
+    glideUntil.current = performance.now() + 1200;
   }, [items]);
 
   const goTo = useCallback((k: number) => {
@@ -162,24 +190,31 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
     return () => window.removeEventListener('resize', layout);
   }, []);
 
-  // Pause the animation loop and keyboard while this page is not shown.
+  // Pause the animation loop and keyboard while this page is not shown; each arrival on
+  // the page replays the cards' cascade.
   useEffect(() => {
     visible.current = isActive;
     if (isActive) lastInteraction.current = performance.now();
+    else replayReveal.current = true;
   }, [isActive]);
 
-  // Animation loop: easing toward target, filter fades, autoplay. Cards stay put vertically.
+  // Animation loop: easing toward target, card reveals, autoplay. Cards stay put vertically.
   useEffect(() => {
     let raf = 0;
     let lastAuto = performance.now();
+    let lastT = performance.now();
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     const frame = (t: number) => {
       raf = requestAnimationFrame(frame);
+      const dt = Math.min(64, t - lastT);
+      lastT = t;
       if (!visible.current) return;
       const list = itemsRef.current;
       const n = list.length;
       const path = pathFor(n);
+      const replay = replayReveal.current;
+      replayReveal.current = false;
 
       const idle = !drag.current && !hovering.current && t - lastInteraction.current > 6000;
       if (idle && !reduceMotion && n > 1 && t - lastAuto > 5000) {
@@ -190,7 +225,8 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
       }
 
       if (!drag.current) {
-        offset.current += (target.current - offset.current) * 0.085;
+        // Exponential ease toward the target, frame-rate independent (τ ≈ 190ms).
+        offset.current += (target.current - offset.current) * (1 - Math.exp(-dt / 190));
         if (Math.abs(target.current - offset.current) < 0.0005) offset.current = target.current;
       }
 
@@ -198,23 +234,40 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
         const el = cardRefs.current[k];
         if (!el) continue;
         const j = list.indexOf(k);
-        presence.current[k] += ((j >= 0 ? 1 : 0) - presence.current[k]) * (reduceMotion ? 1 : 0.12);
-        if (Math.abs(presence.current[k] - (j >= 0 ? 1 : 0)) < 0.004) presence.current[k] = j >= 0 ? 1 : 0;
+        const p = j >= 0 && n > 1 ? slotOf(j, offset.current, n) : 0;
+        const r = reveal.current[k];
+        const now = revealAt(r, t);
+        if (j >= 0 && (r.to === 0 || replay)) {
+          // Entering: cascade in reading order (slot 0 is the front card on the left).
+          const slot = clamp(Math.round(p), 0, n - 1);
+          reveal.current[k] = { from: replay ? 0 : now, to: 1, start: t + (replay ? PAGE_ENTER_DELAY_MS : 0) + slot * STAGGER_MS, dur: ENTER_MS };
+        } else if (j < 0 && r.to === 1) {
+          reveal.current[k] = { from: now, to: 0, start: t, dur: EXIT_MS };
+        }
+        if (j < 0 && revealAt(reveal.current[k], t) === 0) shown.current[k] = null;
+        const v = reduceMotion ? (j >= 0 ? 1 : 0) : revealAt(reveal.current[k], t);
         el.style.pointerEvents = j >= 0 ? 'auto' : 'none';
 
         if (j >= 0) {
-          const p = n > 1 ? slotOf(j, offset.current, n) : 0;
           const i = Math.max(0, Math.min(path.length - 2, Math.floor(p) + 1));
-          const pose = lerpPose(path[i], path[i + 1], p + 1 - i);
-          el.style.transform = `translate3d(${pose.tx}px, ${pose.ty}px, ${pose.tz}px) rotateY(${pose.th}rad)`;
+          let pose = lerpPose(path[i], path[i + 1], p + 1 - i);
+          const prev = shown.current[k];
+          if (prev && r.to === 1 && t < glideUntil.current && !reduceMotion) {
+            pose = lerpPose(prev, pose, 1 - Math.exp(-dt / 170));
+          }
+          shown.current[k] = pose;
+          const rest = 1 - v; // 0 once the card has fully arrived
+          el.style.transform = `translate3d(${pose.tx + ENTER_SHIFT_X * rest}px, ${pose.ty}px, ${pose.tz}px) rotateY(${pose.th + ENTER_TURN * rest}rad)`;
           el.style.zIndex = String(Math.round(3000 + pose.tz));
           // Glare slides across the glass as the slab turns.
           el.style.setProperty('--glare', `${50 + pose.th * 45}%`);
-          baseOpacity.current[k] = p < 0 ? Math.max(0, 1 + 2 * p) : p > n - 1 ? Math.max(0, 1 - 2 * (p - (n - 1))) : 1;
+          // Soft fade at both ends of the path as cards wrap around.
+          const edge = p < 0 ? 1 + 2 * p : p > n - 1 ? 1 - 2 * (p - (n - 1)) : 1;
+          baseOpacity.current[k] = smoothstep(clamp(edge, 0, 1));
         }
 
         // Opacity goes on the faces, not the slab: opacity on a 3D group would flatten it.
-        el.style.setProperty('--o', String(baseOpacity.current[k] * presence.current[k]));
+        el.style.setProperty('--o', String(baseOpacity.current[k] * v));
       }
     };
     raf = requestAnimationFrame(frame);
@@ -306,12 +359,13 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
               className="group absolute left-0 top-0 will-change-transform"
               style={{ width: CARD_W, height: CARD_H, transformStyle: 'preserve-3d', ['--o' as string]: 0, ['--r' as string]: `${RADIUS}px` }}
             >
-              {/* Contact shadow on the floor */}
+              {/* Contact shadow on the floor, 1px below the slab's bottom so the two planes are
+                  never coplanar (Safari mis-sorts coplanar 3D planes) */}
               <div
                 className="slab-part absolute pointer-events-none"
                 style={{
                   left: -40,
-                  top: CARD_H,
+                  top: CARD_H + 1,
                   width: CARD_W + 80,
                   height: 170,
                   transformOrigin: 'top',
@@ -327,8 +381,9 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
                 <img src={w.image} alt="" draggable={false} className="absolute left-0 w-full object-fill" style={{ top: -CARD_H * 0.58, height: CARD_H }} />
               </div>
 
-              {/* Slab body: back, sides, top, bottom */}
-              <div className="slab-part slab-back absolute inset-0 rounded-[var(--r)]" style={{ transform: `translateZ(${-DEPTH}px)` }} />
+              {/* Slab body: sides, top, bottom. There is no back plate: it can never be seen from
+                  the front, and Safari's 3D sorting would sometimes paint pieces of it over the
+                  artwork. */}
               <div className="slab-part slab-side slab-left absolute left-0" style={{ top: RADIUS, width: DEPTH, height: CARD_H - 2 * RADIUS, transformOrigin: 'left', transform: 'rotateY(90deg)' }} />
               <div className="slab-part slab-side slab-right absolute" style={{ left: CARD_W, top: RADIUS, width: DEPTH, height: CARD_H - 2 * RADIUS, transformOrigin: 'left', transform: 'rotateY(90deg)' }} />
               {/* Rounded corners of the bronze band */}

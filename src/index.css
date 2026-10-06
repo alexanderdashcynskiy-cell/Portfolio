@@ -147,9 +147,6 @@
   background-position: var(--glare, 50%) 0;
   mix-blend-mode: screen;
 }
-.slab-back {
-  background: linear-gradient(180deg, #2b1c11, #140c07);
-}
 /* Bronze metal band: darker at the top, warmer toward the floor */
 .slab-side {
   border-left: 1px solid #1a0f08;
@@ -183,11 +180,9 @@
   -webkit-mask-image: linear-gradient(to top, #000 0%, transparent 75%);
   mask-image: linear-gradient(to top, #000 0%, transparent 75%);
 }
-/* While a slab fades in or out its faces are see-through, and the dark back, the bronze
-   band and the glass's inner shading would show through the artwork as a shadow. The
-   hidden parts therefore fade on a much steeper curve (o⁴): gone by half-opacity, fully
-   there at rest. */
-.slab-back,
+/* While a slab fades in or out its faces are see-through, and the bronze band and the
+   glass's inner shading would show through the artwork as a shadow. Those parts
+   therefore fade on a much steeper curve (o⁴): gone by half-opacity, fully there at rest. */
 .slab-side,
 .slab-cap,
 .slab-corner,
@@ -340,9 +335,10 @@ body {
     filter 1s var(--ease-out) calc(0.55s + var(--i, 0) * 0.075s);
 }
 .site-page.is-active [data-reveal="stage"] {
+  /* Quick: the cards then cascade in on their own (see DigitalWorlds). */
   transition:
-    opacity 1.4s var(--ease-out) 0.45s,
-    transform 1.8s var(--ease-out) 0.45s;
+    opacity 0.6s var(--ease-out) 0.2s,
+    transform 1.8s var(--ease-out) 0.2s;
 }
 
 /* Pages 1 and 2 are pinned: their scene and copy (and the card stage, which stands on
