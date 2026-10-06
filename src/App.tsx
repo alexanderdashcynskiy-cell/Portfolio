@@ -149,7 +149,7 @@ export default function App() {
         <img
           src="/about.jpg"
           alt=""
-          className="absolute inset-0 w-full h-full object-cover transition-opacity duration-[1100ms] ease-in-out"
+          className="about-scene absolute inset-0 w-full h-full object-cover transition-opacity duration-[1100ms] ease-in-out"
           style={{ opacity: page === 2 ? 1 : 0 }}
           draggable={false}
         />
@@ -169,7 +169,7 @@ export default function App() {
 
       {/* PAGE 3 — About */}
       <div {...pageProps(2)}>
-        <AboutPage onOpenSection={handleOpenSection} />
+        <AboutPage />
       </div>
 
       {/* Interactive Works Fullscreen Modal (for direct instant access on WORK / EXPLORE clicks) */}
