@@ -880,6 +880,27 @@ const LiftedCard = React.forwardRef<HTMLDivElement, LiftedCardProps>(({ card, op
     aria-modal="true"
     aria-label={card.title}
   >
+    {/* Bronze band: the same sides, caps and rounded corners as the deck slab. Right-hand
+        parts are anchored to the right edge so they follow the card when it widens. */}
+    <div className="slab-side slab-left absolute left-0" style={{ top: RADIUS, width: DEPTH, height: CARD_H - 2 * RADIUS, transformOrigin: 'left', transform: 'rotateY(90deg)' }} />
+    <div className="slab-side slab-right absolute" style={{ left: '100%', top: RADIUS, width: DEPTH, height: CARD_H - 2 * RADIUS, transformOrigin: 'left', transform: 'rotateY(90deg)' }} />
+    {CORNER_STRIPS.map((c, i) => (
+      <div
+        key={i}
+        className={`slab-corner absolute ${c.bottom ? 'slab-corner-bottom' : ''}`}
+        style={{
+          left: c.x > CARD_W / 2 ? `calc(100% - ${CARD_W - c.x}px)` : c.x,
+          top: c.y,
+          width: c.len,
+          height: DEPTH,
+          transformOrigin: '0 0',
+          transform: `rotateZ(${c.angle}rad) rotateX(-90deg)`,
+        }}
+      />
+    ))}
+    <div className="slab-cap absolute top-0" style={{ left: RADIUS, right: RADIUS, height: DEPTH, transformOrigin: 'top', transform: 'rotateX(-90deg)' }} />
+    <div className="slab-cap slab-bottom absolute" style={{ left: RADIUS, right: RADIUS, top: CARD_H, height: DEPTH, transformOrigin: 'top', transform: 'rotateX(-90deg)' }} />
+
     {/* Face */}
     <div className="lift-face lift-front">
       <img src={card.image} alt="" draggable={false} className="absolute inset-0 w-full h-full object-fill" />
