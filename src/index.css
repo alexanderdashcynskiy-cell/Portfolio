@@ -168,6 +168,20 @@
   -webkit-mask-image: linear-gradient(to top, #000 0%, transparent 75%);
   mask-image: linear-gradient(to top, #000 0%, transparent 75%);
 }
+/* While a slab fades in or out its faces are see-through, and the dark back, the bronze
+   band and the glass's inner shading would show through the artwork as a shadow. The
+   hidden parts therefore fade on a much steeper curve (o⁴): gone by half-opacity, fully
+   there at rest. */
+.slab-back,
+.slab-side,
+.slab-cap,
+.slab-corner,
+.slab-glass-rim {
+  opacity: calc(var(--o, 0) * var(--o, 0) * var(--o, 0) * var(--o, 0));
+}
+.slab-glass {
+  opacity: calc(var(--o, 0) * var(--o, 0) * var(--o, 0));
+}
 
 /* ------------------------------------------------------------------
    Full-screen pages: fixed exposure, content cross-fades between pages
