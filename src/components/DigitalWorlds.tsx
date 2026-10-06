@@ -1,10 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowRight, ArrowUpRight, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ArrowUpRight, LayoutGrid, X } from 'lucide-react';
 import { WORLDS, WORLD_FILTERS, WorldCard } from '../data/worldsData';
 
 interface DigitalWorldsProps {
   onOpenContact: () => void;
   isActive?: boolean;
+  /** Opens the overview (every card in a row), optionally filtered; `id` makes each request new. */
+  overviewRequest?: { filter: string | null; id: number } | null;
 }
 
 // One unit = one pixel of the 1536×1024 layout (same scale as the hero).
@@ -115,6 +117,29 @@ const LEAVE_SHIFT_X = -46; // they drift on, the way the carousel turns
 // Carousel motion: a critically damped spring (no overshoot) with a soft start and a long,
 // quiet settle, instead of an ease that leaves at full speed.
 const SPRING_W = 8.5; // rad/s; settles in ~0.75s
+
+// Lifted card: a click draws the card out of the deck to face the viewer; "View project"
+// turns it over, and while it stands edge-on (90°) it widens into the project panel.
+const LIFT_MS = 760;
+const FLIP_MS = 1000;
+const RETURN_MS = 680;
+const easeInOutCubic = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+
+// Overview: the deck straightens into a row (two rows on phones) facing the viewer.
+const OVERVIEW_MS = 1150; // whole cascade, first card to last
+const OVERVIEW_STAGGER = 0.11; // share of the cascade between neighbouring cards
+const OVERVIEW_GAP_X = 46; // between cards, stage units
+const OVERVIEW_GAP_Y = 60;
+
+type LiftPhase = 'lifting' | 'front' | 'flipping' | 'open' | 'unflipping' | 'returning';
+interface Lift {
+  k: number;
+  phase: LiftPhase;
+  start: number;
+  from: Pose; // pose the current move starts from
+  front: Pose; // the card facing the viewer (narrow)
+  wide: number; // width of the opened panel, stage units
+}
 const PAGE_ENTER_DELAY_MS = 320; // lets the page's own fade begin first
 const ENTER_SHIFT_X = 70; // px in stage space
 const ENTER_TURN = 0.14; // extra rotateY, radians
@@ -141,7 +166,7 @@ const slotOf = (j: number, offset: number, n: number) => {
 
 const matches = (w: WorldCard, filter: string) => filter === 'ALL WORK' || w.tags.includes(filter);
 
-export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isActive = true }) => {
+export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isActive = true, overviewRequest = null }) => {
   const sectionRef = useRef<HTMLElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -163,7 +188,15 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
   const velocity = useRef(0); // carousel offset units per second
 
   const [filter, setFilter] = useState('WEB');
-  const [openCard, setOpenCard] = useState<WorldCard | null>(null);
+  const [lifted, setLifted] = useState<number | null>(null); // WORLDS index of the lifted card
+  const [liftOpen, setLiftOpen] = useState(false); // back face fully turned to the viewer
+  const lift = useRef<Lift | null>(null);
+  const [overview, setOverview] = useState(false);
+  const ov = useRef({ from: 0, to: 0, start: 0 }); // overview progress, animated in the loop
+  const drawn = useRef<(Pose | null)[]>(WORLDS.map(() => null)); // pose each card was last drawn at
+  const liftRef = useRef<HTMLDivElement>(null); // the lifted card (overlay copy)
+  const liftStageRef = useRef<HTMLDivElement>(null); // overlay stage, laid out like the card stage
+  const stageOffset = useRef({ ox: 0, oy: 0 });
 
   // Indices (into WORLDS) of the cards in the current filter, in carousel order.
   const items = useMemo(() => WORLDS.map((w, k) => (matches(w, filter) ? k : -1)).filter((k) => k >= 0), [filter]);
@@ -175,16 +208,6 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
     target.current = 0;
     glideUntil.current = performance.now() + 1200;
   }, [items]);
-
-  const goTo = useCallback((k: number) => {
-    const list = itemsRef.current;
-    const n = list.length;
-    const j = list.indexOf(k);
-    if (j < 0 || n < 2) return;
-    const delta = slotOf(j, target.current, n);
-    target.current = Math.round(target.current + (delta > n / 2 ? delta - n : delta));
-    lastInteraction.current = performance.now();
-  }, []);
 
   const step = useCallback((dir: 1 | -1) => {
     if (itemsRef.current.length < 2) return;
@@ -212,12 +235,199 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
         oy = (vh - STAGE_H * s) / 2 + CARDS_DROP * s;
       }
       stageScale.current = s;
+      stageOffset.current = { ox, oy };
       stage.style.transform = `translate(${ox}px, ${oy}px) scale(${s})`;
+      if (liftStageRef.current) liftStageRef.current.style.transform = stage.style.transform;
     };
     layout();
     window.addEventListener('resize', layout);
     return () => window.removeEventListener('resize', layout);
   }, []);
+
+  // ---- Overview ----------------------------------------------------------------------
+  const ovProgress = (t: number) => {
+    const o = ov.current;
+    return o.from + (o.to - o.from) * clamp((t - o.start) / OVERVIEW_MS, 0, 1);
+  };
+  const setOverviewTo = (on: boolean, delay = 0) => {
+    const t = performance.now();
+    ov.current = { from: ovProgress(t), to: on ? 1 : 0, start: t + delay };
+    if (on) target.current = Math.round(target.current); // the row is read from a resting deck
+    lastInteraction.current = t;
+    setOverview(on);
+  };
+
+  // Row (or two rows on phones) facing the viewer, centred in the free area of the page.
+  const overviewPoses = (n: number): Pose[] => {
+    const section = sectionRef.current;
+    const vw = section?.clientWidth ?? window.innerWidth;
+    const vh = section?.clientHeight ?? window.innerHeight;
+    const s = stageScale.current;
+    const { ox, oy } = stageOffset.current;
+    const mobile = vw < 768;
+    const cols = mobile ? Math.min(3, n) : n;
+    const rows = Math.ceil(n / cols);
+    const left = mobile ? 16 : Math.max(vw * 0.215, 300);
+    const right = vw - (mobile ? 16 : Math.max(56, vw * 0.045));
+    const top = mobile ? vh * 0.2 : vh * 0.17;
+    const bottom = mobile ? vh - 120 : vh * 0.9;
+    const gw = cols * CARD_W + (cols - 1) * OVERVIEW_GAP_X;
+    const gh = rows * CARD_H + (rows - 1) * OVERVIEW_GAP_Y;
+    const k = Math.min((right - left) / (gw * s), (bottom - top) / (gh * s));
+    const tz = PERSPECTIVE * (1 - 1 / k);
+    const cxs = (left + right) / 2;
+    const cys = (top + bottom) / 2;
+    return Array.from({ length: n }, (_, i) => {
+      const c = i % cols;
+      const r = Math.floor(i / cols);
+      const inRow = Math.min(cols, n - r * cols); // centre a short last row
+      const sx = cxs + (c - (inRow - 1) / 2) * (CARD_W + OVERVIEW_GAP_X) * s * k;
+      const sy = cys + (r - (rows - 1) / 2) * (CARD_H + OVERVIEW_GAP_Y) * s * k;
+      const cx = ORIGIN_X + ((sx - ox) / s - ORIGIN_X) / k;
+      const cy = ORIGIN_Y + ((sy - oy) / s - ORIGIN_Y) / k;
+      return { tx: cx - CARD_W / 2, ty: cy - CARD_H / 2, tz, th: 0 };
+    });
+  };
+
+  // Requests from outside (the hero's capability tags): filter, then fan the deck out.
+  useEffect(() => {
+    if (!overviewRequest) return;
+    setFilter(overviewRequest.filter ?? 'ALL WORK');
+    setOverviewTo(true, 450);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [overviewRequest?.id]);
+
+  // ---- Lifted card -------------------------------------------------------------------
+  // The pose that shows a card of the given width square to the viewer, centred on screen at
+  // a comfortable size. Solved through the stage's perspective so the overlay copy projects
+  // exactly like the deck.
+  const facingPose = (width: number, screenW: number) => {
+    const section = sectionRef.current;
+    const vw = section?.clientWidth ?? window.innerWidth;
+    const vh = section?.clientHeight ?? window.innerHeight;
+    const s = stageScale.current;
+    const { ox, oy } = stageOffset.current;
+    const mobile = vw < 768;
+    const k = Math.min((vh * (mobile ? 0.62 : 0.74)) / (CARD_H * s), screenW / (width * s));
+    const tz = PERSPECTIVE * (1 - 1 / k);
+    const targetX = (vw / 2 - ox) / s;
+    const targetY = (vh * 0.52 - oy) / s;
+    const cx = ORIGIN_X + (targetX - ORIGIN_X) / k;
+    const cy = ORIGIN_Y + (targetY - ORIGIN_Y) / k;
+    return { pose: { tx: cx - width / 2, ty: cy - CARD_H / 2, tz, th: 0 }, k };
+  };
+
+  const openLift = (k: number) => {
+    if (lift.current) return;
+    const from = drawn.current[k];
+    if (!from) return;
+    const vw = sectionRef.current?.clientWidth ?? window.innerWidth;
+    const { pose: front, k: scale } = facingPose(CARD_W, vw);
+    const s = stageScale.current;
+    const panelScreenW = Math.min(vw * (vw < 768 ? 0.92 : 0.84), 1080);
+    const wide = Math.max(CARD_W, panelScreenW / (s * scale));
+    lift.current = { k, phase: 'lifting', start: performance.now(), from, front, wide };
+    lastInteraction.current = performance.now();
+    setLiftOpen(false);
+    setLifted(k);
+  };
+
+  const flipLift = () => {
+    const l = lift.current;
+    if (!l || l.phase !== 'front') return;
+    l.phase = 'flipping';
+    l.start = performance.now();
+  };
+
+  const closeLift = () => {
+    const l = lift.current;
+    if (!l) return;
+    const t = performance.now();
+    if (l.phase === 'open' || l.phase === 'flipping') {
+      l.phase = 'unflipping';
+      l.start = t;
+      setLiftOpen(false);
+    } else if (l.phase === 'front' || l.phase === 'lifting') {
+      l.phase = 'returning';
+      l.start = t;
+    }
+  };
+
+  // Advances the lifted card one frame; called from the main animation loop.
+  const stepLift = (t: number) => {
+    const l = lift.current;
+    const el = liftRef.current;
+    if (!l || !el) return;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const prog = (ms: number) => (reduce ? 1 : clamp((t - l.start) / ms, 0, 1));
+    let pose = l.front;
+    let angle = 0; // degrees turned over
+    let width = CARD_W;
+    let lifted = 1; // 0 = in the deck, 1 = held in front of the viewer
+
+    if (l.phase === 'lifting' || l.phase === 'returning') {
+      const x = prog(l.phase === 'lifting' ? LIFT_MS : RETURN_MS);
+      // Returning goes back to the card's live slot in the deck.
+      const deck = l.phase === 'lifting' ? l.from : drawn.current[l.k] ?? l.from;
+      const e = easeInOutCubic(x);
+      lifted = l.phase === 'lifting' ? e : 1 - e;
+      pose = lerpPose(deck, l.front, lifted);
+      // A slight arc toward the viewer on the way, so it reads as being drawn out of the deck.
+      pose = { ...pose, tz: pose.tz + Math.sin(Math.PI * lifted) * 90 };
+      if (x === 1) {
+        if (l.phase === 'lifting') {
+          l.phase = 'front';
+        } else {
+          lift.current = null;
+          setLifted(null);
+          return;
+        }
+      }
+    } else if (l.phase === 'flipping' || l.phase === 'unflipping') {
+      const x = prog(FLIP_MS);
+      const e = easeInOutCubic(x);
+      angle = 180 * (l.phase === 'flipping' ? e : 1 - e);
+      if (x === 1) {
+        if (l.phase === 'flipping') {
+          l.phase = 'open';
+          setLiftOpen(true);
+        } else {
+          l.phase = 'returning';
+          l.start = t;
+        }
+      }
+    } else if (l.phase === 'open') {
+      angle = 180;
+    }
+
+    // Past 90° (edge-on, invisible) the card is the wide panel.
+    if (angle > 90) width = l.wide;
+    if (width !== CARD_W) {
+      const centre = l.front.tx + CARD_W / 2;
+      pose = { ...pose, tx: centre - width / 2 };
+    }
+    // Lift a touch toward the viewer while turning, for depth.
+    const turnLift = Math.sin((Math.PI * angle) / 180) * 70;
+    el.style.width = `${width}px`;
+    el.style.transform = `translate3d(${pose.tx}px, ${pose.ty}px, ${pose.tz + turnLift}px) rotateY(${pose.th * (180 / Math.PI) + angle}deg)`;
+    el.style.setProperty('--lift', String(lifted));
+    el.style.setProperty('--glare', `${50 + pose.th * 45 - angle / 4}%`);
+    const scrim = sectionRef.current?.querySelector<HTMLElement>('.lift-scrim');
+    if (scrim) scrim.style.opacity = String(lifted);
+  };
+
+  // Leaving the page drops a lifted card back without ceremony.
+  useEffect(() => {
+    if (isActive) return;
+    if (ov.current.to === 1) {
+      ov.current = { from: 0, to: 0, start: 0 };
+      setOverview(false);
+    }
+    if (!lift.current) return;
+    lift.current = null;
+    setLifted(null);
+    setLiftOpen(false);
+  }, [isActive]);
 
   // Pause the animation loop and keyboard while this page is not shown; each arrival on
   // the page replays the cards' cascade.
@@ -248,12 +458,14 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
       const list = itemsRef.current;
       const n = list.length;
       const path = pathFor(n);
+      const g = ovProgress(t);
+      const grid = g > 0 ? overviewPoses(n) : null;
       const replay = visible.current && replayReveal.current;
       if (replay) replayReveal.current = false;
       const leave = leaving.current;
       leaving.current = false;
 
-      const idle = visible.current && !drag.current && !hovering.current && t - lastInteraction.current > 6000;
+      const idle = visible.current && g === 0 && !lift.current && !drag.current && !hovering.current && t - lastInteraction.current > 6000;
       if (idle && !reduceMotion && n > 1 && t - lastAuto > 5000) {
         target.current = Math.round(target.current) + 1;
         lastAuto = t;
@@ -311,6 +523,17 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
             pose = lerpPose(prev, pose, 1 - Math.exp(-dt / 170));
           }
           shown.current[k] = pose;
+          // Blend toward the row: each card follows on a cascade, left to right.
+          let e = 0;
+          if (grid) {
+            const col = mod(j - Math.round(offset.current), n);
+            const local = clamp(g * (1 + OVERVIEW_STAGGER * (n - 1)) - OVERVIEW_STAGGER * col, 0, 1);
+            e = reduceMotion ? Math.round(g) : easeInOutCubic(local);
+            pose = lerpPose(pose, grid[col], e);
+            // A little lift toward the viewer mid-move so cards pass over one another cleanly.
+            pose = { ...pose, tz: pose.tz + Math.sin(Math.PI * e) * 60 };
+          }
+          drawn.current[k] = pose;
           const rest = 1 - v; // 0 once the card has fully arrived
           const out = reveal.current[k].to === 0; // leaving: drift on instead of back
           const shift = (out ? LEAVE_SHIFT_X : ENTER_SHIFT_X) * rest;
@@ -321,12 +544,16 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
           el.style.setProperty('--glare', `${50 + pose.th * 45}%`);
           // Soft fade at both ends of the path as cards wrap around.
           const edge = p < 0 ? 1 + 2 * p : p > n - 1 ? 1 - 2 * (p - (n - 1)) : 1;
-          baseOpacity.current[k] = smoothstep(clamp(edge, 0, 1));
+          const deckOpacity = smoothstep(clamp(edge, 0, 1));
+          baseOpacity.current[k] = deckOpacity + (1 - deckOpacity) * e;
         }
 
         // Opacity goes on the faces, not the slab: opacity on a 3D group would flatten it.
-        el.style.setProperty('--o', String(baseOpacity.current[k] * v));
+        // The lifted card is drawn by its overlay copy; the original waits, invisible, in its slot.
+        const hidden = lift.current && lift.current.k === k ? 0 : 1;
+        el.style.setProperty('--o', String(baseOpacity.current[k] * v * hidden));
       }
+      stepLift(t);
     };
     raf = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(raf);
@@ -335,13 +562,17 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
   // Keyboard arrows while the section is on screen.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (!visible.current || openCard) return;
+      if (!visible.current) return;
+      if (e.key === 'Escape' && lift.current) return closeLift();
+      if (lift.current) return;
+      if (e.key === 'Escape' && ov.current.to === 1) return setOverviewTo(false);
+      if (ov.current.to === 1) return;
       if (e.key === 'ArrowRight') step(1);
       if (e.key === 'ArrowLeft') step(-1);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [openCard, step]);
+  }, [step]);
 
   const onPointerDown = (e: React.PointerEvent) => {
     if ((e.target as HTMLElement).closest('[data-control]')) return;
@@ -350,7 +581,7 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
 
   const onPointerMove = (e: React.PointerEvent) => {
     const d = drag.current;
-    if (!d || itemsRef.current.length < 2) return;
+    if (!d || itemsRef.current.length < 2 || ov.current.to === 1) return;
     const dx = e.clientX - d.x;
     if (!d.moved && Math.abs(dx) > 6) {
       d.moved = true;
@@ -379,11 +610,10 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
     }
     const cardEl = (e.target as HTMLElement).closest<HTMLElement>('[data-card]');
     if (!cardEl) return;
+    // A click opens that card's project in place; the carousel only moves by drag, throw,
+    // arrows or autoplay.
     const k = Number(cardEl.dataset.card);
-    const list = itemsRef.current;
-    const front = list[mod(Math.round(offset.current), list.length)];
-    if (k === front) setOpenCard(WORLDS[k]);
-    else goTo(k);
+    if (itemsRef.current.includes(k)) openLift(k);
   };
 
   const selectFilter = (f: string) => {
@@ -395,7 +625,7 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
     <section
       ref={sectionRef}
       id="work"
-      className="worlds-page font-hero-sans relative w-full h-viewport min-h-[600px] overflow-hidden text-[var(--hero-ink)] select-none touch-pan-y cursor-grab active:cursor-grabbing"
+      className={`worlds-page ${overview ? 'is-overview' : ''} font-hero-sans relative w-full h-viewport min-h-[600px] overflow-hidden text-[var(--hero-ink)] select-none touch-pan-y cursor-grab active:cursor-grabbing`}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
@@ -516,11 +746,11 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
       {/* Left column */}
       <div className="absolute" style={{ left: 'var(--eyebrow-x)', top: 'var(--eyebrow-y)' }}>
         <span data-reveal className="page-eyebrow">02 / WORK</span>
-        <h2 className="font-condensed uppercase" style={{ fontSize: `max(46px, ${u(93)})`, lineHeight: 0.87, marginTop: u(31) }}>
+        <h2 className="worlds-hide font-condensed uppercase" style={{ fontSize: `max(46px, ${u(93)})`, lineHeight: 0.87, marginTop: u(31) }}>
           <span data-reveal="line" className="block font-extralight tracking-[-0.08em]">Digital</span>
           <span data-reveal="line" className="block font-extrabold tracking-[-0.065em]">Worlds</span>
         </h2>
-        <p data-reveal className="uppercase" style={{ fontSize: `max(13px, ${u(18.5)})`, lineHeight: 1.15, marginTop: u(17) }}>
+        <p data-reveal className="worlds-hide uppercase" style={{ fontSize: `max(13px, ${u(18.5)})`, lineHeight: 1.15, marginTop: u(17) }}>
           Real products.
           <br />
           Different worlds.
@@ -560,12 +790,28 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
       </div>
 
       {/* Drag to explore — its bottom lines up with the bottom of the front card */}
-      <div data-reveal className="absolute hidden md:flex items-center pointer-events-none" style={{ left: u(53), top: u(781), gap: u(22) }}>
+      <div data-reveal className="worlds-hide absolute hidden md:flex items-center pointer-events-none" style={{ left: u(53), top: u(781), gap: u(22) }}>
         <span className="flex items-center justify-center rounded-full border border-[var(--hero-ink)]/80" style={{ width: u(50), height: u(50) }}>
           <ArrowUpRight style={{ width: u(19), height: u(19) }} strokeWidth={1.4} />
         </span>
         <span className="uppercase" style={{ fontSize: u(13.5) }}>Drag to explore</span>
       </div>
+
+      {/* Overview toggle: the deck straightens into a row, and back */}
+      <button
+        data-control
+        data-reveal
+        onClick={() => setOverviewTo(!overview)}
+        className="worlds-toggle group"
+        aria-pressed={overview}
+      >
+        {overview ? (
+          <ArrowLeft strokeWidth={1.5} className="transition-transform duration-300 group-hover:-translate-x-1" />
+        ) : (
+          <LayoutGrid strokeWidth={1.5} />
+        )}
+        <span>{overview ? 'Back to the deck' : 'View all projects'}</span>
+      </button>
 
       {/* Mobile filter chips */}
       <div data-control data-reveal className="md:hidden absolute left-5 right-5 bottom-6 flex gap-2 overflow-x-auto">
@@ -582,46 +828,134 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
         ))}
       </div>
 
-      {/* Project detail */}
-      {openCard && (
-        <div
-          data-control
-          data-modal
-          className="fixed inset-0 z-[60] flex items-center justify-center p-5 bg-[#1a1512]/60 backdrop-blur-sm cursor-default"
-          onClick={() => setOpenCard(null)}
-        >
+      {/* Lifted card: an overlay copy on a stage laid out exactly like the deck */}
+      {lifted !== null && (
+        <>
+          <div data-control data-modal className="lift-scrim" style={{ opacity: 0 }} onClick={closeLift} />
           <div
-            className="relative w-full max-w-3xl grid md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] overflow-hidden rounded-2xl bg-[#f6efe6] shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
+            data-control
+            data-modal
+            ref={(el) => {
+              liftStageRef.current = el;
+              if (el && stageRef.current) el.style.transform = stageRef.current.style.transform;
+            }}
+            className="lift-stage absolute left-0 top-0 origin-top-left"
+            style={{ width: STAGE_W, height: STAGE_H, perspective: PERSPECTIVE, perspectiveOrigin: `${ORIGIN_X}px ${ORIGIN_Y}px` }}
           >
-            <img src={openCard.image} alt={openCard.title} className="w-full h-64 md:h-full object-cover" />
-            <div className="p-7 sm:p-9 flex flex-col">
-              <button
-                onClick={() => setOpenCard(null)}
-                className="absolute top-4 right-4 p-2 rounded-full bg-black/5 hover:bg-black/10 cursor-pointer"
-                aria-label="Close"
-              >
-                <X className="w-5 h-5" />
-              </button>
-              <span className="text-xs tracking-[0.14em] text-[var(--hero-bronze)]">
-                {openCard.number} — {openCard.tags.join(' · ')}
-              </span>
-              <h3 className="font-cormorant text-5xl font-medium mt-3">{openCard.title}</h3>
-              <span className="text-xs tracking-[0.14em] uppercase mt-1 text-[#6b6157]">{openCard.subtitle}</span>
-              <p className="mt-6 text-[15px] leading-relaxed text-[#3b352f]">{openCard.description}</p>
-              <button
-                onClick={() => {
-                  setOpenCard(null);
-                  onOpenContact();
-                }}
-                className="mt-auto pt-8 self-start inline-flex items-center gap-2 text-sm uppercase tracking-[0.08em] hover:text-[var(--hero-bronze)] cursor-pointer"
-              >
-                Discuss a similar project <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
+            <LiftedCard
+              ref={liftRef}
+              card={WORLDS[lifted]}
+              open={liftOpen}
+              onView={flipLift}
+              onClose={closeLift}
+              onContact={() => {
+                lift.current = null;
+                setLifted(null);
+                setLiftOpen(false);
+                onOpenContact();
+              }}
+            />
           </div>
-        </div>
+        </>
       )}
     </section>
   );
 };
+
+interface LiftedCardProps {
+  card: WorldCard;
+  open: boolean;
+  onView: () => void;
+  onClose: () => void;
+  onContact: () => void;
+}
+
+/** The card held in front of the viewer: its face, and on its back the project panel. */
+const LiftedCard = React.forwardRef<HTMLDivElement, LiftedCardProps>(({ card, open, onView, onClose, onContact }, ref) => (
+  <div
+    ref={ref}
+    className={`lift-card ${open ? 'is-open' : ''}`}
+    style={{ width: CARD_W, height: CARD_H, ['--r' as string]: `${RADIUS}px` }}
+    role="dialog"
+    aria-modal="true"
+    aria-label={card.title}
+  >
+    {/* Face */}
+    <div className="lift-face lift-front">
+      <img src={card.image} alt="" draggable={false} className="absolute inset-0 w-full h-full object-fill" />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/45" />
+      <div className="slab-glass-dome absolute inset-0 rounded-[var(--r)]" />
+      <div className="slab-glare absolute inset-0 rounded-[var(--r)]" />
+      <div className="absolute inset-0 text-white">
+        <svg className="absolute left-1/2 -translate-x-1/2 opacity-90" style={{ top: 38 }} width="17" height="17" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="0.9">
+          <path d="M8 1 15 8 8 15 1 8z" />
+          <path d="M6 5.5 10.5 10M5.5 8.5 8 11" />
+        </svg>
+        <div className="absolute inset-x-0 text-center" style={{ top: 74 }}>
+          <div className="font-cormorant font-medium leading-none" style={{ fontSize: 44, letterSpacing: '0.02em' }}>
+            {card.title}
+          </div>
+          <div className="uppercase" style={{ fontSize: 11.5, letterSpacing: '0.1em', marginTop: 12 }}>
+            {card.subtitle}
+          </div>
+        </div>
+        <div className="absolute" style={{ left: 39, top: 462, fontSize: 18, lineHeight: 1.4 }}>
+          {card.tagline.map((l) => (
+            <div key={l}>{l}</div>
+          ))}
+        </div>
+        <button onClick={onView} className="lift-view group absolute flex items-center uppercase" style={{ left: 39, bottom: 34 }}>
+          View project
+          <ArrowRight size={15} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
+        </button>
+      </div>
+      <button onClick={onClose} className="lift-close lift-close-front" aria-label="Put the card back">
+        <X strokeWidth={1.5} />
+      </button>
+    </div>
+
+    {/* Back: the project panel */}
+    <div className="lift-face lift-back">
+      <div className="lift-back-media">
+        <img src={card.image} alt={card.title} draggable={false} />
+      </div>
+      <div className="lift-back-body">
+        <span data-lift-reveal className="lift-back-meta">
+          {card.number} — {card.tags.join(' · ')}
+        </span>
+        <h3 data-lift-reveal className="lift-back-title font-cormorant">
+          {card.title}
+        </h3>
+        <span data-lift-reveal className="lift-back-sub">
+          {card.subtitle}
+        </span>
+        <p data-lift-reveal className="lift-back-text">
+          {card.description}
+        </p>
+        <dl data-lift-reveal className="lift-back-facts">
+          <div>
+            <dt>Category</dt>
+            <dd>{card.category}</dd>
+          </div>
+          <div>
+            <dt>Scope</dt>
+            <dd>{card.tags.join(', ')}</dd>
+          </div>
+        </dl>
+        <div data-lift-reveal className="lift-back-actions">
+          <button onClick={onContact} className="lift-cta group">
+            Discuss a similar project
+            <ArrowRight strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
+          </button>
+          <button onClick={onClose} className="lift-back-link">
+            Back to the deck
+          </button>
+        </div>
+      </div>
+      <button onClick={onClose} className="lift-close" aria-label="Close">
+        <X strokeWidth={1.5} />
+      </button>
+    </div>
+  </div>
+));
+LiftedCard.displayName = 'LiftedCard';

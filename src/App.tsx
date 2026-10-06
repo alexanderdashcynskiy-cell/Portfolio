@@ -6,11 +6,9 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { Navigation } from './components/Navigation';
 import { HeroContent } from './components/HeroContent';
-import { WorkShowcase } from './components/WorkShowcase';
 import { DigitalWorlds } from './components/DigitalWorlds';
 import { AboutPage } from './components/AboutPage';
 import { ServicesPage } from './components/ServicesPage';
-import { AboutModal } from './components/AboutModal';
 import { ContactPage } from './components/ContactPage';
 import { CustomCursor } from './components/CustomCursor';
 import { PageRail } from './components/PageRail';
@@ -20,9 +18,8 @@ const PAGE_LOCK_MS = 850;
 
 export default function App() {
   const [activeSection, setActiveSection] = useState<string>('home');
-  const [isAboutOpen, setIsAboutOpen] = useState(false);
-  const [workFilter, setWorkFilter] = useState<string | null>(null);
-  const [isWorksModalOpen, setIsWorksModalOpen] = useState(false);
+  // Asks page 2 to open its overview (all cards in a row), optionally with a filter.
+  const [overviewRequest, setOverviewRequest] = useState<{ filter: string | null; id: number } | null>(null);
 
   // Full-screen pages: each page owns a backdrop scene and a set of [data-reveal] elements
   // that are choreographed in and out (see "Page transitions" in index.css).
@@ -32,8 +29,6 @@ export default function App() {
   const pageRef = useRef(0);
   const lockUntil = useRef(0);
   const pageEls = useRef<(HTMLDivElement | null)[]>([]);
-  const modalOpen = useRef(false);
-  modalOpen.current = isAboutOpen || isWorksModalOpen;
 
   const goToPage = useCallback((next: number) => {
     const target = Math.max(0, Math.min(PAGE_COUNT - 1, next));
@@ -55,7 +50,7 @@ export default function App() {
     };
     const blocked = (target: EventTarget | null) => {
       const t = target as Element | null;
-      return modalOpen.current || !t?.closest?.('[data-page]') || !!t.closest('[data-modal]');
+      return !t?.closest?.('[data-page]') || !!t.closest('[data-modal]');
     };
 
     const onWheel = (e: WheelEvent) => {
@@ -72,7 +67,7 @@ export default function App() {
 
     const onKey = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement).tagName;
-      if (modalOpen.current || document.querySelector('[data-modal]') || tag === 'INPUT' || tag === 'TEXTAREA') return;
+      if (document.querySelector('[data-modal]') || tag === 'INPUT' || tag === 'TEXTAREA') return;
       const dir = ['ArrowDown', 'PageDown', ' '].includes(e.key) ? 1 : ['ArrowUp', 'PageUp'].includes(e.key) ? -1 : 0;
       if (e.key === 'Home') return goToPage(0);
       if (e.key === 'End') return goToPage(PAGE_COUNT - 1);
@@ -117,18 +112,13 @@ export default function App() {
   };
 
   const scrollToWorks = () => goToPage(1);
-  const openContact = () => {
-    setIsAboutOpen(false);
-    setIsWorksModalOpen(false);
-    goToPage(4);
-  };
+  const openContact = () => goToPage(4);
 
-  const openAllWorks = (filter: string | null = null) => {
-    setWorkFilter(filter);
-    setIsWorksModalOpen(true);
+  // Hero capability tags open every matching project, laid out in a row on page 2.
+  const handleTagClick = (tag: string) => {
+    setOverviewRequest({ filter: tag === 'UX/UI' ? 'UX / UI' : tag, id: Date.now() });
+    goToPage(1);
   };
-
-  const handleTagClick = (tag: string) => openAllWorks(tag);
 
   useLayoutEffect(() => {
     // Stagger order: every revealed element gets its index within its page.
@@ -208,7 +198,7 @@ export default function App() {
 
       {/* PAGE 2 — Digital Worlds carousel */}
       <div {...pageProps(1)}>
-        <DigitalWorlds isActive={page === 1} onOpenContact={openContact} />
+        <DigitalWorlds isActive={page === 1} onOpenContact={openContact} overviewRequest={overviewRequest} />
       </div>
 
       {/* PAGE 3 — About */}
@@ -226,22 +216,6 @@ export default function App() {
         <ContactPage />
       </div>
 
-      {/* Interactive Works Fullscreen Modal (for direct instant access on WORK / EXPLORE clicks) */}
-      {isWorksModalOpen && (
-        <WorkShowcase
-          isModal={true}
-          initialFilter={workFilter}
-          onClose={() => setIsWorksModalOpen(false)}
-          onOpenContact={openContact}
-        />
-      )}
-
-      {/* Interactive About Modal */}
-      <AboutModal
-        isOpen={isAboutOpen}
-        onClose={() => setIsAboutOpen(false)}
-        onOpenContact={openContact}
-      />
     </div>
   );
 }
