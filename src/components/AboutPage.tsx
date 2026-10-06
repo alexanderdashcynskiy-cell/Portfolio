@@ -37,22 +37,22 @@ export const AboutPage: React.FC = () => (
     <div className="about-stage">
       <img src="/about.jpg" alt="" className="about-stage-scene" draggable={false} aria-hidden="true" />
       <div className="about-copy">
-        <span className="about-eyebrow">03 / ABOUT</span>
+        <span data-reveal className="about-eyebrow">03 / ABOUT</span>
 
         <h1 className="about-title font-display uppercase">
-          <span>I Design</span>
-          <span className="text-[var(--hero-bronze)]">With</span>
-          <span className="text-[var(--hero-bronze)]">Purpose.</span>
+          <span data-reveal="line">I Design</span>
+          <span data-reveal="line" className="text-[var(--hero-bronze)]">With</span>
+          <span data-reveal="line" className="text-[var(--hero-bronze)]">Purpose.</span>
         </h1>
 
-        <p className="about-intro">
+        <p data-reveal className="about-intro">
           I’m a digital designer and developer focused on creating clear, useful and engaging digital products.
         </p>
       </div>
 
       <div className="about-principles">
         {principles.map(({ number, title, lines, Icon }) => (
-          <article key={number} className="about-principle">
+          <article key={number} data-reveal className="about-principle">
             <div className="flex items-center">
               <span className="about-principle-number">{number}</span>
               <Icon className="about-principle-icon" strokeWidth={1.6} aria-hidden="true" />

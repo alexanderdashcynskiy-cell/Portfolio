@@ -22,7 +22,7 @@ export const HeroContent: React.FC<HeroContentProps> = ({ onExploreClick, onTagC
         style={{ paddingTop: `max(110px, ${u(188)})` }}
       >
         {/* 01 — DIGITAL PRODUCTS FOR REAL BUSINESSES */}
-        <div className="flex items-start">
+        <div data-reveal className="flex items-start">
           <div className="flex flex-col" style={{ width: u(32) }}>
             <span className="leading-none" style={{ fontSize: `max(15px, ${u(19)})`, marginTop: u(6) }}>
               01
@@ -49,13 +49,14 @@ export const HeroContent: React.FC<HeroContentProps> = ({ onExploreClick, onTagC
             marginTop: u(20),
           }}
         >
-          <span className="block">I Design.</span>
-          <span className="block">I Build.</span>
-          <span className="block text-[var(--hero-bronze)]">I Ship.</span>
+          <span data-reveal="line" className="block">I Design.</span>
+          <span data-reveal="line" className="block">I Build.</span>
+          <span data-reveal="line" className="block text-[var(--hero-bronze)]">I Ship.</span>
         </h1>
 
         {/* Subtitle */}
         <p
+          data-reveal
           className="leading-[1.24] tracking-[-0.005em] text-[#141312]"
           style={{ fontSize: `max(16px, ${u(24)})`, marginTop: u(13), maxWidth: `max(300px, ${u(380)})` }}
         >
@@ -64,6 +65,7 @@ export const HeroContent: React.FC<HeroContentProps> = ({ onExploreClick, onTagC
 
         {/* Capabilities */}
         <div
+          data-reveal
           className="flex flex-wrap items-center uppercase tracking-[0.01em]"
           style={{ fontSize: `max(11px, ${u(15)})`, marginTop: u(23), columnGap: u(16) }}
         >
@@ -88,6 +90,7 @@ export const HeroContent: React.FC<HeroContentProps> = ({ onExploreClick, onTagC
         {/* Explore my work */}
         <button
           onClick={onExploreClick}
+          data-reveal
           className="group self-start inline-flex items-center cursor-pointer"
           style={{ marginTop: u(35), gap: u(22) }}
           aria-label="Explore my work"
@@ -113,6 +116,7 @@ export const HeroContent: React.FC<HeroContentProps> = ({ onExploreClick, onTagC
         {/* Scroll */}
         <button
           onClick={onExploreClick}
+          data-reveal
           className="group absolute flex flex-col items-start cursor-pointer"
           style={{ left: `max(20px, ${u(71)})`, top: u(932), gap: u(12) }}
           aria-label="Scroll down"

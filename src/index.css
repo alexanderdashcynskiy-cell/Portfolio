@@ -178,6 +178,22 @@ body {
   overflow: hidden;
 }
 
+/* ------------------------------------------------------------------
+   Page transitions — one choreography for every page.
+   · The scene of the arriving page fades in over the old one and settles
+     from a slight zoom; the leaving scene drifts on and zooms out underneath.
+   · Content marked [data-reveal] leaves quickly and quietly, then the new
+     page's content rises (or, going back up, descends) out of a soft blur,
+     element by element, in reading order (--i is set in App).
+   Direction comes for free: a page below the current one waits below, a
+   page above waits above.
+------------------------------------------------------------------- */
+:root {
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
 .site-page {
   position: fixed;
   inset: 0;
@@ -185,42 +201,135 @@ body {
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: none;
-  transition:
-    opacity 0.7s cubic-bezier(0.4, 0, 0.2, 1),
-    transform 0.9s cubic-bezier(0.16, 1, 0.3, 1),
-    filter 0.7s ease,
-    visibility 0s linear 0.9s;
+  /* The page box itself never moves; it just stays visible until its content has left. */
+  transition: visibility 0s linear 1s;
 }
 .site-page::-webkit-scrollbar {
   display: none;
 }
 .site-page.is-active {
-  opacity: 1;
-  transform: none;
-  filter: none;
   visibility: visible;
-  transition-delay: 0.35s, 0.35s, 0.35s, 0s;
+  transition-delay: 0s;
 }
 .site-page.is-above,
 .site-page.is-below {
-  opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  filter: blur(6px);
 }
-.site-page.is-above {
-  transform: translate3d(0, -6vh, 0);
+
+/* Scenes */
+.scene-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  opacity: 0;
+  will-change: opacity, transform;
+  transition:
+    opacity 0.01s linear 1.3s,
+    transform 1.6s var(--ease-in-out);
 }
-.site-page.is-below {
-  transform: translate3d(0, 6vh, 0);
+.scene-layer.is-above {
+  transform: scale(1.06) translate3d(0, -2.5%, 0);
+}
+.scene-layer.is-below {
+  transform: scale(1.06) translate3d(0, 2.5%, 0);
+}
+.scene-layer.is-active {
+  z-index: 2;
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 1.2s var(--ease-in-out) 0.1s,
+    transform 2.2s var(--ease-out) 0.1s;
+}
+
+/* The about page carries its own pinned copy of the scene: it settles with the backdrop. */
+.about-stage {
+  transition: transform 1.6s var(--ease-in-out);
+}
+.site-page.is-above .about-stage {
+  transform: scale(1.06) translate3d(0, -2.5%, 0);
+}
+.site-page.is-below .about-stage {
+  transform: scale(1.06) translate3d(0, 2.5%, 0);
+}
+.site-page.is-active .about-stage {
+  transform: none;
+  transition: transform 2.2s var(--ease-out) 0.1s;
+}
+.about-stage-scene {
+  opacity: 0;
+  transition: opacity 0.9s var(--ease-in-out);
+}
+.site-page.is-active .about-stage-scene {
+  opacity: 1;
+  transition: opacity 1.2s var(--ease-in-out) 0.1s;
+}
+
+/* Content */
+[data-reveal] {
+  --travel: 42px;
+  will-change: opacity, transform, filter;
+  transition:
+    opacity 0.42s var(--ease-in) calc(var(--i, 0) * 0.02s),
+    transform 0.5s var(--ease-in) calc(var(--i, 0) * 0.02s),
+    filter 0.42s var(--ease-in) calc(var(--i, 0) * 0.02s);
+}
+[data-reveal="line"] {
+  --travel: 0.42em;
+  display: block;
+}
+[data-reveal="stage"] {
+  --travel: 7vh;
+}
+.site-page.is-below [data-reveal] {
+  opacity: 0;
+  transform: translate3d(0, var(--travel), 0);
+  filter: blur(10px);
+}
+.site-page.is-above [data-reveal] {
+  opacity: 0;
+  transform: translate3d(0, calc(var(--travel) * -0.6), 0);
+  filter: blur(8px);
+}
+/* The 3D card stage only fades and scales: a blur would flatten and cost too much. */
+.site-page.is-below [data-reveal="stage"],
+.site-page.is-above [data-reveal="stage"] {
+  filter: none;
+  transform: translate3d(0, var(--travel), 0) scale(0.94);
+}
+.site-page.is-above [data-reveal="stage"] {
+  transform: translate3d(0, calc(var(--travel) * -0.6), 0) scale(1.03);
+}
+.site-page.is-active [data-reveal] {
+  opacity: 1;
+  transform: none;
+  filter: none;
+  transition:
+    opacity 1s var(--ease-out) calc(0.55s + var(--i, 0) * 0.075s),
+    transform 1.3s var(--ease-out) calc(0.55s + var(--i, 0) * 0.075s),
+    filter 1s var(--ease-out) calc(0.55s + var(--i, 0) * 0.075s);
+}
+.site-page.is-active [data-reveal="stage"] {
+  transition:
+    opacity 1.4s var(--ease-out) 0.45s,
+    transform 1.8s var(--ease-out) 0.45s;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .site-page,
-  .site-page.is-active {
-    transition-duration: 0.01s;
+  .scene-layer,
+  .scene-layer.is-active,
+  .about-stage,
+  .site-page.is-active .about-stage,
+  .about-stage-scene,
+  .site-page.is-active .about-stage-scene,
+  [data-reveal],
+  .site-page.is-active [data-reveal] {
+    transform: none !important;
+    filter: none !important;
+    transition-property: opacity;
+    transition-duration: 0.4s;
     transition-delay: 0s;
-    transform: none;
   }
 }
 
@@ -267,11 +376,8 @@ body {
   transform: scale(1.08);
 }
 
-/* The page only fades: nothing on it slides or drifts against the backdrop. */
-.site-page:has(.about-page),
-.site-page:has(.about-page).is-above,
-.site-page:has(.about-page).is-below {
-  transform: none;
+/* The about page never scrolls on desktop. */
+.site-page:has(.about-page) {
   overflow: hidden;
 }
 
@@ -399,6 +505,7 @@ body {
 /* Phones and portrait tablets: the copy stacks over a softened backdrop. */
 @media (max-width: 767px), (max-aspect-ratio: 7/5) {
   .site-page:has(.about-page) { overflow-y: auto; }
+  .about-scene { filter: none; transform: none; }
   .about-page {
     height: auto;
     min-height: 100vh;
