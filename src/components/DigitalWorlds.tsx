@@ -281,7 +281,7 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
     <section
       ref={sectionRef}
       id="work"
-      className="worlds-page font-hero-sans relative w-full h-screen min-h-[600px] overflow-hidden text-[var(--hero-ink)] select-none touch-pan-y cursor-grab active:cursor-grabbing"
+      className="worlds-page font-hero-sans relative w-full h-viewport min-h-[600px] overflow-hidden text-[var(--hero-ink)] select-none touch-pan-y cursor-grab active:cursor-grabbing"
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}

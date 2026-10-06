@@ -144,7 +144,7 @@ export default function App() {
   });
 
   return (
-    <div className="relative h-screen overflow-hidden bg-[#ece6dc] text-[#141312] selection:bg-[#9c6a3b] selection:text-white">
+    <div className="relative h-viewport overflow-hidden bg-[#ece6dc] text-[#141312] selection:bg-[#9c6a3b] selection:text-white">
       {/* Custom magnetic follower cursor */}
       <CustomCursor />
 

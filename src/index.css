@@ -65,8 +65,23 @@
    --u is one "design pixel": everything scales with the viewport
    while keeping the exact proportions of the reference.
 ------------------------------------------------------------------- */
+/* The height of the visible viewport. Mobile Safari's 100vh is the height with its
+   toolbars collapsed, taller than what is actually on screen, which pushed the bottom
+   of every full-screen page out of view on iPhone and iPad. 100dvh tracks the real one. */
 :root {
-  --u: min(calc(100vw / 1536), calc(100vh / 1024));
+  --vh: 100vh;
+}
+@supports (height: 100dvh) {
+  :root {
+    --vh: 100dvh;
+  }
+}
+.h-viewport {
+  height: var(--vh);
+}
+
+:root {
+  --u: min(calc(100vw / 1536), calc(var(--vh) / 1024));
   --hero-ink: #0d0c0b;
   --hero-bronze: #8a5526;
 }
@@ -280,7 +295,7 @@ body {
   display: block;
 }
 [data-reveal="stage"] {
-  --travel: 7vh;
+  --travel: calc(var(--vh) * 0.07);
 }
 .site-page.is-below [data-reveal] {
   opacity: 0;
@@ -356,9 +371,9 @@ body {
    it in artwork pixels exactly as in the reference. When the window has a different
    shape, the scene continues past the stage edges as a soft blurred fill. */
 :root {
-  --c: min(calc(100vw / 1536), calc(100vh / 1024));
+  --c: min(calc(100vw / 1536), calc(var(--vh) / 1024));
   --gap-x: max(0px, calc((100vw - 1536 * var(--c)) / 2));
-  --gap-y: max(0px, calc((100vh - 1024 * var(--c)) / 2));
+  --gap-y: max(0px, calc((var(--vh) - 1024 * var(--c)) / 2));
   --feather-x: min(140px, calc(var(--gap-x) * 3));
   --feather-y: min(140px, calc(var(--gap-y) * 3));
 }
@@ -390,7 +405,7 @@ body {
 
 .about-page {
   position: relative;
-  height: 100vh;
+  height: var(--vh);
   overflow: hidden;
 }
 
@@ -486,7 +501,7 @@ body {
   .about-scene { filter: none; transform: none; }
   .about-page {
     height: auto;
-    min-height: 100vh;
+    min-height: var(--vh);
     overflow: visible;
     background: rgba(247, 236, 222, 0.6);
   }
