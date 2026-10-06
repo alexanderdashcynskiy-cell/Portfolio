@@ -335,9 +335,10 @@ body {
     filter 1s var(--ease-out) calc(0.55s + var(--i, 0) * 0.075s);
 }
 .site-page.is-active [data-reveal="stage"] {
+  /* Quick: the cards then cascade in on their own (see DigitalWorlds). */
   transition:
-    opacity 1.4s var(--ease-out) 0.45s,
-    transform 1.8s var(--ease-out) 0.45s;
+    opacity 0.6s var(--ease-out) 0.2s,
+    transform 1.8s var(--ease-out) 0.2s;
 }
 
 /* Pages 1 and 2 are pinned: their scene and copy (and the card stage, which stands on
