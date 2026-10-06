@@ -5,7 +5,8 @@ const EMAIL = 'alexanderdashcynskiy@gmail.com';
 // TODO: replace the placeholder handles with the real ones.
 const TELEGRAM = 'yourname';
 const LINKEDIN = 'yourname';
-const WHATSAPP = '000000000000'; // international format, digits only
+const WHATSAPP = '375333604902'; // international format, digits only (wa.me link)
+const WHATSAPP_DISPLAY = '+375 33 360-49-02';
 
 const PROJECT_TYPES = ['Website', 'App', 'Mini App', 'Dashboard', 'UX/UI', 'Other'];
 
@@ -24,7 +25,7 @@ const WhatsAppMark = (props: React.SVGProps<SVGSVGElement>) => (
 
 const channels = [
   { label: 'Email', value: EMAIL, href: `mailto:${EMAIL}`, Icon: Mail },
-  { label: 'WhatsApp', value: `+${WHATSAPP}`, href: `https://wa.me/${WHATSAPP}`, Icon: WhatsAppMark },
+  { label: 'WhatsApp', value: WHATSAPP_DISPLAY, href: `https://wa.me/${WHATSAPP}`, Icon: WhatsAppMark },
   { label: 'Telegram', value: `@${TELEGRAM}`, href: `https://t.me/${TELEGRAM}`, Icon: Send },
   { label: 'LinkedIn', value: `/${LINKEDIN}`, href: `https://www.linkedin.com/in/${LINKEDIN}`, Icon: LinkedInMark },
 ];
