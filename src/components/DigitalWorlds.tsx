@@ -176,16 +176,6 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
     glideUntil.current = performance.now() + 1200;
   }, [items]);
 
-  const goTo = useCallback((k: number) => {
-    const list = itemsRef.current;
-    const n = list.length;
-    const j = list.indexOf(k);
-    if (j < 0 || n < 2) return;
-    const delta = slotOf(j, target.current, n);
-    target.current = Math.round(target.current + (delta > n / 2 ? delta - n : delta));
-    lastInteraction.current = performance.now();
-  }, []);
-
   const step = useCallback((dir: 1 | -1) => {
     if (itemsRef.current.length < 2) return;
     target.current = Math.round(target.current) + dir;
@@ -379,11 +369,10 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
     }
     const cardEl = (e.target as HTMLElement).closest<HTMLElement>('[data-card]');
     if (!cardEl) return;
+    // A click opens that card's project in place; the carousel only moves by drag, throw,
+    // arrows or autoplay.
     const k = Number(cardEl.dataset.card);
-    const list = itemsRef.current;
-    const front = list[mod(Math.round(offset.current), list.length)];
-    if (k === front) setOpenCard(WORLDS[k]);
-    else goTo(k);
+    if (itemsRef.current.includes(k)) setOpenCard(WORLDS[k]);
   };
 
   const selectFilter = (f: string) => {
