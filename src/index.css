@@ -311,10 +311,12 @@ body {
   opacity: 0;
   filter: blur(10px);
 }
-/* The 3D card stage only fades: a blur would flatten it and cost too much. */
+/* The 3D card stage only fades: a blur would flatten it and cost too much. On the way out it
+   waits for the cards' own right-to-left cascade (see DigitalWorlds) before fading. */
 .site-page.is-below [data-reveal="stage"],
 .site-page.is-above [data-reveal="stage"] {
   filter: none;
+  transition: opacity 0.3s var(--ease-in) 0.55s;
 }
 .site-page.is-active [data-reveal] {
   opacity: 1;

@@ -75,6 +75,26 @@ const pathFor = (n: number): Pose[] => {
   return [before, ...used, after];
 };
 
+// Position along the path, u in [0, path.length - 1], on a Catmull-Rom curve through the
+// slots: velocity and turn change continuously as a card passes a slot (no kinks).
+const poseAt = (path: Pose[], u: number): Pose => {
+  const last = path.length - 1;
+  const i = clamp(Math.floor(u), 0, last - 1);
+  const t = clamp(u - i, 0, 1);
+  const p0 = path[Math.max(0, i - 1)];
+  const p1 = path[i];
+  const p2 = path[i + 1];
+  const p3 = path[Math.min(last, i + 2)];
+  const cr = (a: number, b: number, c: number, d: number) =>
+    0.5 * (2 * b + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t * t + (-a + 3 * b - 3 * c + d) * t * t * t);
+  return {
+    tx: cr(p0.tx, p1.tx, p2.tx, p3.tx),
+    ty: cr(p0.ty, p1.ty, p2.ty, p3.ty),
+    tz: cr(p0.tz, p1.tz, p2.tz, p3.tz),
+    th: cr(p0.th, p1.th, p2.th, p3.th),
+  };
+};
+
 const lerpPose = (a: Pose, b: Pose, t: number): Pose => ({
   tx: a.tx + (b.tx - a.tx) * t,
   ty: a.ty + (b.ty - a.ty) * t,
@@ -89,6 +109,12 @@ const mod = (n: number, m: number) => ((n % m) + m) % m;
 const ENTER_MS = 1100;
 const EXIT_MS = 380;
 const STAGGER_MS = 90;
+const LEAVE_MS = 520; // cards leaving with the page
+const LEAVE_STAGGER_MS = 45; // right to left
+const LEAVE_SHIFT_X = -46; // they drift on, the way the carousel turns
+// Carousel motion: a critically damped spring (no overshoot) with a soft start and a long,
+// quiet settle, instead of an ease that leaves at full speed.
+const SPRING_W = 8.5; // rad/s; settles in ~0.75s
 const PAGE_ENTER_DELAY_MS = 320; // lets the page's own fade begin first
 const ENTER_SHIFT_X = 70; // px in stage space
 const ENTER_TURN = 0.14; // extra rotateY, radians
@@ -131,7 +157,10 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
   const hovering = useRef(false);
   const lastInteraction = useRef(0);
   const stageScale = useRef(1);
-  const visible = useRef(true);
+  const visible = useRef(true); // page shown: input and autoplay are live
+  const leaveUntil = useRef(0); // keep animating until the leaving cascade has finished
+  const leaving = useRef(false);
+  const velocity = useRef(0); // carousel offset units per second
 
   const [filter, setFilter] = useState('WEB');
   const [openCard, setOpenCard] = useState<WorldCard | null>(null);
@@ -194,8 +223,14 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
   // the page replays the cards' cascade.
   useEffect(() => {
     visible.current = isActive;
-    if (isActive) lastInteraction.current = performance.now();
-    else replayReveal.current = true;
+    if (isActive) {
+      lastInteraction.current = performance.now();
+      leaving.current = false;
+    } else {
+      replayReveal.current = true;
+      leaving.current = true;
+      leaveUntil.current = performance.now() + LEAVE_MS + WORLDS.length * LEAVE_STAGGER_MS + 100;
+    }
   }, [isActive]);
 
   // Animation loop: easing toward target, card reveals, autoplay. Cards stay put vertically.
@@ -209,14 +244,16 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
       raf = requestAnimationFrame(frame);
       const dt = Math.min(64, t - lastT);
       lastT = t;
-      if (!visible.current) return;
+      if (!visible.current && t > leaveUntil.current) return;
       const list = itemsRef.current;
       const n = list.length;
       const path = pathFor(n);
-      const replay = replayReveal.current;
-      replayReveal.current = false;
+      const replay = visible.current && replayReveal.current;
+      if (replay) replayReveal.current = false;
+      const leave = leaving.current;
+      leaving.current = false;
 
-      const idle = !drag.current && !hovering.current && t - lastInteraction.current > 6000;
+      const idle = visible.current && !drag.current && !hovering.current && t - lastInteraction.current > 6000;
       if (idle && !reduceMotion && n > 1 && t - lastAuto > 5000) {
         target.current = Math.round(target.current) + 1;
         lastAuto = t;
@@ -225,9 +262,24 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
       }
 
       if (!drag.current) {
-        // Exponential ease toward the target, frame-rate independent (τ ≈ 190ms).
-        offset.current += (target.current - offset.current) * (1 - Math.exp(-dt / 190));
-        if (Math.abs(target.current - offset.current) < 0.0005) offset.current = target.current;
+        if (reduceMotion) {
+          offset.current = target.current;
+          velocity.current = 0;
+        } else {
+          // Critically damped spring, integrated in ≤8ms sub-steps for stability at any frame rate.
+          let left = dt / 1000;
+          while (left > 0) {
+            const h = Math.min(left, 0.008);
+            const acc = SPRING_W * SPRING_W * (target.current - offset.current) - 2 * SPRING_W * velocity.current;
+            velocity.current += acc * h;
+            offset.current += velocity.current * h;
+            left -= h;
+          }
+          if (Math.abs(target.current - offset.current) < 0.0005 && Math.abs(velocity.current) < 0.002) {
+            offset.current = target.current;
+            velocity.current = 0;
+          }
+        }
       }
 
       for (let k = 0; k < WORLDS.length; k++) {
@@ -237,7 +289,11 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
         const p = j >= 0 && n > 1 ? slotOf(j, offset.current, n) : 0;
         const r = reveal.current[k];
         const now = revealAt(r, t);
-        if (j >= 0 && (r.to === 0 || replay)) {
+        if (leave && j >= 0) {
+          // Leaving the page: cards dissolve right to left, drifting on.
+          const slot = clamp(Math.round(p), 0, n - 1);
+          reveal.current[k] = { from: now, to: 0, start: t + (n - 1 - slot) * LEAVE_STAGGER_MS, dur: LEAVE_MS };
+        } else if (j >= 0 && (r.to === 0 || replay) && visible.current) {
           // Entering: cascade in reading order (slot 0 is the front card on the left).
           const slot = clamp(Math.round(p), 0, n - 1);
           reveal.current[k] = { from: replay ? 0 : now, to: 1, start: t + (replay ? PAGE_ENTER_DELAY_MS : 0) + slot * STAGGER_MS, dur: ENTER_MS };
@@ -249,15 +305,17 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
         el.style.pointerEvents = j >= 0 ? 'auto' : 'none';
 
         if (j >= 0) {
-          const i = Math.max(0, Math.min(path.length - 2, Math.floor(p) + 1));
-          let pose = lerpPose(path[i], path[i + 1], p + 1 - i);
+          let pose = poseAt(path, p + 1);
           const prev = shown.current[k];
           if (prev && r.to === 1 && t < glideUntil.current && !reduceMotion) {
             pose = lerpPose(prev, pose, 1 - Math.exp(-dt / 170));
           }
           shown.current[k] = pose;
           const rest = 1 - v; // 0 once the card has fully arrived
-          el.style.transform = `translate3d(${pose.tx + ENTER_SHIFT_X * rest}px, ${pose.ty}px, ${pose.tz}px) rotateY(${pose.th + ENTER_TURN * rest}rad)`;
+          const out = reveal.current[k].to === 0; // leaving: drift on instead of back
+          const shift = (out ? LEAVE_SHIFT_X : ENTER_SHIFT_X) * rest;
+          const turn = (out ? -ENTER_TURN * 0.6 : ENTER_TURN) * rest;
+          el.style.transform = `translate3d(${pose.tx + shift}px, ${pose.ty}px, ${pose.tz}px) rotateY(${pose.th + turn}rad)`;
           el.style.zIndex = String(Math.round(3000 + pose.tz));
           // Glare slides across the glass as the slab turns.
           el.style.setProperty('--glare', `${50 + pose.th * 45}%`);
@@ -305,6 +363,7 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
     d.lastT = now;
     offset.current = d.start - dx / (260 * stageScale.current);
     target.current = offset.current;
+    velocity.current = (-d.v * 1000) / (260 * stageScale.current);
   };
 
   const onPointerUp = (e: React.PointerEvent) => {
@@ -313,7 +372,9 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
     lastInteraction.current = performance.now();
     if (!d) return;
     if (d.moved) {
-      target.current = Math.round(offset.current - d.v * 1.2);
+      // Project the throw a little ahead and let the spring carry it there.
+      const throwBy = clamp(velocity.current * 0.22, -2, 2);
+      target.current = Math.round(offset.current + throwBy);
       return;
     }
     const cardEl = (e.target as HTMLElement).closest<HTMLElement>('[data-card]');
