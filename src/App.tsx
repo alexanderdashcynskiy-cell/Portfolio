@@ -144,7 +144,7 @@ export default function App() {
   });
 
   return (
-    <div className="relative h-screen overflow-hidden bg-[#ece6dc] text-[#141312] selection:bg-[#9c6a3b] selection:text-white">
+    <div className="relative h-viewport overflow-hidden bg-[#ece6dc] text-[#141312] selection:bg-[#9c6a3b] selection:text-white">
       {/* Custom magnetic follower cursor */}
       <CustomCursor />
 
@@ -153,11 +153,11 @@ export default function App() {
       {/* ONE FIXED BACKDROP: each page has its own scene, which settles in as the page arrives */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
         {[
-          { src: '/hero.jpg', cls: '' },
-          { src: '/worlds/bg.jpg', cls: '' },
+          { src: '/hero.jpg', cls: '', pinned: true },
+          { src: '/worlds/bg.jpg', cls: '', pinned: true },
           { src: '/about.jpg', cls: 'about-scene' },
-        ].map(({ src, cls }, i) => (
-          <div key={src} className={`scene-layer ${stateOf(i)}`}>
+        ].map(({ src, cls, pinned }, i) => (
+          <div key={src} className={`scene-layer ${pinned ? 'is-pinned' : ''} ${stateOf(i)}`}>
             <img src={src} alt="" className={`absolute inset-0 w-full h-full object-cover ${cls}`} draggable={false} />
           </div>
         ))}

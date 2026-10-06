@@ -38,14 +38,14 @@ const principles = [
 const dividers = [448, 776, 1141];
 
 /**
- * The third full-screen page: the reference artwork shown whole, with every element
- * placed on it in artwork pixels, so the page always matches the reference.
+ * The third full-screen page: the reference artwork covering the window, with every
+ * element placed on it in artwork pixels as in the reference (see .about-stage).
  */
 export const AboutPage: React.FC = () => (
   <section className="about-page font-hero-sans text-[var(--hero-ink)]">
     <div className="about-stage">
       <img src="/about.jpg" alt="" className="about-stage-scene" draggable={false} aria-hidden="true" />
-      <div className="about-copy" style={{ left: c(79), top: c(156) }}>
+      <div className="about-copy">
         <span data-reveal className="about-eyebrow">03 / ABOUT</span>
 
         <h1 className="about-title font-display uppercase" style={{ marginLeft: c(19), marginTop: c(35) }}>

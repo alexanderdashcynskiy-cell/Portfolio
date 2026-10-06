@@ -168,7 +168,7 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
     if (isActive) lastInteraction.current = performance.now();
   }, [isActive]);
 
-  // Animation loop: easing toward target, filter fades, gentle float, autoplay.
+  // Animation loop: easing toward target, filter fades, autoplay. Cards stay put vertically.
   useEffect(() => {
     let raf = 0;
     let lastAuto = performance.now();
@@ -206,8 +206,7 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
           const p = n > 1 ? slotOf(j, offset.current, n) : 0;
           const i = Math.max(0, Math.min(path.length - 2, Math.floor(p) + 1));
           const pose = lerpPose(path[i], path[i + 1], p + 1 - i);
-          const float = reduceMotion ? 0 : Math.sin(t / 1200 + k * 1.4) * 3;
-          el.style.transform = `translate3d(${pose.tx}px, ${pose.ty + float}px, ${pose.tz}px) rotateY(${pose.th}rad)`;
+          el.style.transform = `translate3d(${pose.tx}px, ${pose.ty}px, ${pose.tz}px) rotateY(${pose.th}rad)`;
           el.style.zIndex = String(Math.round(3000 + pose.tz));
           // Glare slides across the glass as the slab turns.
           el.style.setProperty('--glare', `${50 + pose.th * 45}%`);
@@ -282,7 +281,7 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
     <section
       ref={sectionRef}
       id="work"
-      className="font-hero-sans relative w-full h-screen min-h-[600px] overflow-hidden text-[var(--hero-ink)] select-none touch-pan-y cursor-grab active:cursor-grabbing"
+      className="worlds-page font-hero-sans relative w-full h-viewport min-h-[600px] overflow-hidden text-[var(--hero-ink)] select-none touch-pan-y cursor-grab active:cursor-grabbing"
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
