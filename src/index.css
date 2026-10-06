@@ -366,16 +366,18 @@ body {
    ABOUT — the type and the principle row are positioned on the same
    1536 × 1024 grid as the supplied reference.
 ------------------------------------------------------------------- */
-/* The stage is the reference artwork: 1536×1024, always shown whole and uncropped at the
-   largest size that fits the window (like `object-contain`), with the copy laid out on
-   it in artwork pixels exactly as in the reference. When the window has a different
-   shape, the scene continues past the stage edges as a soft blurred fill. */
+/* The stage is the reference artwork (1536×1024). It covers the window edge to edge like
+   `object-cover`, and the copy is laid out on it in artwork pixels exactly as in the
+   reference. When the window's shape crops the artwork, the copy is nudged back on
+   screen: the headline block never slides under the nav and the principle row is lifted
+   just enough to stay whole above the bottom edge. */
 :root {
-  --c: min(calc(100vw / 1536), calc(var(--vh) / 1024));
-  --gap-x: max(0px, calc((100vw - 1536 * var(--c)) / 2));
-  --gap-y: max(0px, calc((var(--vh) - 1024 * var(--c)) / 2));
-  --feather-x: min(140px, calc(var(--gap-x) * 3));
-  --feather-y: min(140px, calc(var(--gap-y) * 3));
+  --c: max(calc(100vw / 1536), calc(var(--vh) / 1024));
+  --stage-left: calc((100vw - 1536 * var(--c)) / 2);
+  --stage-top: calc((var(--vh) - 1024 * var(--c)) / 2);
+  --nav-h: max(72px, calc(92 * var(--u)));
+  /* Negative when the bottom of the principle row (artwork y 925) would fall off screen. */
+  --row-lift: min(0px, calc(var(--vh) - max(16px, calc(28 * var(--c))) - var(--stage-top) - 925 * var(--c)));
 }
 
 .about-scene {
@@ -388,14 +390,20 @@ body {
   inset: 0;
   width: 100%;
   height: 100%;
-  -webkit-mask-image:
-    linear-gradient(90deg, transparent, #000 var(--feather-x), #000 calc(100% - var(--feather-x)), transparent),
-    linear-gradient(180deg, transparent, #000 var(--feather-y), #000 calc(100% - var(--feather-y)), transparent);
-  -webkit-mask-composite: source-in;
-  mask-image:
-    linear-gradient(90deg, transparent, #000 var(--feather-x), #000 calc(100% - var(--feather-x)), transparent),
-    linear-gradient(180deg, transparent, #000 var(--feather-y), #000 calc(100% - var(--feather-y)), transparent);
-  mask-composite: intersect;
+}
+
+/* Ultra-wide windows (beyond 21:10) would crop so much floor that the lifted row would sit
+   on the figure; there the stage stops growing with the width, and the narrow side gaps
+   are feathered into the blurred backdrop. */
+@media (min-aspect-ratio: 21/10) {
+  :root {
+    --c: min(max(calc(100vw / 1536), calc(var(--vh) / 1024)), calc(var(--vh) / 860));
+    --feather-x: min(140px, calc(max(0px, var(--stage-left)) * 3));
+  }
+  .about-stage-scene {
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 var(--feather-x), #000 calc(100% - var(--feather-x)), transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 var(--feather-x), #000 calc(100% - var(--feather-x)), transparent);
+  }
 }
 
 /* The about page never scrolls on desktop. */
@@ -411,14 +419,16 @@ body {
 
 .about-stage {
   position: absolute;
-  left: var(--gap-x);
-  top: var(--gap-y);
+  left: var(--stage-left);
+  top: var(--stage-top);
   width: calc(1536 * var(--c));
   height: calc(1024 * var(--c));
 }
 
 .about-copy {
   position: absolute;
+  left: max(calc(79 * var(--c)), calc(16px - var(--stage-left)));
+  top: max(calc(156 * var(--c)), calc(var(--nav-h) + 16px - var(--stage-top)));
   width: calc(460 * var(--c));
 }
 
@@ -452,14 +462,14 @@ body {
 
 .about-divider {
   position: absolute;
-  top: calc(815 * var(--c));
+  top: calc(815 * var(--c) + var(--row-lift));
   height: calc(104 * var(--c));
   width: 1px;
   background: rgba(13, 12, 11, 0.5);
 }
 .about-principle {
   position: absolute;
-  top: calc(809 * var(--c));
+  top: calc(809 * var(--c) + var(--row-lift));
 }
 .about-principle-number {
   padding-bottom: calc(5 * var(--c));
@@ -495,8 +505,9 @@ body {
   display: block;
 }
 
-/* Phones and portrait screens: the copy stacks over the backdrop. */
-@media (max-width: 767px), (max-aspect-ratio: 1/1) {
+/* Phones, portrait and near-square screens (where covering would crop the sides of the
+   principle row): the copy stacks over the backdrop. */
+@media (max-width: 767px), (max-aspect-ratio: 4/3) {
   .site-page:has(.about-page) { overflow-y: auto; }
   .about-scene { filter: none; transform: none; }
   .about-page {
