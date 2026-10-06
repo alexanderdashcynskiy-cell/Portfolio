@@ -136,14 +136,21 @@ export default function App() {
 
       <Navigation onOpenSection={handleOpenSection} activeSection={activeSection} />
 
-      {/* ONE FIXED BACKDROP for the whole site; the sphere layer dissolves away from the first page */}
+      {/* ONE FIXED BACKDROP for the whole site; each page cross-fades in its own scene */}
       <div className="fixed inset-0 pointer-events-none" aria-hidden="true">
         <img src="/worlds/bg.jpg" alt="" className="absolute inset-0 w-full h-full object-cover" draggable={false} />
         <img
           src="/hero.jpg"
           alt=""
           className="absolute inset-0 w-full h-full object-cover transition-opacity duration-[1100ms] ease-in-out"
-          style={{ opacity: page === 0 || page === 2 ? 1 : 0 }}
+          style={{ opacity: page === 0 ? 1 : 0 }}
+          draggable={false}
+        />
+        <img
+          src="/about.jpg"
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover transition-opacity duration-[1100ms] ease-in-out"
+          style={{ opacity: page === 2 ? 1 : 0 }}
           draggable={false}
         />
       </div>
@@ -162,7 +169,7 @@ export default function App() {
 
       {/* PAGE 3 — About */}
       <div {...pageProps(2)}>
-        <AboutPage />
+        <AboutPage onOpenSection={handleOpenSection} />
       </div>
 
       {/* Interactive Works Fullscreen Modal (for direct instant access on WORK / EXPLORE clicks) */}
