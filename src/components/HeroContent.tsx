@@ -18,8 +18,8 @@ export const HeroContent: React.FC<HeroContentProps> = ({ onExploreClick, onTagC
       <div className="absolute inset-0 md:hidden bg-gradient-to-r from-[#f1e6d8]/85 via-[#f1e6d8]/50 to-transparent pointer-events-none" />
 
       <div
-        className="font-hero-sans u-px relative z-10 h-full flex flex-col text-[var(--hero-ink)]"
-        style={{ paddingTop: `max(110px, ${u(188)})` }}
+        className="font-hero-sans relative z-10 h-full flex flex-col text-[var(--hero-ink)]"
+        style={{ paddingTop: 'var(--eyebrow-y)', paddingLeft: 'var(--eyebrow-x)', paddingRight: `max(20px, ${u(51)})` }}
       >
         <span data-reveal className="page-eyebrow">01 / HOME</span>
 

@@ -453,7 +453,7 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
       <div className="absolute inset-x-0 top-0 h-[46%] md:hidden bg-gradient-to-b from-[#f4ebe0]/90 via-[#f4ebe0]/60 to-transparent pointer-events-none" />
 
       {/* Left column */}
-      <div className="absolute" style={{ left: `max(20px, ${u(56)})`, top: `max(88px, ${u(176)})` }}>
+      <div className="absolute" style={{ left: 'var(--eyebrow-x)', top: 'var(--eyebrow-y)' }}>
         <span data-reveal className="page-eyebrow">02 / WORK</span>
         <h2 className="font-condensed uppercase" style={{ fontSize: `max(46px, ${u(93)})`, lineHeight: 0.87, marginTop: u(31) }}>
           <span data-reveal="line" className="block font-extralight tracking-[-0.08em]">Digital</span>

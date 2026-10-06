@@ -202,7 +202,13 @@ body {
   overflow: hidden;
 }
 
-/* The page label ("0N / SECTION") above each page's headline: one style everywhere. */
+/* The page label ("0N / SECTION") above each page's headline: one style everywhere, and
+   on every page it sits at the same point on screen, under the left edge of the "A." logo.
+   Each page's copy block is anchored there, so the label never jumps between pages. */
+:root {
+  --eyebrow-x: max(20px, calc(57 * var(--u)));
+  --eyebrow-y: max(calc(max(72px, calc(92 * var(--u))) + 24px), calc(176 * var(--u)));
+}
 .page-eyebrow {
   display: block;
   width: fit-content;
@@ -390,8 +396,8 @@ body {
 
 .about-copy {
   position: absolute;
-  left: max(calc(79 * var(--c)), calc(16px - var(--stage-left)));
-  top: max(calc(156 * var(--c)), calc(var(--nav-h) + 16px - var(--stage-top)));
+  left: calc(var(--eyebrow-x) - var(--stage-left));
+  top: calc(var(--eyebrow-y) - var(--stage-top));
   width: calc(460 * var(--c));
 }
 
@@ -516,8 +522,8 @@ body {
 
 .services-copy {
   position: absolute;
-  left: max(calc(83 * var(--c)), calc(16px - var(--stage-left)));
-  top: max(calc(231 * var(--c)), calc(var(--nav-h) + 16px - var(--stage-top)));
+  left: calc(var(--eyebrow-x) - var(--stage-left));
+  top: calc(var(--eyebrow-y) - var(--stage-top));
   width: calc(560 * var(--c));
 }
 .services-title {
@@ -746,8 +752,8 @@ body {
 
 .contact-copy {
   position: absolute;
-  left: max(calc(145 * var(--c)), calc(16px - var(--stage-left)));
-  top: max(calc(171 * var(--c)), calc(var(--nav-h) + 16px - var(--stage-top)));
+  left: calc(var(--eyebrow-x) - var(--stage-left));
+  top: calc(var(--eyebrow-y) - var(--stage-top));
   width: calc(620 * var(--c));
 }
 .contact-title {
