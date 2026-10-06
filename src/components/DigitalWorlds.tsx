@@ -67,12 +67,16 @@ const SLOTS: Pose[] = [
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
+// How much further the front card turns as it leaves the deck to the left, radians.
+const EXIT_TURN = 0.8;
+
 // Slots used by n cards, plus a virtual slot on each side for wrapping.
 const pathFor = (n: number): Pose[] => {
   const used = SLOTS.slice(0, Math.max(1, n));
   const last = used[used.length - 1];
   const prev = used.length > 1 ? used[used.length - 2] : SLOTS[0];
-  const before: Pose = { tx: SLOTS[0].tx - 330, ty: SLOTS[0].ty, tz: SLOTS[0].tz + 150, th: 1.0 };
+  // The front card leaves off the left edge turning further away (more edge-on) as it fades.
+  const before: Pose = { tx: SLOTS[0].tx - 330, ty: SLOTS[0].ty, tz: SLOTS[0].tz + 150, th: SLOTS[0].th + EXIT_TURN };
   const after: Pose = { tx: last.tx + 330, ty: last.ty, tz: last.tz - 60, th: clamp(2 * last.th - prev.th, -1.1, 1.1) };
   return [before, ...used, after];
 };
@@ -120,10 +124,34 @@ const SPRING_W = 8.5; // rad/s; settles in ~0.75s
 
 // Lifted card: a click draws the card out of the deck to face the viewer; "View project"
 // turns it over, and while it stands edge-on (90°) it widens into the project panel.
-const LIFT_MS = 760;
-const FLIP_MS = 1000;
-const RETURN_MS = 680;
+const LIFT_MS = 1100;
+const FLIP_MS = 1050;
+const RETURN_MS = 980;
+const LIFT_ARC = 150; // how far toward the viewer the card swings on its way, stage units
 const easeInOutCubic = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+
+// CSS-style cubic-bezier easing (Newton–Raphson on x, then y).
+const cubicBezier = (x1: number, y1: number, x2: number, y2: number) => {
+  const a = (p1: number, p2: number) => 1 - 3 * p2 + 3 * p1;
+  const b = (p1: number, p2: number) => 3 * p2 - 6 * p1;
+  const c = (p1: number) => 3 * p1;
+  const at = (t: number, p1: number, p2: number) => ((a(p1, p2) * t + b(p1, p2)) * t + c(p1)) * t;
+  const slope = (t: number, p1: number, p2: number) => 3 * a(p1, p2) * t * t + 2 * b(p1, p2) * t + c(p1);
+  return (x: number) => {
+    if (x <= 0 || x >= 1) return clamp(x, 0, 1);
+    let t = x;
+    for (let i = 0; i < 8; i++) {
+      const d = slope(t, x1, x2);
+      if (Math.abs(d) < 1e-6) break;
+      t -= (at(t, x1, x2) - x) / d;
+    }
+    return at(clamp(t, 0, 1), y1, y2);
+  };
+};
+// A soft start, then a long, quiet settle: the card eases out of the deck instead of jumping.
+const easeSheet = cubicBezier(0.45, 0, 0.1, 1);
+// Gentle on both ends, for the way back into the deck.
+const easeSettle = cubicBezier(0.45, 0, 0.15, 1);
 
 // Overview: the deck straightens into a row (two rows on phones) facing the viewer.
 const OVERVIEW_MS = 1150; // whole cascade, first card to last
@@ -366,14 +394,21 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
     let lifted = 1; // 0 = in the deck, 1 = held in front of the viewer
 
     if (l.phase === 'lifting' || l.phase === 'returning') {
-      const x = prog(l.phase === 'lifting' ? LIFT_MS : RETURN_MS);
+      const up = l.phase === 'lifting';
+      const x = prog(up ? LIFT_MS : RETURN_MS);
       // Returning goes back to the card's live slot in the deck.
-      const deck = l.phase === 'lifting' ? l.from : drawn.current[l.k] ?? l.from;
-      const e = easeInOutCubic(x);
-      lifted = l.phase === 'lifting' ? e : 1 - e;
+      const deck = up ? l.from : drawn.current[l.k] ?? l.from;
+      const ease = up ? easeSheet : easeSettle;
+      // Position leads and the turn follows a beat behind on the way out; on the way back the
+      // card starts turning away first, then slips into the deck.
+      const move = ease(up ? x : clamp((x - 0.06) / 0.94, 0, 1));
+      const turn = ease(up ? clamp((x - 0.1) / 0.9, 0, 1) : clamp(x / 0.86, 0, 1));
+      lifted = up ? move : 1 - move;
+      const facing = up ? turn : 1 - turn;
       pose = lerpPose(deck, l.front, lifted);
-      // A slight arc toward the viewer on the way, so it reads as being drawn out of the deck.
-      pose = { ...pose, tz: pose.tz + Math.sin(Math.PI * lifted) * 90 };
+      pose = { ...pose, th: deck.th + (l.front.th - deck.th) * facing };
+      // A soft arc toward the viewer, so it reads as being drawn out of the deck.
+      pose = { ...pose, tz: pose.tz + Math.sin(Math.PI * lifted) * LIFT_ARC };
       if (x === 1) {
         if (l.phase === 'lifting') {
           l.phase = 'front';
@@ -385,7 +420,7 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
       }
     } else if (l.phase === 'flipping' || l.phase === 'unflipping') {
       const x = prog(FLIP_MS);
-      const e = easeInOutCubic(x);
+      const e = easeSettle(x);
       angle = 180 * (l.phase === 'flipping' ? e : 1 - e);
       if (x === 1) {
         if (l.phase === 'flipping') {
@@ -901,12 +936,19 @@ const LiftedCard = React.forwardRef<HTMLDivElement, LiftedCardProps>(({ card, op
     <div className="slab-cap absolute top-0" style={{ left: RADIUS, right: RADIUS, height: DEPTH, transformOrigin: 'top', transform: 'rotateX(-90deg)' }} />
     <div className="slab-cap slab-bottom absolute" style={{ left: RADIUS, right: RADIUS, top: CARD_H, height: DEPTH, transformOrigin: 'top', transform: 'rotateX(-90deg)' }} />
 
+    {/* Domed glass lens and its clear rim, exactly as on the deck slab */}
+    <div className="slab-glass-rim lift-glass-part absolute" style={{ left: 0, top: RADIUS, width: GLASS, height: CARD_H - 2 * RADIUS, transformOrigin: 'left', transform: `translateZ(${GLASS + 1}px) rotateY(90deg)` }} />
+    <div className="slab-glass-rim lift-glass-part absolute" style={{ left: '100%', top: RADIUS, width: GLASS, height: CARD_H - 2 * RADIUS, transformOrigin: 'left', transform: `translateZ(${GLASS + 1}px) rotateY(90deg)` }} />
+    <div className="slab-glass-rim lift-glass-part absolute" style={{ left: RADIUS, right: RADIUS, top: 0, height: GLASS, transformOrigin: 'top', transform: `translateZ(${GLASS + 1}px) rotateX(-90deg)` }} />
+    <div className="slab-glass lift-glass-part absolute inset-0 rounded-[var(--r)] pointer-events-none" style={{ transform: `translateZ(${GLASS + 1}px)` }}>
+      <div className="slab-glass-dome absolute inset-0 rounded-[var(--r)]" />
+      <div className="slab-glare absolute inset-0 rounded-[var(--r)]" />
+    </div>
+
     {/* Face */}
     <div className="lift-face lift-front">
       <img src={card.image} alt="" draggable={false} className="absolute inset-0 w-full h-full object-fill" />
-      <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/45" />
-      <div className="slab-glass-dome absolute inset-0 rounded-[var(--r)]" />
-      <div className="slab-glare absolute inset-0 rounded-[var(--r)]" />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/35" />
       <div className="absolute inset-0 text-white">
         <svg className="absolute left-1/2 -translate-x-1/2 opacity-90" style={{ top: 38 }} width="17" height="17" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="0.9">
           <path d="M8 1 15 8 8 15 1 8z" />
