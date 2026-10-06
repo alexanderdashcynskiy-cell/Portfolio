@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { ArrowRight, Mail, MessageSquare, Send, User } from 'lucide-react';
 
 const EMAIL = 'alexanderdashcynskiy@gmail.com';
-// TODO: replace the placeholder LinkedIn handle with the real one.
-const LINKEDIN = 'yourname';
+// LinkedIn profile handle (linkedin.com/in/<handle>). Empty for now: the item shows without a link.
+const LINKEDIN = '';
 // WhatsApp and Telegram open a chat on this number; the number itself is not shown.
 const PHONE = '375333604902'; // international format, digits only
 
@@ -26,7 +26,12 @@ const channels = [
   { label: 'Email', value: EMAIL, href: `mailto:${EMAIL}`, Icon: Mail },
   { label: 'WhatsApp', value: 'Chat with me', href: `https://wa.me/${PHONE}`, Icon: WhatsAppMark },
   { label: 'Telegram', value: 'Message me', href: `https://t.me/+${PHONE}`, Icon: Send },
-  { label: 'LinkedIn', value: `/${LINKEDIN}`, href: `https://www.linkedin.com/in/${LINKEDIN}`, Icon: LinkedInMark },
+  {
+    label: 'LinkedIn',
+    value: LINKEDIN ? `/${LINKEDIN}` : '',
+    href: LINKEDIN ? `https://www.linkedin.com/in/${LINKEDIN}` : '',
+    Icon: LinkedInMark,
+  },
 ];
 
 /** The fifth and last full-screen page, laid out on the shared stage (see .about-stage). */
@@ -66,19 +71,30 @@ export const ContactPage: React.FC = () => {
           </p>
 
           <ul data-reveal className="contact-channels">
-            {channels.map(({ label, value, href, Icon }) => (
-              <li key={label}>
-                <a href={href} target={href.startsWith('http') ? '_blank' : undefined} rel="noreferrer" className="contact-channel">
+            {channels.map(({ label, value, href, Icon }) => {
+              const body = (
+                <>
                   <span className="contact-channel-icon">
                     <Icon aria-hidden="true" />
                   </span>
                   <span className="contact-channel-text">
                     <strong>{label}</strong>
-                    <span>{value}</span>
+                    {value && <span>{value}</span>}
                   </span>
-                </a>
-              </li>
-            ))}
+                </>
+              );
+              return (
+                <li key={label}>
+                  {href ? (
+                    <a href={href} target={href.startsWith('http') ? '_blank' : undefined} rel="noreferrer" className="contact-channel">
+                      {body}
+                    </a>
+                  ) : (
+                    <span className="contact-channel">{body}</span>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </div>
 
