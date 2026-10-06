@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { Navigation } from './components/Navigation';
 import { HeroContent } from './components/HeroContent';
 import { WorkShowcase } from './components/WorkShowcase';
@@ -23,8 +23,11 @@ export default function App() {
   const [workFilter, setWorkFilter] = useState<string | null>(null);
   const [isWorksModalOpen, setIsWorksModalOpen] = useState(false);
 
-  // Full-screen pages: the backdrop never moves, only the content of each page swaps.
+  // Full-screen pages: each page owns a backdrop scene and a set of [data-reveal] elements
+  // that are choreographed in and out (see "Page transitions" in index.css).
   const [page, setPage] = useState(0);
+  // The first page plays its entrance once the site has painted.
+  const [ready, setReady] = useState(false);
   const pageRef = useRef(0);
   const lockUntil = useRef(0);
   const pageEls = useRef<(HTMLDivElement | null)[]>([]);
@@ -120,13 +123,24 @@ export default function App() {
 
   const handleTagClick = (tag: string) => openAllWorks(tag);
 
+  useLayoutEffect(() => {
+    // Stagger order: every revealed element gets its index within its page.
+    pageEls.current.forEach((el) =>
+      el?.querySelectorAll<HTMLElement>('[data-reveal]').forEach((r, i) => r.style.setProperty('--i', String(i))),
+    );
+    const raf = requestAnimationFrame(() => requestAnimationFrame(() => setReady(true)));
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  const stateOf = (i: number) => (ready && page === i ? 'is-active' : i < page ? 'is-above' : 'is-below');
+
   const pageProps = (i: number) => ({
     'data-page': i,
     ref: (el: HTMLDivElement | null) => {
       pageEls.current[i] = el;
     },
     'aria-hidden': page !== i,
-    className: `site-page ${page === i ? 'is-active' : i < page ? 'is-above' : 'is-below'}`,
+    className: `site-page ${stateOf(i)}`,
   });
 
   return (
@@ -136,23 +150,17 @@ export default function App() {
 
       <Navigation onOpenSection={handleOpenSection} activeSection={activeSection} />
 
-      {/* ONE FIXED BACKDROP for the whole site; each page cross-fades in its own scene */}
-      <div className="fixed inset-0 pointer-events-none" aria-hidden="true">
-        <img src="/worlds/bg.jpg" alt="" className="absolute inset-0 w-full h-full object-cover" draggable={false} />
-        <img
-          src="/hero.jpg"
-          alt=""
-          className="absolute inset-0 w-full h-full object-cover transition-opacity duration-[1100ms] ease-in-out"
-          style={{ opacity: page === 0 ? 1 : 0 }}
-          draggable={false}
-        />
-        <img
-          src="/about.jpg"
-          alt=""
-          className="about-scene absolute inset-0 w-full h-full object-cover transition-opacity duration-[1100ms] ease-in-out"
-          style={{ opacity: page === 2 ? 1 : 0 }}
-          draggable={false}
-        />
+      {/* ONE FIXED BACKDROP: each page has its own scene, which settles in as the page arrives */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
+        {[
+          { src: '/hero.jpg', cls: '' },
+          { src: '/worlds/bg.jpg', cls: '' },
+          { src: '/about.jpg', cls: 'about-scene' },
+        ].map(({ src, cls }, i) => (
+          <div key={src} className={`scene-layer ${stateOf(i)}`}>
+            <img src={src} alt="" className={`absolute inset-0 w-full h-full object-cover ${cls}`} draggable={false} />
+          </div>
+        ))}
       </div>
 
       {/* PAGE 1 — hero */}

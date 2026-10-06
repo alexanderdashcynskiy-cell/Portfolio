@@ -291,106 +291,108 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
       onMouseLeave={() => (hovering.current = false)}
     >
       {/* Cards stage (reference coordinates) */}
-      <div
-        ref={stageRef}
-        className="absolute left-0 top-0 origin-top-left"
-        style={{ width: STAGE_W, height: STAGE_H, perspective: PERSPECTIVE, perspectiveOrigin: `${ORIGIN_X}px ${ORIGIN_Y}px` }}
-      >
-        {WORLDS.map((w, k) => (
-          <div
-            key={w.id}
-            ref={(el) => {
-              cardRefs.current[k] = el;
-            }}
-            data-card={k}
-            className="group absolute left-0 top-0 will-change-transform"
-            style={{ width: CARD_W, height: CARD_H, transformStyle: 'preserve-3d', ['--o' as string]: 0, ['--r' as string]: `${RADIUS}px` }}
-          >
-            {/* Contact shadow on the floor */}
+      <div data-reveal="stage" className="absolute inset-0">
+        <div
+          ref={stageRef}
+          className="absolute left-0 top-0 origin-top-left"
+          style={{ width: STAGE_W, height: STAGE_H, perspective: PERSPECTIVE, perspectiveOrigin: `${ORIGIN_X}px ${ORIGIN_Y}px` }}
+        >
+          {WORLDS.map((w, k) => (
             <div
-              className="slab-part absolute pointer-events-none"
-              style={{
-                left: -40,
-                top: CARD_H,
-                width: CARD_W + 80,
-                height: 170,
-                transformOrigin: 'top',
-                transform: 'rotateX(90deg)',
-                background: 'radial-gradient(ellipse 55% 60% at 50% 0%, rgba(38,24,12,0.42), transparent 70%)',
+              key={w.id}
+              ref={(el) => {
+                cardRefs.current[k] = el;
               }}
-            />
-            {/* Mirror reflection on the polished floor */}
-            <div
-              className="slab-part slab-reflection absolute overflow-hidden pointer-events-none"
-              style={{ left: 0, top: CARD_H + 3, width: CARD_W, height: CARD_H * 0.42, transform: 'scaleY(-1)' }}
+              data-card={k}
+              className="group absolute left-0 top-0 will-change-transform"
+              style={{ width: CARD_W, height: CARD_H, transformStyle: 'preserve-3d', ['--o' as string]: 0, ['--r' as string]: `${RADIUS}px` }}
             >
-              <img src={w.image} alt="" draggable={false} className="absolute left-0 w-full object-fill" style={{ top: -CARD_H * 0.58, height: CARD_H }} />
-            </div>
-
-            {/* Slab body: back, sides, top, bottom */}
-            <div className="slab-part slab-back absolute inset-0 rounded-[var(--r)]" style={{ transform: `translateZ(${-DEPTH}px)` }} />
-            <div className="slab-part slab-side slab-left absolute left-0" style={{ top: RADIUS, width: DEPTH, height: CARD_H - 2 * RADIUS, transformOrigin: 'left', transform: 'rotateY(90deg)' }} />
-            <div className="slab-part slab-side slab-right absolute" style={{ left: CARD_W, top: RADIUS, width: DEPTH, height: CARD_H - 2 * RADIUS, transformOrigin: 'left', transform: 'rotateY(90deg)' }} />
-            {/* Rounded corners of the bronze band */}
-            {CORNER_STRIPS.map((c, i) => (
+              {/* Contact shadow on the floor */}
               <div
-                key={i}
-                className={`slab-part slab-corner absolute ${c.bottom ? 'slab-corner-bottom' : ''}`}
-                style={{ left: c.x, top: c.y, width: c.len, height: DEPTH, transformOrigin: '0 0', transform: `rotateZ(${c.angle}rad) rotateX(-90deg)` }}
+                className="slab-part absolute pointer-events-none"
+                style={{
+                  left: -40,
+                  top: CARD_H,
+                  width: CARD_W + 80,
+                  height: 170,
+                  transformOrigin: 'top',
+                  transform: 'rotateX(90deg)',
+                  background: 'radial-gradient(ellipse 55% 60% at 50% 0%, rgba(38,24,12,0.42), transparent 70%)',
+                }}
               />
-            ))}
-            <div className="slab-part slab-cap absolute top-0" style={{ left: RADIUS, width: CARD_W - 2 * RADIUS, height: DEPTH, transformOrigin: 'top', transform: 'rotateX(-90deg)' }} />
-            <div className="slab-part slab-cap slab-bottom absolute" style={{ left: RADIUS, top: CARD_H, width: CARD_W - 2 * RADIUS, height: DEPTH, transformOrigin: 'top', transform: 'rotateX(-90deg)' }} />
+              {/* Mirror reflection on the polished floor */}
+              <div
+                className="slab-part slab-reflection absolute overflow-hidden pointer-events-none"
+                style={{ left: 0, top: CARD_H + 3, width: CARD_W, height: CARD_H * 0.42, transform: 'scaleY(-1)' }}
+              >
+                <img src={w.image} alt="" draggable={false} className="absolute left-0 w-full object-fill" style={{ top: -CARD_H * 0.58, height: CARD_H }} />
+              </div>
 
-            {/* Domed glass lens raised above the artwork, with its own clear rim */}
-            <div className="slab-part slab-glass-rim absolute top-0" style={{ left: 0, top: RADIUS, width: GLASS, height: CARD_H - 2 * RADIUS, transformOrigin: 'left', transform: `translateZ(${GLASS}px) rotateY(90deg)` }} />
-            <div className="slab-part slab-glass-rim absolute" style={{ left: CARD_W, top: RADIUS, width: GLASS, height: CARD_H - 2 * RADIUS, transformOrigin: 'left', transform: `translateZ(${GLASS}px) rotateY(90deg)` }} />
-            <div className="slab-part slab-glass-rim absolute" style={{ left: RADIUS, top: 0, width: CARD_W - 2 * RADIUS, height: GLASS, transformOrigin: 'top', transform: `translateZ(${GLASS}px) rotateX(-90deg)` }} />
-            <div className="slab-part slab-glass absolute inset-0 rounded-[var(--r)] pointer-events-none" style={{ transform: `translateZ(${GLASS}px)` }}>
-              <div className="slab-glass-dome absolute inset-0 rounded-[var(--r)]" />
-              <div className="slab-glare absolute inset-0 rounded-[var(--r)]" />
-            </div>
-
-            {/* Front face, flush with the front edge of the frame */}
-            <span className="slab-part absolute font-hero-sans text-[#1d1a17] leading-none" style={{ left: 30, top: -30, fontSize: 21, transform: `translateZ(${GLASS + 1}px)` }}>
-              {w.number}
-            </span>
-            <div className="slab-part absolute inset-0" style={{ transform: 'translateZ(0.2px)' }}>
-              <div className="slab-face absolute inset-0 overflow-hidden rounded-[var(--r)] bg-black">
-                <img
-                  src={w.image}
-                  alt=""
-                  draggable={false}
-                  className="absolute inset-0 w-full h-full object-fill transition-transform duration-700 group-hover:scale-[1.04]"
+              {/* Slab body: back, sides, top, bottom */}
+              <div className="slab-part slab-back absolute inset-0 rounded-[var(--r)]" style={{ transform: `translateZ(${-DEPTH}px)` }} />
+              <div className="slab-part slab-side slab-left absolute left-0" style={{ top: RADIUS, width: DEPTH, height: CARD_H - 2 * RADIUS, transformOrigin: 'left', transform: 'rotateY(90deg)' }} />
+              <div className="slab-part slab-side slab-right absolute" style={{ left: CARD_W, top: RADIUS, width: DEPTH, height: CARD_H - 2 * RADIUS, transformOrigin: 'left', transform: 'rotateY(90deg)' }} />
+              {/* Rounded corners of the bronze band */}
+              {CORNER_STRIPS.map((c, i) => (
+                <div
+                  key={i}
+                  className={`slab-part slab-corner absolute ${c.bottom ? 'slab-corner-bottom' : ''}`}
+                  style={{ left: c.x, top: c.y, width: c.len, height: DEPTH, transformOrigin: '0 0', transform: `rotateZ(${c.angle}rad) rotateX(-90deg)` }}
                 />
-                <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/35" />
-                <div className="absolute inset-0 text-white">
-                  <svg className="absolute left-1/2 -translate-x-1/2 opacity-90" style={{ top: 38 }} width="17" height="17" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="0.9">
-                    <path d="M8 1 15 8 8 15 1 8z" />
-                    <path d="M6 5.5 10.5 10M5.5 8.5 8 11" />
-                  </svg>
-                  <div className="absolute inset-x-0 text-center" style={{ top: 74 }}>
-                    <div className="font-cormorant font-medium leading-none" style={{ fontSize: 44, letterSpacing: '0.02em' }}>
-                      {w.title}
+              ))}
+              <div className="slab-part slab-cap absolute top-0" style={{ left: RADIUS, width: CARD_W - 2 * RADIUS, height: DEPTH, transformOrigin: 'top', transform: 'rotateX(-90deg)' }} />
+              <div className="slab-part slab-cap slab-bottom absolute" style={{ left: RADIUS, top: CARD_H, width: CARD_W - 2 * RADIUS, height: DEPTH, transformOrigin: 'top', transform: 'rotateX(-90deg)' }} />
+
+              {/* Domed glass lens raised above the artwork, with its own clear rim */}
+              <div className="slab-part slab-glass-rim absolute top-0" style={{ left: 0, top: RADIUS, width: GLASS, height: CARD_H - 2 * RADIUS, transformOrigin: 'left', transform: `translateZ(${GLASS}px) rotateY(90deg)` }} />
+              <div className="slab-part slab-glass-rim absolute" style={{ left: CARD_W, top: RADIUS, width: GLASS, height: CARD_H - 2 * RADIUS, transformOrigin: 'left', transform: `translateZ(${GLASS}px) rotateY(90deg)` }} />
+              <div className="slab-part slab-glass-rim absolute" style={{ left: RADIUS, top: 0, width: CARD_W - 2 * RADIUS, height: GLASS, transformOrigin: 'top', transform: `translateZ(${GLASS}px) rotateX(-90deg)` }} />
+              <div className="slab-part slab-glass absolute inset-0 rounded-[var(--r)] pointer-events-none" style={{ transform: `translateZ(${GLASS}px)` }}>
+                <div className="slab-glass-dome absolute inset-0 rounded-[var(--r)]" />
+                <div className="slab-glare absolute inset-0 rounded-[var(--r)]" />
+              </div>
+
+              {/* Front face, flush with the front edge of the frame */}
+              <span className="slab-part absolute font-hero-sans text-[#1d1a17] leading-none" style={{ left: 30, top: -30, fontSize: 21, transform: `translateZ(${GLASS + 1}px)` }}>
+                {w.number}
+              </span>
+              <div className="slab-part absolute inset-0" style={{ transform: 'translateZ(0.2px)' }}>
+                <div className="slab-face absolute inset-0 overflow-hidden rounded-[var(--r)] bg-black">
+                  <img
+                    src={w.image}
+                    alt=""
+                    draggable={false}
+                    className="absolute inset-0 w-full h-full object-fill transition-transform duration-700 group-hover:scale-[1.04]"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/35" />
+                  <div className="absolute inset-0 text-white">
+                    <svg className="absolute left-1/2 -translate-x-1/2 opacity-90" style={{ top: 38 }} width="17" height="17" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="0.9">
+                      <path d="M8 1 15 8 8 15 1 8z" />
+                      <path d="M6 5.5 10.5 10M5.5 8.5 8 11" />
+                    </svg>
+                    <div className="absolute inset-x-0 text-center" style={{ top: 74 }}>
+                      <div className="font-cormorant font-medium leading-none" style={{ fontSize: 44, letterSpacing: '0.02em' }}>
+                        {w.title}
+                      </div>
+                      <div className="uppercase" style={{ fontSize: 11.5, letterSpacing: '0.1em', marginTop: 12 }}>
+                        {w.subtitle}
+                      </div>
                     </div>
-                    <div className="uppercase" style={{ fontSize: 11.5, letterSpacing: '0.1em', marginTop: 12 }}>
-                      {w.subtitle}
+                    <div className="absolute" style={{ left: 39, top: 462, fontSize: 18, lineHeight: 1.4 }}>
+                      {w.tagline.map((l) => (
+                        <div key={l}>{l}</div>
+                      ))}
                     </div>
-                  </div>
-                  <div className="absolute" style={{ left: 39, top: 462, fontSize: 18, lineHeight: 1.4 }}>
-                    {w.tagline.map((l) => (
-                      <div key={l}>{l}</div>
-                    ))}
-                  </div>
-                  <div className="absolute flex items-center uppercase" style={{ left: 39, bottom: 45, fontSize: 11.5, letterSpacing: '0.04em', gap: 10 }}>
-                    View project
-                    <ArrowRight size={13} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
+                    <div className="absolute flex items-center uppercase" style={{ left: 39, bottom: 45, fontSize: 11.5, letterSpacing: '0.04em', gap: 10 }}>
+                      View project
+                      <ArrowRight size={13} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
 
       {/* Mobile legibility veil */}
@@ -398,23 +400,23 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
 
       {/* Left column */}
       <div className="absolute" style={{ left: `max(20px, ${u(56)})`, top: `max(88px, ${u(176)})` }}>
-        <div className="leading-none" style={{ fontSize: `max(13px, ${u(19)})` }}>02</div>
-        <div className="flex items-center" style={{ marginTop: u(19), gap: u(10) }}>
+        <div data-reveal className="leading-none" style={{ fontSize: `max(13px, ${u(19)})` }}>02</div>
+        <div data-reveal className="flex items-center" style={{ marginTop: u(19), gap: u(10) }}>
           <span className="block h-px bg-[var(--hero-ink)]" style={{ width: u(37) }} />
           <span className="block rounded-full bg-[var(--hero-ink)]" style={{ width: 2, height: 2 }} />
         </div>
         <h2 className="font-condensed uppercase" style={{ fontSize: `max(46px, ${u(93)})`, lineHeight: 0.87, marginTop: u(23) }}>
-          <span className="block font-extralight tracking-[-0.08em]">Digital</span>
-          <span className="block font-extrabold tracking-[-0.065em]">Worlds</span>
+          <span data-reveal="line" className="block font-extralight tracking-[-0.08em]">Digital</span>
+          <span data-reveal="line" className="block font-extrabold tracking-[-0.065em]">Worlds</span>
         </h2>
-        <p className="uppercase" style={{ fontSize: `max(13px, ${u(18.5)})`, lineHeight: 1.15, marginTop: u(17) }}>
+        <p data-reveal className="uppercase" style={{ fontSize: `max(13px, ${u(18.5)})`, lineHeight: 1.15, marginTop: u(17) }}>
           Real products.
           <br />
           Different worlds.
         </p>
 
         {/* Filters */}
-        <ul data-control className="hidden md:block" style={{ marginTop: u(41) }}>
+        <ul data-control data-reveal className="hidden md:block" style={{ marginTop: u(41) }}>
           {WORLD_FILTERS.map((f, i) => {
             const on = filter === f;
             return (
@@ -447,7 +449,7 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
       </div>
 
       {/* Drag to explore — its bottom lines up with the bottom of the front card */}
-      <div className="absolute hidden md:flex items-center pointer-events-none" style={{ left: u(53), top: u(781), gap: u(22) }}>
+      <div data-reveal className="absolute hidden md:flex items-center pointer-events-none" style={{ left: u(53), top: u(781), gap: u(22) }}>
         <span className="flex items-center justify-center rounded-full border border-[var(--hero-ink)]/80" style={{ width: u(50), height: u(50) }}>
           <ArrowUpRight style={{ width: u(19), height: u(19) }} strokeWidth={1.4} />
         </span>
@@ -455,7 +457,7 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
       </div>
 
       {/* Mobile filter chips */}
-      <div data-control className="md:hidden absolute left-5 right-5 bottom-6 flex gap-2 overflow-x-auto">
+      <div data-control data-reveal className="md:hidden absolute left-5 right-5 bottom-6 flex gap-2 overflow-x-auto">
         {WORLD_FILTERS.map((f) => (
           <button
             key={f}
