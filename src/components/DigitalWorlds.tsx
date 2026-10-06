@@ -67,12 +67,16 @@ const SLOTS: Pose[] = [
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
+// How much further the front card turns as it leaves the deck to the left, radians.
+const EXIT_TURN = 0.8;
+
 // Slots used by n cards, plus a virtual slot on each side for wrapping.
 const pathFor = (n: number): Pose[] => {
   const used = SLOTS.slice(0, Math.max(1, n));
   const last = used[used.length - 1];
   const prev = used.length > 1 ? used[used.length - 2] : SLOTS[0];
-  const before: Pose = { tx: SLOTS[0].tx - 330, ty: SLOTS[0].ty, tz: SLOTS[0].tz + 150, th: 1.0 };
+  // The front card leaves off the left edge turning further away (more edge-on) as it fades.
+  const before: Pose = { tx: SLOTS[0].tx - 330, ty: SLOTS[0].ty, tz: SLOTS[0].tz + 150, th: SLOTS[0].th + EXIT_TURN };
   const after: Pose = { tx: last.tx + 330, ty: last.ty, tz: last.tz - 60, th: clamp(2 * last.th - prev.th, -1.1, 1.1) };
   return [before, ...used, after];
 };
