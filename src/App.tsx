@@ -13,9 +13,10 @@ import { ServicesPage } from './components/ServicesPage';
 import { AboutModal } from './components/AboutModal';
 import { ContactPage } from './components/ContactPage';
 import { CustomCursor } from './components/CustomCursor';
+import { PageRail } from './components/PageRail';
 
 const PAGE_COUNT = 5;
-const PAGE_LOCK_MS = 1100;
+const PAGE_LOCK_MS = 850;
 
 export default function App() {
   const [activeSection, setActiveSection] = useState<string>('home');
@@ -138,6 +139,19 @@ export default function App() {
     return () => cancelAnimationFrame(raf);
   }, []);
 
+  // A specular highlight follows the pointer across glass surfaces (.glass, .glass-dark).
+  useEffect(() => {
+    const onMove = (e: PointerEvent) => {
+      const el = (e.target as Element | null)?.closest?.<HTMLElement>('.glass, .glass-dark');
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      el.style.setProperty('--mx', `${e.clientX - r.left}px`);
+      el.style.setProperty('--my', `${e.clientY - r.top}px`);
+    };
+    window.addEventListener('pointermove', onMove, { passive: true });
+    return () => window.removeEventListener('pointermove', onMove);
+  }, []);
+
   const stateOf = (i: number) => (ready && page === i ? 'is-active' : i < page ? 'is-above' : 'is-below');
 
   const pageProps = (i: number) => ({
@@ -155,6 +169,12 @@ export default function App() {
       <CustomCursor />
 
       <Navigation onOpenSection={handleOpenSection} activeSection={activeSection} light={page === 4} />
+      <PageRail
+        page={page}
+        labels={['Home', 'Work', 'About', 'Services', 'Contact']}
+        light={page === 4}
+        onSelect={goToPage}
+      />
 
       {/* ONE FIXED BACKDROP: each page has its own scene; scenes only cross-fade. Pages 3 and 4
           lay theirs out on the shared stage, so 3 → 4 dissolves the figure out of the terrace. */}
