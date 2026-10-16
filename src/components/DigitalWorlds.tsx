@@ -169,6 +169,14 @@ interface Lift {
   from: Pose; // pose the current move starts from
   front: Pose; // the card facing the viewer (narrow)
   wide: number; // width of the opened panel, stage units
+  // Where the card is now, so an interrupted move reverses from there instead of jumping.
+  liftNow: number; // 0 = in the deck, 1 = held in front
+  faceNow: number; // 0 = deck angle, 1 = square to the viewer
+  angleNow: number; // degrees turned over
+  // Starting points of the current reverse move.
+  retLift: number;
+  retFace: number;
+  unflipFrom: number;
 }
 const PAGE_ENTER_DELAY_MS = 320; // lets the page's own fade begin first
 const ENTER_SHIFT_X = 70; // px in stage space
@@ -224,6 +232,7 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
   const [overview, setOverview] = useState(false);
   const ov = useRef({ from: 0, to: 0, start: 0 }); // overview progress, animated in the loop
   const drawn = useRef<(Pose | null)[]>(WORLDS.map(() => null)); // pose each card was last drawn at
+  const written = useRef(WORLDS.map(() => ({ tf: '', o: '' }))); // last values written to the DOM
   const liftRef = useRef<HTMLDivElement>(null); // the lifted card (overlay copy)
   const liftStageRef = useRef<HTMLDivElement>(null); // overlay stage, laid out like the card stage
   const stageOffset = useRef({ ox: 0, oy: 0 });
@@ -356,7 +365,10 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
     const s = stageScale.current;
     const panelScreenW = Math.min(vw * (vw < 768 ? 0.92 : 0.84), 1080);
     const wide = Math.max(CARD_W, panelScreenW / (s * scale));
-    lift.current = { k, phase: 'lifting', start: performance.now(), from, front, wide };
+    lift.current = {
+      k, phase: 'lifting', start: performance.now(), from, front, wide,
+      liftNow: 0, faceNow: 0, angleNow: 0, retLift: 1, retFace: 1, unflipFrom: 180,
+    };
     lastInteraction.current = performance.now();
     setLiftOpen(false);
     setLifted(k);
@@ -375,10 +387,13 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
     const t = performance.now();
     if (l.phase === 'open' || l.phase === 'flipping') {
       l.phase = 'unflipping';
+      l.unflipFrom = l.angleNow;
       l.start = t;
       setLiftOpen(false);
     } else if (l.phase === 'front' || l.phase === 'lifting') {
       l.phase = 'returning';
+      l.retLift = l.liftNow;
+      l.retFace = l.faceNow;
       l.start = t;
     }
   };
@@ -397,7 +412,8 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
 
     if (l.phase === 'lifting' || l.phase === 'returning') {
       const up = l.phase === 'lifting';
-      const x = prog(up ? LIFT_MS : RETURN_MS);
+      // A reverse from part-way takes proportionally less time.
+      const x = prog(up ? LIFT_MS : RETURN_MS * Math.max(0.4, l.retLift));
       // Returning goes back to the card's live slot in the deck.
       const deck = up ? l.from : drawn.current[l.k] ?? l.from;
       const ease = up ? easeSheet : easeSettle;
@@ -405,8 +421,10 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
       // card starts turning away first, then slips into the deck.
       const move = ease(up ? x : clamp((x - 0.06) / 0.94, 0, 1));
       const turn = ease(up ? clamp((x - 0.1) / 0.9, 0, 1) : clamp(x / 0.86, 0, 1));
-      lifted = up ? move : 1 - move;
-      const facing = up ? turn : 1 - turn;
+      lifted = up ? move : l.retLift * (1 - move);
+      const facing = up ? turn : l.retFace * (1 - turn);
+      l.liftNow = lifted;
+      l.faceNow = facing;
       pose = lerpPose(deck, l.front, lifted);
       pose = { ...pose, th: deck.th + (l.front.th - deck.th) * facing };
       // A soft arc toward the viewer, so it reads as being drawn out of the deck.
@@ -421,20 +439,28 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
         }
       }
     } else if (l.phase === 'flipping' || l.phase === 'unflipping') {
-      const x = prog(FLIP_MS);
+      const flipping = l.phase === 'flipping';
+      const x = prog(flipping ? FLIP_MS : FLIP_MS * Math.max(0.35, l.unflipFrom / 180));
       const e = easeSettle(x);
-      angle = 180 * (l.phase === 'flipping' ? e : 1 - e);
+      angle = flipping ? 180 * e : l.unflipFrom * (1 - e);
       if (x === 1) {
-        if (l.phase === 'flipping') {
+        if (flipping) {
           l.phase = 'open';
           setLiftOpen(true);
         } else {
           l.phase = 'returning';
+          l.retLift = 1;
+          l.retFace = 1;
           l.start = t;
         }
       }
     } else if (l.phase === 'open') {
       angle = 180;
+    }
+    l.angleNow = angle;
+    if (l.phase === 'front' || l.phase === 'flipping' || l.phase === 'open' || l.phase === 'unflipping') {
+      l.liftNow = 1;
+      l.faceNow = 1;
     }
 
     // Past 90° (edge-on, invisible) the card is the wide panel.
@@ -551,7 +577,8 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
         }
         if (j < 0 && revealAt(reveal.current[k], t) === 0) shown.current[k] = null;
         const v = reduceMotion ? (j >= 0 ? 1 : 0) : revealAt(reveal.current[k], t);
-        el.style.pointerEvents = j >= 0 ? 'auto' : 'none';
+        const pe = j >= 0 ? 'auto' : 'none';
+        if (el.style.pointerEvents !== pe) el.style.pointerEvents = pe;
 
         if (j >= 0) {
           let pose = poseAt(path, p + 1);
@@ -577,10 +604,15 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
           const lean = scrub.from === 1 && !reduceMotion ? smoothstep(scrub.p) * (scrub.to > scrub.from ? 1 : -1) : 0;
           const shift = (out ? LEAVE_SHIFT_X : ENTER_SHIFT_X) * rest - lean * 60;
           const turn = (out ? -ENTER_TURN * 0.6 : ENTER_TURN) * rest + lean * 0.3;
-          el.style.transform = `translate3d(${pose.tx + shift}px, ${pose.ty}px, ${pose.tz}px) rotateY(${pose.th + turn}rad)`;
-          el.style.zIndex = String(Math.round(3000 + pose.tz));
-          // Glare slides across the glass as the slab turns.
-          el.style.setProperty('--glare', `${50 + pose.th * 45}%`);
+          // Written only when they change: at rest the deck costs nothing per frame.
+          const tf = `translate3d(${(pose.tx + shift).toFixed(2)}px, ${pose.ty.toFixed(2)}px, ${pose.tz.toFixed(2)}px) rotateY(${(pose.th + turn).toFixed(4)}rad)`;
+          if (tf !== written.current[k].tf) {
+            written.current[k].tf = tf;
+            el.style.transform = tf;
+            el.style.zIndex = String(Math.round(3000 + pose.tz));
+            // Glare slides across the glass as the slab turns.
+            el.style.setProperty('--glare', `${(50 + pose.th * 45).toFixed(1)}%`);
+          }
           // Soft fade at both ends of the path as cards wrap around.
           const edge = p < 0 ? 1 + 2 * p : p > n - 1 ? 1 - 2 * (p - (n - 1)) : 1;
           const deckOpacity = smoothstep(clamp(edge, 0, 1));
@@ -590,7 +622,11 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
         // Opacity goes on the faces, not the slab: opacity on a 3D group would flatten it.
         // The lifted card is drawn by its overlay copy; the original waits, invisible, in its slot.
         const hidden = lift.current && lift.current.k === k ? 0 : 1;
-        el.style.setProperty('--o', String(baseOpacity.current[k] * v * hidden));
+        const o = (baseOpacity.current[k] * v * hidden).toFixed(3);
+        if (o !== written.current[k].o) {
+          written.current[k].o = o;
+          el.style.setProperty('--o', o);
+        }
       }
       stepLift(t);
     };
@@ -1010,7 +1046,7 @@ const LiftedCard = React.forwardRef<HTMLDivElement, LiftedCardProps>(({ card, op
           </div>
         </dl>
         <div data-lift-reveal className="lift-back-actions">
-          <button onClick={onContact} className="lift-cta glare group">
+          <button onClick={onContact} className="lift-cta glare press group">
             Discuss a similar project
             <ArrowRight strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
           </button>

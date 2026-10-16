@@ -57,7 +57,7 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({ onOpenContact }) => 
           I design and build digital products using a modern, AI-assisted workflow — from concept to launch.
         </p>
 
-        <button data-reveal onClick={onOpenContact} className="services-cta glare group">
+        <button data-reveal onClick={onOpenContact} className="services-cta glare press group">
           <span>Let’s discuss your project</span>
           <ArrowRight className="services-cta-arrow" strokeWidth={1.6} aria-hidden="true" />
         </button>

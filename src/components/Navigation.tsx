@@ -57,9 +57,7 @@ export const Navigation: React.FC<NavigationProps> = ({ onOpenSection, activeSec
                 {link.label}
                 <span
                   style={{ bottom: `calc(-14 * var(--u))` }}
-                  className={`absolute left-0 h-px bg-current transition-all duration-300 ${
-                    isActive ? 'w-full' : 'w-0 group-hover:w-full'
-                  }`}
+                  className={`nav-underline absolute left-0 w-full h-px bg-current ${isActive ? 'is-active' : ''}`}
                 />
               </button>
             );
@@ -103,7 +101,7 @@ export const Navigation: React.FC<NavigationProps> = ({ onOpenSection, activeSec
 
         <button
           onClick={() => onOpenSection('contact')}
-          className="glare group inline-flex items-center justify-center bg-[var(--hero-ink)] text-white uppercase tracking-[0.02em] rounded-full transition-all duration-300 hover:bg-[var(--hero-bronze)] active:scale-95 cursor-pointer"
+          className="glare press group inline-flex items-center justify-center bg-[var(--hero-ink)] text-white uppercase tracking-[0.02em] rounded-full hover:bg-[var(--hero-bronze)] cursor-pointer"
           style={{
             width: `max(128px, ${u(167)})`,
             height: `max(38px, ${u(44)})`,
@@ -123,13 +121,17 @@ export const Navigation: React.FC<NavigationProps> = ({ onOpenSection, activeSec
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           className="md:hidden p-2 rounded-lg bg-black/5 hover:bg-black/10 transition-colors"
           aria-label="Toggle navigation menu"
+          aria-expanded={mobileMenuOpen}
         >
           {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
       </div>
 
-      {mobileMenuOpen && (
-        <div className="absolute top-[72px] inset-x-5 bg-[#f7f2ea]/95 backdrop-blur-xl border border-[#ded5c8] rounded-2xl shadow-2xl p-6 md:hidden pointer-events-auto">
+      {/* Always mounted so it can animate out; it grows from the menu button (top right). */}
+      <div
+        className={`mobile-menu absolute top-[72px] inset-x-5 bg-[#f7f2ea]/95 backdrop-blur-xl border border-[#ded5c8] rounded-2xl shadow-2xl p-6 md:hidden ${mobileMenuOpen ? 'is-open' : ''}`}
+        aria-hidden={!mobileMenuOpen}
+      >
           <div className="flex flex-col gap-4">
             {navLinks.map((link) => (
               <button
@@ -144,8 +146,7 @@ export const Navigation: React.FC<NavigationProps> = ({ onOpenSection, activeSec
               </button>
             ))}
           </div>
-        </div>
-      )}
+      </div>
     </header>
   );
 };

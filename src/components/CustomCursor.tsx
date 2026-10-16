@@ -1,56 +1,58 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
+
+/*
+ * A subtle dot that follows a mouse, growing into a bronze ring over anything clickable.
+ * It moves by transform from a requestAnimationFrame, outside React, so following the pointer
+ * costs no re-renders and no layout; the dot/ring change is a 160ms transition on scale.
+ */
+const CLICKABLE = 'button, a, [role="button"], .cursor-pointer, input, textarea, label';
 
 export const CustomCursor: React.FC = () => {
-  const [position, setPosition] = useState({ x: -100, y: -100 });
-  const [isPointer, setIsPointer] = useState(false);
-  const [isVisible, setIsVisible] = useState(false);
+  const outer = useRef<HTMLDivElement>(null);
+  const inner = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Only enable custom subtle dot cursor on devices with fine pointer
-    if (window.matchMedia('(pointer: coarse)').matches) return;
+    if (!window.matchMedia('(pointer: fine)').matches) return;
+    const o = outer.current;
+    const i = inner.current;
+    if (!o || !i) return;
 
-    const handleMouseMove = (e: MouseEvent) => {
-      setPosition({ x: e.clientX, y: e.clientY });
-      if (!isVisible) setIsVisible(true);
+    let x = -100;
+    let y = -100;
+    let queued = false;
+    let pointer = false;
 
-      const target = e.target as HTMLElement | null;
-      if (target) {
-        const isClickable =
-          target.tagName === 'BUTTON' ||
-          target.tagName === 'A' ||
-          target.onclick !== null ||
-          target.closest('button') !== null ||
-          target.closest('a') !== null ||
-          target.closest('[role="button"]') !== null ||
-          target.classList.contains('cursor-pointer');
-        setIsPointer(isClickable);
+    const draw = () => {
+      queued = false;
+      o.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+    };
+    const onMove = (e: MouseEvent) => {
+      x = e.clientX;
+      y = e.clientY;
+      o.style.opacity = '1';
+      if (!queued) {
+        queued = true;
+        requestAnimationFrame(draw);
+      }
+      const over = !!(e.target as Element | null)?.closest?.(CLICKABLE);
+      if (over !== pointer) {
+        pointer = over;
+        i.classList.toggle('is-pointer', over);
       }
     };
+    const onLeave = () => (o.style.opacity = '0');
 
-    const handleMouseLeave = () => setIsVisible(false);
-
-    window.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseleave', handleMouseLeave);
-
+    window.addEventListener('mousemove', onMove, { passive: true });
+    document.addEventListener('mouseleave', onLeave);
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseleave', handleMouseLeave);
+      window.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseleave', onLeave);
     };
-  }, [isVisible]);
-
-  if (!isVisible) return null;
+  }, []);
 
   return (
-    <div
-      className={`fixed top-0 left-0 pointer-events-none z-[9999] -translate-x-1/2 -translate-y-1/2 rounded-full transition-transform duration-150 ease-out ${
-        isPointer
-          ? 'w-10 h-10 bg-[#9c6a3b]/20 border border-[#9c6a3b]/60 scale-125'
-          : 'w-3 h-3 bg-[#141312]/60'
-      }`}
-      style={{
-        left: `${position.x}px`,
-        top: `${position.y}px`,
-      }}
-    />
+    <div ref={outer} className="cursor-follow" style={{ opacity: 0 }} aria-hidden="true">
+      <div ref={inner} className="cursor-dot" />
+    </div>
   );
 };
