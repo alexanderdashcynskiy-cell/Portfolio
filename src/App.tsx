@@ -15,8 +15,20 @@ import { PageRail } from './components/PageRail';
 import { SphereLight } from './components/SphereLight';
 import { FilmGrain, LightRays } from './components/Atmosphere';
 import { scrub } from './motion';
+import { Intro } from './components/Intro';
+import { playPageIn, prefersReducedMotion, settlePage, splitHeadlines, gsap } from './gsapMotion';
 
 const PAGE_COUNT = 5;
+// Each page's backdrop scene; pages 3–5 lay theirs out on the shared stage.
+const SCENES: { src: string; staged: boolean; tint?: string }[] = [
+  { src: '/hero.jpg', staged: false },
+  { src: '/worlds/bg.jpg', staged: false },
+  { src: '/about.jpg', staged: true },
+  { src: '/services.jpg', staged: true },
+  { src: '/contact.jpg', staged: true, tint: 'scene-tint-contact' },
+];
+const SCENE_SRCS = SCENES.map((sc) => sc.src);
+
 const PAGE_LOCK_MS = 850;
 
 export default function App() {
@@ -29,6 +41,18 @@ export default function App() {
   const [page, setPage] = useState(0);
   // The first page plays its entrance once the site has painted.
   const [ready, setReady] = useState(false);
+  const splitDone = useRef<Promise<void>>(Promise.resolve());
+  // The first visit of a session opens with a short intro (skipped under reduced motion).
+  const [showIntro, setShowIntro] = useState(() => {
+    try {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return false;
+      if (sessionStorage.getItem('intro-seen')) return false;
+      sessionStorage.setItem('intro-seen', '1');
+    } catch {
+      /* storage blocked: play it */
+    }
+    return true;
+  });
   const pageRef = useRef(0);
   const lockUntil = useRef(0);
   const pageEls = useRef<(HTMLDivElement | null)[]>([]);
@@ -78,6 +102,8 @@ export default function App() {
       const to = from + dir;
       if (to < 0 || to >= PAGE_COUNT) return false;
       sc = { from, to, dir, p: 0, v: 0 };
+      // The arriving page is revealed by the gesture itself, so its GSAP parts start settled.
+      settlePage(pageEls.current[to]);
       root.classList.remove('scrub-commit', 'scrub-cancel');
       mark(from, to);
       root.classList.add('is-scrubbing');
@@ -245,9 +271,22 @@ export default function App() {
     pageEls.current.forEach((el) =>
       el?.querySelectorAll<HTMLElement>('[data-reveal]').forEach((r, i) => r.style.setProperty('--i', String(i))),
     );
-    const raf = requestAnimationFrame(() => requestAnimationFrame(() => setReady(true)));
-    return () => cancelAnimationFrame(raf);
+    // Headlines split into characters once fonts are in.
+    splitDone.current = prefersReducedMotion() ? Promise.resolve() : splitHeadlines();
+    if (!showIntro) {
+      const raf = requestAnimationFrame(() => requestAnimationFrame(() => setReady(true)));
+      return () => cancelAnimationFrame(raf);
+    }
   }, []);
+
+  // Each arrival on a page plays its GSAP layer: the headline wave and lines drawing in. A page
+  // reached by a finished drag is shown at once instead.
+  useEffect(() => {
+    if (!ready) return;
+    const el = pageEls.current[page];
+    const instant = document.documentElement.classList.contains('scrub-commit');
+    splitDone.current.then(() => (instant ? settlePage(el) : playPageIn(el)));
+  }, [page, ready]);
 
   // A specular highlight follows the pointer across glass surfaces (.glass, .glass-dark).
   useEffect(() => {
@@ -282,6 +321,18 @@ export default function App() {
       {/* Custom magnetic follower cursor */}
       <CustomCursor />
       <FilmGrain />
+      {showIntro && (
+        <Intro
+          scenes={SCENE_SRCS}
+          onReveal={() => {
+            const root = document.documentElement;
+            root.classList.add('intro-flare');
+            gsap.delayedCall(2, () => root.classList.remove('intro-flare'));
+            setReady(true);
+          }}
+          onDone={() => setShowIntro(false)}
+        />
+      )}
 
       <Navigation onOpenSection={handleOpenSection} activeSection={activeSection} light={page === 4} />
       <PageRail
@@ -294,13 +345,7 @@ export default function App() {
       {/* ONE FIXED BACKDROP: each page has its own scene; scenes only cross-fade. Pages 3 and 4
           lay theirs out on the shared stage, so 3 → 4 dissolves the figure out of the terrace. */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
-        {[
-          { src: '/hero.jpg', staged: false },
-          { src: '/worlds/bg.jpg', staged: false },
-          { src: '/about.jpg', staged: true },
-          { src: '/services.jpg', staged: true },
-          { src: '/contact.jpg', staged: true, tint: 'scene-tint-contact' },
-        ].map(({ src, staged, tint }, i) => (
+        {SCENES.map(({ src, staged, tint }, i) => (
           <div key={src} data-scene={i} className={`scene-layer ${stateOf(i)}`}>
             <img
               src={src}

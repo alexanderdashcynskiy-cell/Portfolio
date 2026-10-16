@@ -1730,3 +1730,44 @@ body {
 @media (hover: none) {
   .glare::before { display: none; }
 }
+
+/* ------------------------------------------------------------------
+   GSAP layer (see gsapMotion.ts): split headlines reveal by character,
+   so their line containers show at once; the first-visit intro.
+------------------------------------------------------------------- */
+.site-page.is-active [data-reveal="line"].is-split {
+  transition:
+    opacity 0.01s linear,
+    filter 0.01s linear,
+    letter-spacing 1.5s var(--ease-out) 0.32s;
+}
+.is-split .ch {
+  will-change: opacity, filter;
+}
+
+.intro {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  overflow: hidden;
+  background: #120b06;
+  pointer-events: none;
+}
+.intro-glow {
+  position: absolute;
+  left: 66%;
+  top: 52%;
+  width: 140vmax;
+  height: 140vmax;
+  margin: -70vmax 0 0 -70vmax;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 226, 180, 0.95), rgba(236, 176, 110, 0.55) 22%, rgba(120, 70, 30, 0.25) 45%, transparent 68%);
+  opacity: 0;
+}
+/* The sphere flares as the light comes up. */
+.intro-flare .scene-layer.is-active .sphere-flare {
+  animation: sphereFlare 1.8s ease-out;
+}
+.intro-flare .scene-layer.is-active .sphere-sweep {
+  animation: sphereSweepOut 1.4s cubic-bezier(0.45, 0, 0.15, 1);
+}
