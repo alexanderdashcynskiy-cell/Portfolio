@@ -87,14 +87,23 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({ onOpenContact }) => 
         {DIVIDER_X.map((x) => (
           <span key={x} className="services-stack-divider" style={{ left: c(x - 92) }} aria-hidden="true" />
         ))}
-        <ul>
+        <div className="services-stack-viewport">
+        <ul className="services-stack-track">
           {TECH_STACK.map(({ label, Icon }, i) => (
             <li key={label} className="services-stack-item" style={{ left: c(STACK_X[i] - 92) }}>
               <Icon className="services-stack-icon" aria-hidden="true" />
               <span>{label}</span>
             </li>
           ))}
+          {/* Second copy for the endless loop on phones (adapted from React Bits' LogoLoop). */}
+          {TECH_STACK.map(({ label, Icon }) => (
+            <li key={`${label}-loop`} className="services-stack-item services-stack-loop" aria-hidden="true">
+              <Icon className="services-stack-icon" />
+              <span>{label}</span>
+            </li>
+          ))}
         </ul>
+        </div>
       </div>
     </div>
   </section>
