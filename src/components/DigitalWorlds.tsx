@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, ArrowUpRight, LayoutGrid, X } from 'lucide-react';
 import { WORLDS, WORLD_FILTERS, WorldCard } from '../data/worldsData';
+import { scrub } from '../motion';
 
 interface DigitalWorldsProps {
   onOpenContact: () => void;
@@ -572,8 +573,10 @@ export const DigitalWorlds: React.FC<DigitalWorldsProps> = ({ onOpenContact, isA
           drawn.current[k] = pose;
           const rest = 1 - v; // 0 once the card has fully arrived
           const out = reveal.current[k].to === 0; // leaving: drift on instead of back
-          const shift = (out ? LEAVE_SHIFT_X : ENTER_SHIFT_X) * rest;
-          const turn = (out ? -ENTER_TURN * 0.6 : ENTER_TURN) * rest;
+          // While the page is being dragged away, the deck leans with the gesture.
+          const lean = scrub.from === 1 && !reduceMotion ? smoothstep(scrub.p) * (scrub.to > scrub.from ? 1 : -1) : 0;
+          const shift = (out ? LEAVE_SHIFT_X : ENTER_SHIFT_X) * rest - lean * 60;
+          const turn = (out ? -ENTER_TURN * 0.6 : ENTER_TURN) * rest + lean * 0.3;
           el.style.transform = `translate3d(${pose.tx + shift}px, ${pose.ty}px, ${pose.tz}px) rotateY(${pose.th + turn}rad)`;
           el.style.zIndex = String(Math.round(3000 + pose.tz));
           // Glare slides across the glass as the slab turns.
