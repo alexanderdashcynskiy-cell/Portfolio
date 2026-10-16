@@ -31,6 +31,8 @@ const SCENES: { src: string; staged: boolean; tint?: string }[] = [
   { src: '/contact.jpg', staged: true, tint: 'scene-tint-contact' },
 ];
 const SCENE_SRCS = SCENES.map((sc) => sc.src);
+// Scenes whose leaf shadows on the wall sway (the terrace in daylight).
+const LEAF_SWAY = new Set([0, 2, 3]);
 
 const PAGE_LOCK_MS = 850;
 
@@ -116,6 +118,7 @@ export default function App() {
       if (!sc) return;
       sc.p = Math.min(1, Math.max(0, p));
       root.style.setProperty('--p', sc.p.toFixed(4));
+      root.style.setProperty('--sun', ((sc.from + (sc.to - sc.from) * sc.p) / (PAGE_COUNT - 1)).toFixed(4));
       Object.assign(scrub, { from: sc.from, to: sc.to, p: sc.p });
     };
     const finish = () => {
@@ -131,7 +134,10 @@ export default function App() {
       window.clearTimeout(classTimer);
       classTimer = window.setTimeout(() => root.classList.remove('scrub-commit', 'scrub-cancel'), 1400);
       if (commit) goToPage(to);
-      else lockUntil.current = performance.now() + 350; // swallow the rest of the inertia
+      else {
+        lockUntil.current = performance.now() + 350; // swallow the rest of the inertia
+        root.style.setProperty('--sun', String(pageRef.current / (PAGE_COUNT - 1)));
+      }
     };
 
     // A mouse wheel clicks (multiples of 120 in wheelDelta, or line/page deltas); a trackpad
@@ -282,6 +288,11 @@ export default function App() {
     }
   }, []);
 
+  // The sun's height follows the page: 0 at the top of the site, 1 at the last page.
+  useEffect(() => {
+    document.documentElement.style.setProperty('--sun', String(page / (PAGE_COUNT - 1)));
+  }, [page]);
+
   // Each arrival on a page plays its GSAP layer: the headline wave and lines drawing in. A page
   // reached by a finished drag is shown at once instead.
   useEffect(() => {
@@ -367,6 +378,7 @@ export default function App() {
       {/* ONE FIXED BACKDROP: each page has its own scene; scenes only cross-fade. Pages 3 and 4
           lay theirs out on the shared stage, so 3 → 4 dissolves the figure out of the terrace. */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
+        <div className="scene-root absolute inset-0">
         {SCENES.map(({ src, staged, tint }, i) => (
           <div key={src} data-scene={i} className={`scene-layer ${stateOf(i)}`}>
             <img
@@ -376,11 +388,17 @@ export default function App() {
               draggable={false}
             />
             {staged && <img src={src} alt="" className="stage-scene" draggable={false} />}
+            {LEAF_SWAY.has(i) && (
+              <img src={src} alt="" className={`leaf-sway ${staged ? 'stage-scene' : 'absolute inset-0 w-full h-full object-cover'}`} draggable={false} />
+            )}
             {tint && <div className={tint} />}
             {i === 0 && <SphereLight />}
             {(i === 0 || i === 2) && <LightRays />}
           </div>
         ))}
+        </div>
+        {/* The sun sets across the site: a warm grade deepens from page 1 to page 5. */}
+        <div className="sun-grade" />
       </div>
 
       {/* PAGE 1 — hero */}
