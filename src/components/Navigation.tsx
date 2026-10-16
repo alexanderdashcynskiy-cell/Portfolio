@@ -103,7 +103,7 @@ export const Navigation: React.FC<NavigationProps> = ({ onOpenSection, activeSec
 
         <button
           onClick={() => onOpenSection('contact')}
-          className="group inline-flex items-center justify-center bg-[var(--hero-ink)] text-white uppercase tracking-[0.02em] rounded-full transition-all duration-300 hover:bg-[var(--hero-bronze)] active:scale-95 cursor-pointer"
+          className="glare group inline-flex items-center justify-center bg-[var(--hero-ink)] text-white uppercase tracking-[0.02em] rounded-full transition-all duration-300 hover:bg-[var(--hero-bronze)] active:scale-95 cursor-pointer"
           style={{
             width: `max(128px, ${u(167)})`,
             height: `max(38px, ${u(44)})`,

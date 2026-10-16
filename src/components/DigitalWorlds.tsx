@@ -1010,7 +1010,7 @@ const LiftedCard = React.forwardRef<HTMLDivElement, LiftedCardProps>(({ card, op
           </div>
         </dl>
         <div data-lift-reveal className="lift-back-actions">
-          <button onClick={onContact} className="lift-cta group">
+          <button onClick={onContact} className="lift-cta glare group">
             Discuss a similar project
             <ArrowRight strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-1" />
           </button>

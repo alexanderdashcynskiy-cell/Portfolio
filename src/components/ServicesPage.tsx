@@ -57,7 +57,7 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({ onOpenContact }) => 
           I design and build digital products using a modern, AI-assisted workflow — from concept to launch.
         </p>
 
-        <button data-reveal onClick={onOpenContact} className="services-cta group">
+        <button data-reveal onClick={onOpenContact} className="services-cta glare group">
           <span>Let’s discuss your project</span>
           <ArrowRight className="services-cta-arrow" strokeWidth={1.6} aria-hidden="true" />
         </button>
@@ -65,7 +65,7 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({ onOpenContact }) => 
 
       <div className="services-grid">
         {services.map(({ number, title, lines, Icon }) => (
-          <article key={number} data-reveal className="services-card glass">
+          <article key={number} data-reveal className="services-card glass glare">
             <span className="services-card-number">{number}</span>
             <Icon className="services-card-icon" strokeWidth={1.5} aria-hidden="true" />
             <span className="services-card-rule" aria-hidden="true" />
