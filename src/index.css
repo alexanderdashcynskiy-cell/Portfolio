@@ -234,7 +234,10 @@ body {
 ------------------------------------------------------------------- */
 :root {
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  /* Leaving: fast off the mark, then quiet (never ease-in: it delays the moment being watched). */
+  --ease-exit: cubic-bezier(0.23, 1, 0.32, 1);
+  /* Soft start, long quiet settle (lifted card, glare, sphere sweeps). */
+  --ease-settle: var(--ease-settle);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
 }
 
@@ -290,17 +293,17 @@ body {
 [data-reveal] {
   will-change: opacity, filter;
   transition:
-    opacity 0.42s var(--ease-in) calc(var(--i, 0) * 0.02s),
-    filter 0.42s var(--ease-in) calc(var(--i, 0) * 0.02s);
+    opacity 0.3s var(--ease-exit) calc(var(--i, 0) * 0.02s),
+    filter 0.3s var(--ease-exit) calc(var(--i, 0) * 0.02s);
 }
 /* Headline lines also settle their tracking as they come into focus. */
 [data-reveal="line"] {
   display: block;
   white-space: nowrap;
   transition:
-    opacity 0.42s var(--ease-in) calc(var(--i, 0) * 0.02s),
-    filter 0.42s var(--ease-in) calc(var(--i, 0) * 0.02s),
-    letter-spacing 0.42s var(--ease-in) calc(var(--i, 0) * 0.02s);
+    opacity 0.3s var(--ease-exit) calc(var(--i, 0) * 0.02s),
+    filter 0.3s var(--ease-exit) calc(var(--i, 0) * 0.02s),
+    letter-spacing 0.3s var(--ease-exit) calc(var(--i, 0) * 0.02s);
 }
 .site-page.is-below [data-reveal="line"],
 .site-page.is-above [data-reveal="line"] {
@@ -316,7 +319,7 @@ body {
 .site-page.is-below [data-reveal="stage"],
 .site-page.is-above [data-reveal="stage"] {
   filter: none;
-  transition: opacity 0.3s var(--ease-in) 0.55s;
+  transition: opacity 0.3s var(--ease-exit) 0.55s;
 }
 .site-page.is-active [data-reveal] {
   opacity: 1;
@@ -1539,7 +1542,7 @@ body {
   inset: -20%;
   background: linear-gradient(115deg, transparent 42%, rgba(255, 240, 215, 0.22) 49%, rgba(255, 250, 238, 0.38) 50%, rgba(255, 240, 215, 0.22) 51%, transparent 58%);
   transform: translateX(-70%);
-  animation: sphereSweep 11s cubic-bezier(0.45, 0, 0.15, 1) infinite;
+  animation: sphereSweep 11s var(--ease-settle) infinite;
 }
 @keyframes sphereSweep {
   0%, 62% { transform: translateX(-70%); }
@@ -1576,7 +1579,7 @@ body {
   animation: sphereFlare 1.1s ease-out;
 }
 .scene-layer.is-above .sphere-sweep {
-  animation: sphereSweepOut 0.9s cubic-bezier(0.45, 0, 0.15, 1);
+  animation: sphereSweepOut 0.9s var(--ease-settle);
 }
 @keyframes sphereFlare {
   0% { opacity: 0; }
@@ -1714,7 +1717,7 @@ body {
   background-repeat: no-repeat;
   background-size: 250% 250%;
   background-position: -100% -100%;
-  transition: background-position 0.9s cubic-bezier(0.45, 0, 0.15, 1);
+  transition: background-position 0.9s var(--ease-settle);
 }
 .glare:hover::before {
   background-position: 100% 100%;
@@ -1769,7 +1772,7 @@ body {
   animation: sphereFlare 1.8s ease-out;
 }
 .intro-flare .scene-layer.is-active .sphere-sweep {
-  animation: sphereSweepOut 1.4s cubic-bezier(0.45, 0, 0.15, 1);
+  animation: sphereSweepOut 1.4s var(--ease-settle);
 }
 
 /* ------------------------------------------------------------------
@@ -1786,20 +1789,22 @@ body {
 /* Keep the page-reveal transitions (opacity, filter) and add the tilt's. */
 .site-page .services-card[data-reveal] {
   transition:
-    opacity 0.42s var(--ease-in) calc(var(--i, 0) * 0.02s),
-    filter 0.42s var(--ease-in) calc(var(--i, 0) * 0.02s),
-    transform 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.3s var(--ease-exit) calc(var(--i, 0) * 0.02s),
+    filter 0.3s var(--ease-exit) calc(var(--i, 0) * 0.02s),
+    transform 0.7s var(--ease-out),
     border-color 0.6s var(--ease-out);
 }
 .site-page.is-active .services-card[data-reveal] {
   transition:
     opacity 0.95s var(--ease-out) calc(0.38s + var(--i, 0) * 0.065s),
     filter 0.95s var(--ease-out) calc(0.38s + var(--i, 0) * 0.065s),
-    transform 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.7s var(--ease-out),
     border-color 0.6s var(--ease-out);
 }
-.services-card:hover {
-  --ts: 1.015;
+@media (hover: hover) and (pointer: fine) {
+  .services-card:hover {
+    --ts: 1.015;
+  }
 }
 
 .gradual-blur {
@@ -1875,13 +1880,6 @@ body {
   inherits: true;
   initial-value: 0;
 }
-:root {
-  --sun: 0;
-  transition: --sun 1.6s var(--ease-in-out);
-}
-:root.is-scrubbing {
-  transition: none;
-}
 .sun-grade {
   position: absolute;
   inset: 0;
@@ -1952,4 +1950,96 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .leaf-sway { animation: none; display: none; }
   .scene-root, .about-stage, .worlds-page, .hero-copy, .about-copy, .services-copy, .contact-copy { transform: none !important; }
+}
+
+/* ------------------------------------------------------------------
+   Press feedback, nav underline, mobile menu.
+------------------------------------------------------------------- */
+.press {
+  transition: scale 160ms var(--ease-out), background-color 0.3s ease, color 0.3s ease;
+}
+.press:active {
+  scale: 0.97;
+}
+/* Pressable buttons that also reveal with their page keep the reveal transitions. */
+.site-page .press[data-reveal] {
+  transition:
+    opacity 0.3s var(--ease-exit) calc(var(--i, 0) * 0.02s),
+    filter 0.3s var(--ease-exit) calc(var(--i, 0) * 0.02s),
+    scale 160ms var(--ease-out),
+    background-color 0.3s ease;
+}
+.site-page.is-active .press[data-reveal] {
+  transition:
+    opacity 0.95s var(--ease-out) calc(0.38s + var(--i, 0) * 0.065s),
+    filter 0.95s var(--ease-out) calc(0.38s + var(--i, 0) * 0.065s),
+    scale 160ms var(--ease-out),
+    background-color 0.3s ease;
+}
+
+.nav-underline {
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.3s var(--ease-out);
+}
+.nav-underline.is-active,
+.group:hover .nav-underline {
+  transform: scaleX(1);
+}
+
+.mobile-menu {
+  transform-origin: top right;
+  opacity: 0;
+  scale: 0.97;
+  translate: 0 -6px;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 150ms var(--ease-exit),
+    scale 150ms var(--ease-exit),
+    translate 150ms var(--ease-exit),
+    visibility 0s linear 150ms;
+}
+.mobile-menu.is-open {
+  opacity: 1;
+  scale: 1;
+  translate: 0 0;
+  visibility: visible;
+  pointer-events: auto;
+  transition:
+    opacity 200ms var(--ease-out),
+    scale 200ms var(--ease-out),
+    translate 200ms var(--ease-out),
+    visibility 0s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mobile-menu { scale: 1; translate: 0 0; }
+  .press:active { scale: 1; }
+}
+
+/* Custom cursor (see CustomCursor). A 40px circle scaled down to a 12px dot; over anything
+   clickable it grows into a 50px bronze ring. */
+.cursor-follow {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 9999;
+  pointer-events: none;
+  will-change: transform;
+  transition: opacity 0.2s ease;
+}
+.cursor-dot {
+  width: 40px;
+  height: 40px;
+  margin: -20px 0 0 -20px;
+  border-radius: 50%;
+  border: 1px solid transparent;
+  background: rgba(20, 19, 18, 0.6);
+  scale: 0.3;
+  transition: scale 160ms var(--ease-out), background-color 160ms ease, border-color 160ms ease;
+}
+.cursor-dot.is-pointer {
+  scale: 1.25;
+  background: rgba(156, 106, 59, 0.2);
+  border-color: rgba(156, 106, 59, 0.6);
 }

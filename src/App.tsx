@@ -20,6 +20,7 @@ import { SmoothScroll } from './components/SmoothScroll';
 import { GradualBlur } from './components/GradualBlur';
 import { GlassFilter } from './components/GlassFilter';
 import { playPageIn, prefersReducedMotion, settlePage, splitHeadlines, gsap } from './gsapMotion';
+import { easeSun, setPointer, setSun } from './sceneVars';
 
 const PAGE_COUNT = 5;
 // Each page's backdrop scene; pages 3–5 lay theirs out on the shared stage.
@@ -94,13 +95,17 @@ export default function App() {
     let sc: { from: number; to: number; dir: number; p: number; v: number } | null = null;
     let endTimer = 0;
     let classTimer = 0;
+    // The two pages and two scenes in play; --p is written onto these only.
+    let scrubbed: HTMLElement[] = [];
 
     const mark = (from: number, to: number) => {
       document.querySelectorAll('[data-scrub]').forEach((el) => el.removeAttribute('data-scrub'));
-      pageEls.current[from]?.setAttribute('data-scrub', 'out');
-      pageEls.current[to]?.setAttribute('data-scrub', 'in');
-      document.querySelector(`[data-scene="${from}"]`)?.setAttribute('data-scrub', 'out');
-      document.querySelector(`[data-scene="${to}"]`)?.setAttribute('data-scrub', 'in');
+      const pair = (i: number, role: string) => {
+        const els = [pageEls.current[i], document.querySelector<HTMLElement>(`[data-scene="${i}"]`)];
+        els.forEach((el) => el?.setAttribute('data-scrub', role));
+        return els.filter((el): el is HTMLElement => !!el);
+      };
+      scrubbed = [...pair(from, 'out'), ...pair(to, 'in')];
     };
     const begin = (dir: number) => {
       const from = pageRef.current;
@@ -117,8 +122,9 @@ export default function App() {
     const update = (p: number) => {
       if (!sc) return;
       sc.p = Math.min(1, Math.max(0, p));
-      root.style.setProperty('--p', sc.p.toFixed(4));
-      root.style.setProperty('--sun', ((sc.from + (sc.to - sc.from) * sc.p) / (PAGE_COUNT - 1)).toFixed(4));
+      const pv = sc.p.toFixed(4);
+      scrubbed.forEach((el) => el.style.setProperty('--p', pv));
+      setSun((sc.from + (sc.to - sc.from) * sc.p) / (PAGE_COUNT - 1));
       Object.assign(scrub, { from: sc.from, to: sc.to, p: sc.p });
     };
     const finish = () => {
@@ -136,7 +142,7 @@ export default function App() {
       if (commit) goToPage(to);
       else {
         lockUntil.current = performance.now() + 350; // swallow the rest of the inertia
-        root.style.setProperty('--sun', String(pageRef.current / (PAGE_COUNT - 1)));
+        easeSun(pageRef.current / (PAGE_COUNT - 1));
       }
     };
 
@@ -290,7 +296,7 @@ export default function App() {
 
   // The sun's height follows the page: 0 at the top of the site, 1 at the last page.
   useEffect(() => {
-    document.documentElement.style.setProperty('--sun', String(page / (PAGE_COUNT - 1)));
+    easeSun(page / (PAGE_COUNT - 1));
   }, [page]);
 
   // Each arrival on a page plays its GSAP layer: the headline wave and lines drawing in. A page
@@ -306,10 +312,7 @@ export default function App() {
   useEffect(() => {
     let tilted: HTMLElement | null = null;
     const onMove = (e: PointerEvent) => {
-      if (e.pointerType !== 'touch') {
-        document.documentElement.style.setProperty('--px', ((e.clientX / window.innerWidth) * 2 - 1).toFixed(3));
-        document.documentElement.style.setProperty('--py', ((e.clientY / window.innerHeight) * 2 - 1).toFixed(3));
-      }
+      if (e.pointerType !== 'touch') setPointer((e.clientX / window.innerWidth) * 2 - 1, (e.clientY / window.innerHeight) * 2 - 1);
       const target = e.target as Element | null;
       // Service cards lean toward the pointer (tilt); the previous one settles back.
       const card = target?.closest?.<HTMLElement>('.services-card') ?? null;
