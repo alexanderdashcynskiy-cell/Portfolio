@@ -27,7 +27,7 @@ const createRays = (count: number, cycle: number): Ray[] =>
     swing: 0.6 + Math.random() * 1.4,
     delay: Math.random() * cycle,
     duration: cycle * (0.8 + Math.random() * 0.5),
-    intensity: 0.45 + Math.random() * 0.45,
+    intensity: 0.6 + Math.random() * 0.4,
   }));
 
 interface LightRaysProps {
