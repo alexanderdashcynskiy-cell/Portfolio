@@ -16,6 +16,9 @@ import { SphereLight } from './components/SphereLight';
 import { FilmGrain, LightRays } from './components/Atmosphere';
 import { scrub } from './motion';
 import { Intro } from './components/Intro';
+import { SmoothScroll } from './components/SmoothScroll';
+import { GradualBlur } from './components/GradualBlur';
+import { GlassFilter } from './components/GlassFilter';
 import { playPageIn, prefersReducedMotion, settlePage, splitHeadlines, gsap } from './gsapMotion';
 
 const PAGE_COUNT = 5;
@@ -290,12 +293,28 @@ export default function App() {
 
   // A specular highlight follows the pointer across glass surfaces (.glass, .glass-dark).
   useEffect(() => {
+    let tilted: HTMLElement | null = null;
     const onMove = (e: PointerEvent) => {
       if (e.pointerType !== 'touch') {
         document.documentElement.style.setProperty('--px', ((e.clientX / window.innerWidth) * 2 - 1).toFixed(3));
         document.documentElement.style.setProperty('--py', ((e.clientY / window.innerHeight) * 2 - 1).toFixed(3));
       }
-      const el = (e.target as Element | null)?.closest?.<HTMLElement>('.glass, .glass-dark');
+      const target = e.target as Element | null;
+      // Service cards lean toward the pointer (tilt); the previous one settles back.
+      const card = target?.closest?.<HTMLElement>('.services-card') ?? null;
+      if (tilted && tilted !== card) {
+        tilted.style.setProperty('--rx', '0deg');
+        tilted.style.setProperty('--ry', '0deg');
+      }
+      tilted = card;
+      if (card && e.pointerType !== 'touch') {
+        const r = card.getBoundingClientRect();
+        const nx = (e.clientX - r.left) / r.width - 0.5;
+        const ny = (e.clientY - r.top) / r.height - 0.5;
+        card.style.setProperty('--rx', `${(-ny * 9).toFixed(2)}deg`);
+        card.style.setProperty('--ry', `${(nx * 11).toFixed(2)}deg`);
+      }
+      const el = target?.closest?.<HTMLElement>('.glass, .glass-dark');
       if (!el) return;
       const r = el.getBoundingClientRect();
       el.style.setProperty('--mx', `${e.clientX - r.left}px`);
@@ -321,6 +340,9 @@ export default function App() {
       {/* Custom magnetic follower cursor */}
       <CustomCursor />
       <FilmGrain />
+      <SmoothScroll />
+      <GradualBlur />
+      <GlassFilter />
       {showIntro && (
         <Intro
           scenes={SCENE_SRCS}

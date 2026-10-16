@@ -1158,7 +1158,7 @@ body {
 @media (max-width: 767px), (max-aspect-ratio: 4/3) {
   /* Stacked glass panels keep their highlight contained. */
   .services-stack,
-  .contact-form { position: relative; }
+  .contact-form { position: relative; left: auto; top: auto; }
 }
 
 /* ------------------------------------------------------------------
@@ -1770,4 +1770,92 @@ body {
 }
 .intro-flare .scene-layer.is-active .sphere-sweep {
   animation: sphereSweepOut 1.4s cubic-bezier(0.45, 0, 0.15, 1);
+}
+
+/* ------------------------------------------------------------------
+   From React Bits (MIT + Commons Clause), adapted:
+   - tilt: glass service cards lean toward the pointer (--rx/--ry set in App);
+   - gradual blur: content scrolling under the nav / off the bottom on
+     stacked layouts dissolves through stacked blur bands;
+   - logo loop: the tech stack runs as an endless strip on phones.
+------------------------------------------------------------------- */
+.services-card {
+  transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) scale(var(--ts, 1));
+  will-change: transform;
+}
+/* Keep the page-reveal transitions (opacity, filter) and add the tilt's. */
+.site-page .services-card[data-reveal] {
+  transition:
+    opacity 0.42s var(--ease-in) calc(var(--i, 0) * 0.02s),
+    filter 0.42s var(--ease-in) calc(var(--i, 0) * 0.02s),
+    transform 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.6s var(--ease-out);
+}
+.site-page.is-active .services-card[data-reveal] {
+  transition:
+    opacity 0.95s var(--ease-out) calc(0.38s + var(--i, 0) * 0.065s),
+    filter 0.95s var(--ease-out) calc(0.38s + var(--i, 0) * 0.065s),
+    transform 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.6s var(--ease-out);
+}
+.services-card:hover {
+  --ts: 1.015;
+}
+
+.gradual-blur {
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  height: 96px;
+  pointer-events: none;
+  display: none;
+}
+.gradual-blur > span {
+  position: absolute;
+  inset: 0;
+}
+.gradual-blur-top { top: 0; }
+.gradual-blur-bottom { bottom: 0; height: 64px; }
+@media (max-width: 767px), (max-aspect-ratio: 4/3) {
+  .gradual-blur { display: block; }
+}
+
+.services-stack-loop { display: none; }
+@media (max-width: 767px), (max-aspect-ratio: 4/3) {
+  .services-stack ul.services-stack-track {
+    display: flex;
+    width: max-content;
+    gap: 0;
+    animation: stackLoop 38s linear infinite;
+  }
+  .services-stack:hover ul.services-stack-track { animation-play-state: paused; }
+  .services-stack .services-stack-item { width: 92px; flex: none; }
+  .services-stack-loop { display: flex; }
+  .services-stack-viewport {
+    overflow: hidden;
+    margin: 0 -18px;
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+  }
+}
+@keyframes stackLoop {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .services-stack ul.services-stack-track { animation: none; }
+}
+
+/* Refracting glass where the browser supports SVG backdrop filters (see GlassFilter). Only on
+   the full-screen layouts: inside scrolling stacked pages Chromium drops such panels entirely. */
+@media (min-width: 768px) and (min-aspect-ratio: 4/3) {
+  .glass-refract .glass {
+    -webkit-backdrop-filter: url(#glass-refract) blur(calc(12 * var(--c))) saturate(1.25);
+    backdrop-filter: url(#glass-refract) blur(calc(12 * var(--c))) saturate(1.25);
+  }
+  .glass-refract .glass-dark {
+    -webkit-backdrop-filter: url(#glass-refract) blur(calc(20 * var(--c))) saturate(1.15);
+    backdrop-filter: url(#glass-refract) blur(calc(20 * var(--c))) saturate(1.15);
+  }
 }
