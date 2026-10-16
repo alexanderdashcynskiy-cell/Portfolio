@@ -1859,3 +1859,97 @@ body {
     backdrop-filter: url(#glass-refract) blur(calc(20 * var(--c))) saturate(1.15);
   }
 }
+
+/* ------------------------------------------------------------------
+   One place, one light.
+   1. The sun sets across the site: --sun runs 0 → 1 from page 1 to 5
+      (scrubbed with the gesture), warming the grade, the glass rims and
+      the glare.
+   2. Depth: with a mouse, the scenes shift a few pixels against the
+      pointer and the headlines a little more, as if the camera moved.
+      Pinned stages move with their scene.
+   3. Leaf shadows on the terrace wall sway as in a light breeze.
+------------------------------------------------------------------- */
+@property --sun {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+:root {
+  --sun: 0;
+  transition: --sun 1.6s var(--ease-in-out);
+}
+:root.is-scrubbing {
+  transition: none;
+}
+.sun-grade {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 80% 70% at 88% 30%, rgba(255, 150, 70, 0.9), transparent 70%),
+    linear-gradient(180deg, rgba(255, 175, 110, 0.6), rgba(170, 80, 40, 0.5));
+  mix-blend-mode: soft-light;
+  opacity: calc(var(--sun) * var(--sun) * 0.32);
+}
+.glass {
+  border-color: color-mix(in srgb, rgba(255, 255, 255, 0.55), rgba(255, 196, 140, 0.75) calc(var(--sun) * 70%));
+}
+.glare::before {
+  background-image: linear-gradient(-45deg, transparent 60%, color-mix(in srgb, rgba(255, 246, 232, 0.42), rgba(255, 190, 120, 0.5) calc(var(--sun) * 80%)) 70%, transparent 80%, transparent 100%);
+}
+
+@media (hover: hover) and (pointer: fine) and (min-width: 768px) and (min-aspect-ratio: 4/3) {
+  .scene-root {
+    --dx: calc(var(--px, 0) * -9px);
+    --dy: calc(var(--py, 0) * -6px);
+    transform: translate3d(var(--dx), var(--dy), 0) scale(1.03);
+    transition: transform 1.6s var(--ease-out);
+  }
+  /* Content pinned to a scene moves exactly with it (same shift, same scale about the
+     window's centre). */
+  .about-stage,
+  .worlds-page {
+    transform: translate3d(calc(var(--px, 0) * -9px), calc(var(--py, 0) * -6px), 0) scale(1.03);
+    transition: transform 1.6s var(--ease-out);
+  }
+  .about-stage {
+    transform-origin: calc(50vw - var(--stage-left)) calc(var(--vh) / 2 - var(--stage-top));
+  }
+  /* Headlines sit nearer the camera: they move a little further. */
+  .hero-copy,
+  .about-copy,
+  .services-copy,
+  .contact-copy {
+    transform: translate3d(calc(var(--px, 0) * -7px), calc(var(--py, 0) * -4px), 0);
+    transition: transform 1.6s var(--ease-out);
+  }
+}
+
+.leaf-sway {
+  pointer-events: none;
+  -webkit-mask-image:
+    linear-gradient(90deg, #000 0%, #000 34%, transparent 50%),
+    linear-gradient(180deg, #000 0%, #000 55%, transparent 72%);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(90deg, #000 0%, #000 34%, transparent 50%),
+    linear-gradient(180deg, #000 0%, #000 55%, transparent 72%);
+  mask-composite: intersect;
+  transform-origin: 20% 0%;
+  animation: leafSway 7s ease-in-out infinite alternate;
+}
+@keyframes leafSway {
+  0% { transform: translate3d(0, 0, 0) rotate(0deg); }
+  30% { transform: translate3d(1.6px, -0.8px, 0) rotate(0.07deg); }
+  65% { transform: translate3d(-1.2px, 0.9px, 0) rotate(-0.05deg); }
+  100% { transform: translate3d(0.6px, 0.4px, 0) rotate(0.03deg); }
+}
+@media (max-width: 767px), (max-aspect-ratio: 4/3) {
+  .leaf-sway.stage-scene { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .leaf-sway { animation: none; display: none; }
+  .scene-root, .about-stage, .worlds-page, .hero-copy, .about-copy, .services-copy, .contact-copy { transform: none !important; }
+}
