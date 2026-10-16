@@ -12,6 +12,7 @@ import { ServicesPage } from './components/ServicesPage';
 import { ContactPage } from './components/ContactPage';
 import { CustomCursor } from './components/CustomCursor';
 import { PageRail } from './components/PageRail';
+import { LiveSphere } from './components/LiveSphere';
 
 const PAGE_COUNT = 5;
 const PAGE_LOCK_MS = 850;
@@ -184,6 +185,7 @@ export default function App() {
               draggable={false}
             />
             {staged && <img src={src} alt="" className="stage-scene" draggable={false} />}
+            {i === 0 && <LiveSphere active={page === 0} />}
             {tint && <div className={tint} />}
           </div>
         ))}
