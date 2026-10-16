@@ -13,6 +13,7 @@ import { ContactPage } from './components/ContactPage';
 import { CustomCursor } from './components/CustomCursor';
 import { PageRail } from './components/PageRail';
 import { SphereLight } from './components/SphereLight';
+import { FilmGrain, LightRays } from './components/Atmosphere';
 import { scrub } from './motion';
 
 const PAGE_COUNT = 5;
@@ -280,6 +281,7 @@ export default function App() {
     <div className="relative h-viewport overflow-hidden bg-[#ece6dc] text-[#141312] selection:bg-[#9c6a3b] selection:text-white">
       {/* Custom magnetic follower cursor */}
       <CustomCursor />
+      <FilmGrain />
 
       <Navigation onOpenSection={handleOpenSection} activeSection={activeSection} light={page === 4} />
       <PageRail
@@ -309,6 +311,7 @@ export default function App() {
             {staged && <img src={src} alt="" className="stage-scene" draggable={false} />}
             {tint && <div className={tint} />}
             {i === 0 && <SphereLight />}
+            {(i === 0 || i === 2) && <LightRays />}
           </div>
         ))}
       </div>

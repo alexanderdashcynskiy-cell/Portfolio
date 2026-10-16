@@ -136,7 +136,7 @@ export const ContactPage: React.FC = () => {
             <textarea required value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Share a few details about your project..." />
           </label>
 
-          <button type="submit" className="contact-submit group">
+          <button type="submit" className="contact-submit glare group">
             <span>{sent ? 'Opening your mail app…' : 'Send message'}</span>
             <ArrowRight className="contact-submit-arrow" strokeWidth={1.5} aria-hidden="true" />
           </button>
