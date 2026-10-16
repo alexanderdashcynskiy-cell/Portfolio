@@ -12,6 +12,8 @@ import { ServicesPage } from './components/ServicesPage';
 import { ContactPage } from './components/ContactPage';
 import { CustomCursor } from './components/CustomCursor';
 import { PageRail } from './components/PageRail';
+import { SphereLight } from './components/SphereLight';
+import { scrub } from './motion';
 
 const PAGE_COUNT = 5;
 const PAGE_LOCK_MS = 850;
@@ -53,16 +55,95 @@ export default function App() {
       return !t?.closest?.('[data-page]') || !!t.closest('[data-modal]');
     };
 
+    // ---- Gesture-driven transitions -------------------------------------------------
+    // A trackpad swipe or a finger drag scrubs the transition to the next page: the scenes
+    // and content follow the gesture (see "Gesture-driven transitions" in index.css). On
+    // release it completes past ~40% (or with a quick flick), otherwise it settles back.
+    const root = document.documentElement;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let sc: { from: number; to: number; dir: number; p: number; v: number } | null = null;
+    let endTimer = 0;
+    let classTimer = 0;
+
+    const mark = (from: number, to: number) => {
+      document.querySelectorAll('[data-scrub]').forEach((el) => el.removeAttribute('data-scrub'));
+      pageEls.current[from]?.setAttribute('data-scrub', 'out');
+      pageEls.current[to]?.setAttribute('data-scrub', 'in');
+      document.querySelector(`[data-scene="${from}"]`)?.setAttribute('data-scrub', 'out');
+      document.querySelector(`[data-scene="${to}"]`)?.setAttribute('data-scrub', 'in');
+    };
+    const begin = (dir: number) => {
+      const from = pageRef.current;
+      const to = from + dir;
+      if (to < 0 || to >= PAGE_COUNT) return false;
+      sc = { from, to, dir, p: 0, v: 0 };
+      root.classList.remove('scrub-commit', 'scrub-cancel');
+      mark(from, to);
+      root.classList.add('is-scrubbing');
+      return true;
+    };
+    const update = (p: number) => {
+      if (!sc) return;
+      sc.p = Math.min(1, Math.max(0, p));
+      root.style.setProperty('--p', sc.p.toFixed(4));
+      Object.assign(scrub, { from: sc.from, to: sc.to, p: sc.p });
+    };
+    const finish = () => {
+      window.clearTimeout(endTimer);
+      if (!sc) return;
+      const { to, p, v } = sc;
+      sc = null;
+      const commit = p > 0.4 || (p > 0.12 && v > 0.9);
+      document.querySelectorAll('[data-scrub]').forEach((el) => el.removeAttribute('data-scrub'));
+      root.classList.remove('is-scrubbing');
+      root.classList.add(commit ? 'scrub-commit' : 'scrub-cancel');
+      Object.assign(scrub, { from: -1, to: -1, p: 0 });
+      window.clearTimeout(classTimer);
+      classTimer = window.setTimeout(() => root.classList.remove('scrub-commit', 'scrub-cancel'), 1400);
+      if (commit) goToPage(to);
+      else lockUntil.current = performance.now() + 350; // swallow the rest of the inertia
+    };
+
+    // A mouse wheel clicks (multiples of 120 in wheelDelta, or line/page deltas); a trackpad
+    // streams small pixel deltas.
+    const isWheelClick = (e: WheelEvent) => {
+      const wd = (e as WheelEvent & { wheelDeltaY?: number }).wheelDeltaY;
+      if (e.deltaMode !== 0) return true;
+      if (wd !== undefined && wd !== 0) return Math.abs(wd) % 120 === 0;
+      return Math.abs(e.deltaY) >= 50;
+    };
+
     const onWheel = (e: WheelEvent) => {
       if (blocked(e.target)) return;
       if (Math.abs(e.deltaY) < Math.abs(e.deltaX)) return;
       const dir = e.deltaY > 0 ? 1 : -1;
       // While a page transition runs, swallow trackpad inertia completely.
       if (performance.now() < lockUntil.current) return e.preventDefault();
-      if (canScrollInside(dir)) return;
+      if (!sc && canScrollInside(dir)) return;
       e.preventDefault();
-      if (Math.abs(e.deltaY) < 6) return;
-      goToPage(pageRef.current + dir);
+      if (!sc && (reduce || isWheelClick(e))) {
+        if (Math.abs(e.deltaY) < 6) return;
+        goToPage(pageRef.current + dir);
+        return;
+      }
+      if (!sc && !begin(dir)) return;
+      const s = sc!;
+      const step = (e.deltaY * s.dir) / (window.innerHeight * 0.8);
+      s.v = (e.deltaY * s.dir) / 12; // rough speed, per event
+      const p = s.p + step;
+      if (p <= 0) {
+        // Dragged back to where it started: drop the scrub quietly.
+        update(0);
+        sc = null;
+        document.querySelectorAll('[data-scrub]').forEach((el) => el.removeAttribute('data-scrub'));
+        root.classList.remove('is-scrubbing');
+        Object.assign(scrub, { from: -1, to: -1, p: 0 });
+        return;
+      }
+      update(p);
+      if (s.p >= 1) return finish();
+      window.clearTimeout(endTimer);
+      endTimer = window.setTimeout(finish, 140);
     };
 
     const onKey = (e: KeyboardEvent) => {
@@ -76,14 +157,46 @@ export default function App() {
       if (performance.now() >= lockUntil.current) goToPage(pageRef.current + dir);
     };
 
-    let touchY: number | null = null;
+    // Touch: the drag decides its direction after a few pixels; if the page can still scroll
+    // that way it scrolls natively, otherwise the drag scrubs the transition.
+    let touch: { y: number; mode: 'pending' | 'native' | 'scrub'; lastY: number; lastT: number; v: number } | null = null;
     const onTouchStart = (e: TouchEvent) => {
-      touchY = blocked(e.target) ? null : e.touches[0].clientY;
+      if (blocked(e.target) || sc) return void (touch = null);
+      const y = e.touches[0].clientY;
+      touch = { y, mode: 'pending', lastY: y, lastT: performance.now(), v: 0 };
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      if (!touch) return;
+      const y = e.touches[0].clientY;
+      const dy = touch.y - y;
+      if (touch.mode === 'pending') {
+        if (Math.abs(dy) < 10) return;
+        const dir = dy > 0 ? 1 : -1;
+        if (reduce || canScrollInside(dir) || performance.now() < lockUntil.current || !begin(dir)) {
+          touch.mode = 'native';
+          return;
+        }
+        touch.mode = 'scrub';
+      }
+      if (touch.mode !== 'scrub' || !sc) return;
+      e.preventDefault();
+      const now = performance.now();
+      touch.v = ((touch.lastY - y) * sc.dir) / Math.max(1, now - touch.lastT);
+      touch.lastY = y;
+      touch.lastT = now;
+      update(((touch.y - y) * sc.dir) / (window.innerHeight * 0.55));
     };
     const onTouchEnd = (e: TouchEvent) => {
-      if (touchY === null) return;
-      const dy = touchY - e.changedTouches[0].clientY;
-      touchY = null;
+      if (!touch) return;
+      const t = touch;
+      touch = null;
+      if (t.mode === 'scrub' && sc) {
+        sc.v = t.v * 2; // px/ms -> the flick threshold in finish()
+        return finish();
+      }
+      if (t.mode !== 'pending' || !reduce) return;
+      // Reduced motion: a plain swipe pages discretely.
+      const dy = t.y - e.changedTouches[0].clientY;
       if (Math.abs(dy) < 50) return;
       const dir = dy > 0 ? 1 : -1;
       if (canScrollInside(dir) || performance.now() < lockUntil.current) return;
@@ -93,12 +206,18 @@ export default function App() {
     window.addEventListener('wheel', onWheel, { passive: false });
     window.addEventListener('keydown', onKey);
     window.addEventListener('touchstart', onTouchStart, { passive: true });
+    window.addEventListener('touchmove', onTouchMove, { passive: false });
     window.addEventListener('touchend', onTouchEnd);
+    window.addEventListener('touchcancel', onTouchEnd);
     return () => {
       window.removeEventListener('wheel', onWheel);
       window.removeEventListener('keydown', onKey);
       window.removeEventListener('touchstart', onTouchStart);
+      window.removeEventListener('touchmove', onTouchMove);
       window.removeEventListener('touchend', onTouchEnd);
+      window.removeEventListener('touchcancel', onTouchEnd);
+      window.clearTimeout(endTimer);
+      window.clearTimeout(classTimer);
     };
   }, [goToPage]);
 
@@ -132,6 +251,10 @@ export default function App() {
   // A specular highlight follows the pointer across glass surfaces (.glass, .glass-dark).
   useEffect(() => {
     const onMove = (e: PointerEvent) => {
+      if (e.pointerType !== 'touch') {
+        document.documentElement.style.setProperty('--px', ((e.clientX / window.innerWidth) * 2 - 1).toFixed(3));
+        document.documentElement.style.setProperty('--py', ((e.clientY / window.innerHeight) * 2 - 1).toFixed(3));
+      }
       const el = (e.target as Element | null)?.closest?.<HTMLElement>('.glass, .glass-dark');
       if (!el) return;
       const r = el.getBoundingClientRect();
@@ -176,7 +299,7 @@ export default function App() {
           { src: '/services.jpg', staged: true },
           { src: '/contact.jpg', staged: true, tint: 'scene-tint-contact' },
         ].map(({ src, staged, tint }, i) => (
-          <div key={src} className={`scene-layer ${stateOf(i)}`}>
+          <div key={src} data-scene={i} className={`scene-layer ${stateOf(i)}`}>
             <img
               src={src}
               alt=""
@@ -185,6 +308,7 @@ export default function App() {
             />
             {staged && <img src={src} alt="" className="stage-scene" draggable={false} />}
             {tint && <div className={tint} />}
+            {i === 0 && <SphereLight />}
           </div>
         ))}
       </div>
