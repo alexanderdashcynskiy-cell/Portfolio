@@ -18,7 +18,6 @@ import { scrub } from './motion';
 import { Intro } from './components/Intro';
 import { SmoothScroll } from './components/SmoothScroll';
 import { GradualBlur } from './components/GradualBlur';
-import { GlassFilter } from './components/GlassFilter';
 import { playPageIn, prefersReducedMotion, settlePage, splitHeadlines, gsap } from './gsapMotion';
 import { easeSun, setPointer, setSun } from './sceneVars';
 
@@ -356,7 +355,6 @@ export default function App() {
       <FilmGrain />
       <SmoothScroll />
       <GradualBlur />
-      <GlassFilter />
       {showIntro && (
         <Intro
           scenes={SCENE_SRCS}
@@ -392,11 +390,14 @@ export default function App() {
             />
             {staged && <img src={src} alt="" className="stage-scene" draggable={false} />}
             {LEAF_SWAY.has(i) && (
-              <img src={src} alt="" className={`leaf-sway ${staged ? 'stage-scene' : 'absolute inset-0 w-full h-full object-cover'}`} draggable={false} />
+              // Only the wall region is copied, so the swaying layer stays small.
+              <div className={`leaf-window ${staged ? 'is-staged' : ''}`}>
+                <img src={src} alt="" className="leaf-sway" draggable={false} />
+              </div>
             )}
             {tint && <div className={tint} />}
             {i === 0 && <SphereLight />}
-            {(i === 0 || i === 2) && <LightRays />}
+            {(i === 0 || i === 2) && <LightRays count={4} />}
           </div>
         ))}
         </div>
