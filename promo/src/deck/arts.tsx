@@ -302,7 +302,7 @@ export const StaffArt: React.FC = () => {
 /* ───────────── CRM button → Telegram: the real flow, with the server's own texts ───────────── */
 
 type Line = { t: string; b?: boolean };
-type Msg = { lines: Line[]; time: string; at: number; goneAt?: number };
+type Msg = { lines: Line[]; time: string; at: number; goneAt?: number; out?: boolean; keyboard?: string[]; pressed?: { key: number; at: number } };
 
 const RULE = '━━━━━━━━━━━━━━━━━━━━';
 // server.ts → updateOrderStatusInternal, status «Принят»: the receipt, then the greeting.
@@ -347,12 +347,22 @@ const TgChat: React.FC<{ messages: Msg[] }> = ({ messages }) => {
           const p = spring({ frame: frame - m.at, fps, config: { stiffness: 220, damping: 18 } });
           const gone = m.goneAt === undefined ? 0 : interpolate(frame, [m.goneAt, m.goneAt + 10], [0, 1], clamp);
           if (gone >= 1) return null;
+          const press = m.pressed && frame >= m.pressed.at ? interpolate(frame, [m.pressed.at, m.pressed.at + 8], [0, 1], clamp) : 0;
           return (
-            <div key={i} style={{ alignSelf: 'flex-start', maxWidth: '88%', padding: '10px 14px 7px', borderRadius: '18px 18px 18px 5px', background: '#fff', boxShadow: '0 1px 1px rgba(0,0,0,0.06)', fontSize: 14.5, lineHeight: 1.36, color: '#111', transform: `translateY(${(1 - p) * 24}px) scale(${(0.94 + p * 0.06) * (1 - gone * 0.2)})`, transformOrigin: '0 100%', opacity: p * (1 - gone), maxHeight: 400 * (1 - gone) }}>
-              {m.lines.map((l, j) => (
-                <div key={j} style={{ fontWeight: l.b ? 700 : 500, whiteSpace: 'nowrap', letterSpacing: l.t === RULE ? '-0.12em' : 0, color: l.t === RULE ? '#9aa4ad' : undefined }}>{l.t}</div>
-              ))}
-              <div style={{ textAlign: 'right', fontSize: 11, color: '#8a96a3', marginTop: 2 }}>{m.time}</div>
+            <div key={i} style={{ alignSelf: m.out ? 'flex-end' : 'flex-start', maxWidth: '88%', transform: `translateY(${(1 - p) * 24}px) scale(${(0.94 + p * 0.06) * (1 - gone * 0.2)})`, transformOrigin: m.out ? '100% 100%' : '0 100%', opacity: p * (1 - gone), maxHeight: 400 * (1 - gone) }}>
+              <div style={{ padding: '10px 14px 7px', borderRadius: m.out ? '18px 18px 5px 18px' : '18px 18px 18px 5px', background: m.out ? '#E1F7CB' : '#fff', boxShadow: '0 1px 1px rgba(0,0,0,0.06)', fontSize: 14.5, lineHeight: 1.36, color: '#111' }}>
+                {m.lines.map((l, j) => (
+                  <div key={j} style={{ fontWeight: l.b ? 700 : 500, whiteSpace: m.out ? 'normal' : 'nowrap', letterSpacing: l.t === RULE ? '-0.12em' : 0, color: l.t === RULE ? '#9aa4ad' : undefined, minHeight: l.t ? undefined : 8 }}>{l.t}</div>
+                ))}
+                <div style={{ textAlign: 'right', fontSize: 11, color: m.out ? '#5fa35a' : '#8a96a3', marginTop: 2 }}>{m.time}{m.out ? ' ✓✓' : ''}</div>
+              </div>
+              {m.keyboard && (
+                <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
+                  {m.keyboard.map((k, j) => (
+                    <div key={j} style={{ flex: 1, padding: '7px 0', borderRadius: 8, textAlign: 'center', fontSize: 13, fontWeight: 600, color: '#fff', background: m.pressed && m.pressed.key === j ? `rgba(42,171,238,${0.55 + press * 0.45})` : 'rgba(80,110,90,0.55)', transform: m.pressed && m.pressed.key === j ? `scale(${1 - Math.sin(press * Math.PI) * 0.08})` : undefined }}>{k}</div>
+                  ))}
+                </div>
+              )}
             </div>
           );
         })}
@@ -464,5 +474,165 @@ export const ReadyClickArt: React.FC = () => {
     <Sfx at={30} name="tap" volume={0.9} />
     <Sfx at={54} name="ding" volume={0.6} />
   </>
+  );
+};
+
+
+/* ───────────── New chapters: preorder, rating and review, reviews in the CRM, analytics, the till ───────────── */
+
+/** 02 — the morning preorder: from the banner, two items, then pickup date and time. */
+export const PreorderArt: React.FC = () => {
+  const frame = useCurrentFrame();
+  const open = useTween(14, 26);
+  const added = frame >= 40;
+  const toForm = useTween(66, 80);
+  return (
+    <Phone>
+      <PhoneScreen name="m1-home" />
+      <div style={{ position: 'absolute', inset: 0, transform: `translateX(${(1 - open) * 100}%)` }}>
+        <PhoneScreen name={added ? 'm10-preorder-added' : 'm9-preorder'} />
+      </div>
+      <div style={{ position: 'absolute', inset: 0, transform: `translateY(${(1 - toForm) * 100}%)` }}>
+        <PhoneScreen name="m11-preorder-form" />
+      </div>
+      <Tap at={6} {...P(215, 461)} />
+      <Tap at={32} {...P(268, 553)} />
+      <Tap at={58} {...P(347, 857)} />
+      {[6, 32, 58].map((t) => (
+        <Sfx key={t} at={t} name="tap" volume={0.8} />
+      ))}
+    </Phone>
+  );
+};
+
+// server.ts → sendRatingMessage and the review flow in the webhook handler.
+const ISSUED: Line[] = [{ t: '✅ Ваш заказ №1244 выдан!', b: true }, { t: 'Спасибо, что выбрали нас!' }, { t: '' }, { t: '⭐ Оцените качество обслуживания:', b: true }];
+const RATED: Line[] = [{ t: '⭐ Вы поставили оценку 5/5!' }, { t: '' }, { t: '💬 Напишите ваш отзыв', b: true }, { t: 'или отправьте /skip чтобы пропустить' }];
+const REVIEW = 'Перепечи — просто огонь! И всё было готово ровно к 14:30, спасибо 🙌';
+const THANKS: Line[] = [{ t: '🙏 Спасибо за отзыв!', b: true }, { t: 'Мы ценим ваше мнение.' }];
+
+/** 07 — «Выдать клиенту» → the bot asks for stars → a review comes back. */
+export const RatingArt: React.FC = () => {
+  const frame = useCurrentFrame();
+  const focus = easeInOut(interpolate(frame, [36, 54], [0, 1], clamp));
+  return (
+    <>
+      <Back focus={focus}>
+        <CrmClick before="d10-ready" after="d11-issued" click={28} />
+      </Back>
+      <SidePhone at={0} focus={focus}>
+        <TgChat
+          messages={[
+            { lines: READY, time: '14:21', at: -99 },
+            { lines: ISSUED, time: '14:33', at: 40, goneAt: 84, keyboard: ['⭐ 1', '⭐ 2', '⭐ 3', '⭐ 4', '⭐ 5'], pressed: { key: 4, at: 74 } },
+            { lines: RATED, time: '14:33', at: 90, goneAt: 132 },
+            { lines: [{ t: REVIEW }], time: '14:34', at: 116, out: true },
+            { lines: THANKS, time: '14:34', at: 136 },
+          ]}
+        />
+      </SidePhone>
+      <Sfx at={28} name="tap" volume={0.9} />
+      <Sfx at={40} name="ding" volume={0.6} />
+      <Sfx at={74} name="tap" volume={0.8} />
+      <Sfx at={90} name="pop" volume={0.6} />
+      <Sfx at={116} name="pop" volume={0.5} />
+      <Sfx at={136} name="pop" volume={0.6} />
+    </>
+  );
+};
+
+/** 08 — the review in the CRM with an AI draft; one click and the reply goes to the customer. */
+export const ReviewsArt: React.FC = () => {
+  const frame = useCurrentFrame();
+  const filled = frame >= 30;
+  const t = easeInOut(interpolate(frame, [4, 22], [0, 1], clamp));
+  const focus = easeInOut(interpolate(frame, [62, 80], [0, 1], clamp));
+  return (
+    <>
+      <Back focus={focus}>
+        <Laptop>
+          <LaptopScreen name={filled ? 'r2-draft' : 'r1-review'} t={t} fx={1150} fy={640} zoom={1.6}>
+            <Cursor x={1152} y={544} from={6} click={26} scale={1 + 0.6 * t} />
+            {frame >= 36 && <Cursor x={1444} y={940} from={36} click={52} scale={1 + 0.6 * t} />}
+          </LaptopScreen>
+        </Laptop>
+      </Back>
+      <SidePhone at={56} focus={focus}>
+        <TgChat
+          messages={[
+            { lines: THANKS, time: '14:34', at: -99 },
+            { lines: [{ t: '💬 Ответ на ваш отзыв (заказ №1244):', b: true }, { t: '' }, { t: 'Аня, спасибо за тёплый отзыв! Рады,' }, { t: 'что перепечи понравились — ждём вас снова 🥐' }], time: '14:40', at: 66 },
+          ]}
+        />
+      </SidePhone>
+      <Sfx at={26} name="tap" volume={0.9} />
+      <Sfx at={52} name="tap" volume={0.9} />
+      <Sfx at={66} name="ding" volume={0.6} />
+    </>
+  );
+};
+
+/** 09 — analytics: the dashboard, its charts, and the shift report in Telegram. */
+export const AnalyticsArt: React.FC = () => {
+  const frame = useCurrentFrame();
+  const t1 = easeInOut(interpolate(frame, [4, 24], [0, 1], clamp));
+  const charts = frame >= 44;
+  const t2 = easeInOut(interpolate(frame, [50, 70], [0, 1], clamp));
+  const doc = spring({ frame: frame - 92, fps: 30, config: { stiffness: 220, damping: 18 } });
+  return (
+    <>
+      <Laptop>
+        {charts ? <LaptopScreen name="d2-dashboard-2" t={t2} fx={420} fy={300} zoom={1.45} /> : <LaptopScreen name="d1-dashboard" t={t1} fx={460} fy={330} zoom={1.6} />}
+      </Laptop>
+      <div style={{ position: 'absolute', left: LP.x + LP.w - 600, top: LP_Y + LP.h - 230, width: 580, padding: '24px 28px', borderRadius: 26, background: '#fff', boxShadow: '0 30px 60px rgba(45,21,5,0.25)', fontFamily: SANS, display: 'flex', gap: 22, alignItems: 'center', transform: `translateY(${(1 - doc) * 60}px)`, opacity: doc }}>
+        <div style={{ width: 74, height: 74, borderRadius: 37, background: '#2AABEE', color: '#fff', fontSize: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>✈</div>
+        <div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: '#8a96a3', letterSpacing: '0.05em' }}>TELEGRAM · ПЕКАРНЯ</div>
+          <div style={{ fontSize: 30, fontWeight: 800, color: '#111', marginTop: 4 }}>📄 Отчёт смены 27.10.pdf</div>
+          <div style={{ fontSize: 24, fontWeight: 500, color: '#555', marginTop: 2 }}>23 заказа · выручка 296.3 · средний чек 13</div>
+        </div>
+      </div>
+      <Sfx at={44} name="whoosh" volume={0.3} />
+      <Sfx at={92} name="pop" volume={0.7} />
+    </>
+  );
+};
+
+/** 11 — the till: type a regular's number and the name fills itself in. */
+export const KassaArt: React.FC = () => {
+  const frame = useCurrentFrame();
+  const t = easeInOut(interpolate(frame, [4, 22], [0, 1], clamp));
+  const digits = '332145508';
+  const typed = Math.max(0, Math.min(digits.length, Math.floor((frame - 24) / 3)));
+  const done = typed >= digits.length;
+  const mask = (d: string) => {
+    let r = '+375(' + d.slice(0, 2);
+    if (d.length > 2) r += ')-' + d.slice(2, 5);
+    if (d.length > 5) r += '-' + d.slice(5, 7);
+    if (d.length > 7) r += '-' + d.slice(7, 9);
+    return r;
+  };
+  const ring = spring({ frame: frame - (24 + digits.length * 3 + 2), fps: 30, config: { stiffness: 220, damping: 12 } });
+  // Phone and name inputs on the modal, in capture pixels.
+  const TEL = { x: 532, y: 462, w: 448, h: 52 };
+  const NAME = { x: 532, y: 366, w: 448, h: 52 };
+  return (
+    <Laptop>
+      <LaptopScreen name={done ? 'k2-autofill' : 'k1-modal'} t={t} fx={756} fy={430} zoom={1.7}>
+        {!done && typed > 0 && (
+          <div style={{ position: 'absolute', left: lpx(TEL.x + 2), top: lpx(TEL.y + 2), width: lpx(TEL.w - 4), height: lpx(TEL.h - 4), borderRadius: lpx(16), background: '#fff', border: `${lpx(2)}px solid #34d399`, display: 'flex', alignItems: 'center', paddingLeft: lpx(20), fontFamily: SANS, fontSize: lpx(16), color: '#0f172a' }}>
+            {mask(digits.slice(0, typed))}
+            <span style={{ width: lpx(1.5), height: lpx(20), background: '#0f172a', marginLeft: lpx(1), opacity: Math.floor(frame / 8) % 2 }} />
+          </div>
+        )}
+        {done && (
+          <div style={{ position: 'absolute', left: lpx(NAME.x - 4), top: lpx(NAME.y - 4), width: lpx(NAME.w + 8), height: lpx(NAME.h + 8), borderRadius: lpx(20), border: `${lpx(3)}px solid ${C.orange}`, boxShadow: `0 0 ${lpx(16)}px rgba(208,105,42,0.5)`, opacity: ring, transform: `scale(${1.08 - ring * 0.08})` }} />
+        )}
+      </LaptopScreen>
+      {Array.from({ length: digits.length }, (_, i) => (
+        <Sfx key={i} at={24 + i * 3} name="tick" volume={0.35} />
+      ))}
+      <Sfx at={24 + digits.length * 3 + 2} name="chime" volume={0.6} />
+    </Laptop>
   );
 };

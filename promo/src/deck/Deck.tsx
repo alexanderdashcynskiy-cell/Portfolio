@@ -19,6 +19,11 @@ import {
   StaffArt,
   StockArt,
   SumsArt,
+  PreorderArt,
+  RatingArt,
+  ReviewsArt,
+  AnalyticsArt,
+  KassaArt,
 } from './arts';
 
 /*
@@ -38,6 +43,16 @@ const CHAPTERS = [
     vo: 'Клиент заказывает сам — в Телеграме. Вам не нужно брать трубку.',
   },
   {
+    title: 'Утренний предзаказ',
+    short: 'Выпечка к утру — заказ заранее',
+    before: '«Оставьте мне на утро круассаны!» — и запомнить.',
+    benefit: <>Завтрак — <Accent>к нужному часу.</Accent></>,
+    line: 'Утренний предзаказ в Mini App: клиент выбирает выпечку и кофе, дату и время самовывоза с 07:00 до 11:00.',
+    beforeArt: <DialogArt lines={['— Оставьте мне на утро два круассана!', '— Хорошо… а к какому времени?', '— Ну, часов в восемь…']} />,
+    afterArt: <PreorderArt />,
+    minAfter: 104,
+  },
+  {
     title: 'Детали — от клиента',
     short: 'Имя, телефон, время — в заказе',
     before: 'Переспрашивать имя, номер и время.',
@@ -55,6 +70,7 @@ const CHAPTERS = [
     line: 'Заказ из Mini App сразу в CRM. «Принять заказ» — и клиенту в Telegram уходят чек и подтверждение.',
     beforeArt: <NotebookArt />,
     afterArt: <AcceptArt />,
+    minAfter: 132,
     vo: 'Вместо тетради — все заказы на одном экране. Ни один не потеряется.',
   },
   {
@@ -75,16 +91,38 @@ const CHAPTERS = [
     line: 'Нажали «Готово» в CRM — бот сам пишет клиенту, что заказ ждёт его.',
     beforeArt: <CallArt who="Ольга" sub="3-й звонок за утро" bubble="Ну что, готово?" />,
     afterArt: <ReadyClickArt />,
+    minAfter: 112,
     vo: 'Когда заказ готов, клиент получает сообщение сам. Меньше звонков «ну что там?».',
   },
   {
-    title: 'Цифры дня без подсчётов',
-    short: 'Дашборд и отчёт смены в Telegram',
+    title: 'Оценка и отзыв',
+    short: 'Звёзды и отзыв — прямо в Telegram',
+    before: 'Отзывы? Если вспомнят — через неделю, где-то на картах.',
+    benefit: <>Оценка — <Accent>сразу после заказа.</Accent></>,
+    line: 'Нажали «Выдать клиенту» — бот просит поставить звёзды и написать отзыв. Отзыв сохраняется в CRM.',
+    beforeArt: <NotesArt notes={['Попросить отзыв?', 'Где нас вообще оценивают?']} />,
+    afterArt: <RatingArt />,
+    minAfter: 172,
+  },
+  {
+    title: 'Отзывы и ответы',
+    short: 'Ответ на отзыв из CRM — в Telegram',
+    before: 'Отзыв заметили через неделю — и не ответили.',
+    benefit: <>Ответ — <Accent>в один клик.</Accent></>,
+    line: 'Все отзывы — в разделе «Гости»: рейтинг, тональность и черновик ответа от ИИ. Ответ уходит клиенту в Telegram.',
+    beforeArt: <NotesArt notes={['Кто писал про перепечи?', 'Ответить… когда-нибудь']} />,
+    afterArt: <ReviewsArt />,
+    minAfter: 124,
+  },
+  {
+    title: 'Аналитика',
+    short: 'Выручка, чек, часы, хиты, отчёт смены',
     before: 'Вечером сводить кассу и тетрадь вручную.',
-    benefit: <>Цифры дня — <Accent>уже посчитаны.</Accent></>,
-    line: 'Выручка, заказы, средний чек и пиковые часы на дашборде. Отчёт смены приходит в Telegram.',
+    benefit: <>Аналитика — <Accent>уже посчитана.</Accent></>,
+    line: 'Выручка, заказы, средний чек, пиковые часы, бестселлеры и лояльность — на дашборде. Отчёт смены приходит в Telegram.',
     beforeArt: <SumsArt />,
-    afterArt: <NumbersArt />,
+    afterArt: <AnalyticsArt />,
+    minAfter: 132,
     vo: 'Выручка, средний чек, отчёт смены — посчитаны сами и приходят вам в Телеграм.',
   },
   {
@@ -98,14 +136,14 @@ const CHAPTERS = [
     vo: 'Постоянным клиентам проще вернуться: прошлый заказ повторяется в два касания.',
   },
   {
-    title: 'Касса и команда',
-    short: 'Касса, роли и журнал смен',
-    before: 'Касса отдельно, смены — на словах.',
-    benefit: <>Касса, роли и смены — <Accent>в той же системе.</Accent></>,
-    line: 'Продажи у прилавка, сотрудники с ролями (кассир видит заказы, пекарь — только склад) и журнал входов.',
-    beforeArt: <NotesArt notes={['Кто сегодня на смене?', 'Касса — свести с тетрадью', 'Игорь пришёл во сколько?']} />,
-    afterArt: <StaffArt />,
-    vo: 'Касса, сотрудники с ролями и журнал смен — в той же системе.',
+    title: 'Касса узнаёт гостя',
+    short: 'Номер постоянного гостя — имя само',
+    before: '«Как вас зовут? А номер?» — каждый раз заново.',
+    benefit: <>Номер ввели — <Accent>имя подставилось.</Accent></>,
+    line: 'На кассе CRM, при оформлении самовывоза или доставки, постоянный гость находится по номеру телефона.',
+    beforeArt: <DialogArt lines={['— Как вас зовут?', '— Аня. Я у вас каждую неделю!', '— А номер?..']} />,
+    afterArt: <KassaArt />,
+    minAfter: 96,
   },
 ];
 
@@ -129,7 +167,7 @@ const VO = {
     [[48.65, 49.92], [50.17, 53.91]],
     [[54.24, 56.54], [56.83, 60.62]],
   ],
-  summary: [60.89, 67.02],
+  summary: [64.4, 67.02], // «…теперь в одной системе для вашей пекарни» (the count changed: re-record the start)
   outro: [67.24, 70.54],
 } as const;
 
@@ -143,9 +181,12 @@ const BOOK_AT = 4 + dur(VO.phone) + 6; // inside the problem scene: phone → pa
 const PROBLEM_LEN = BOOK_AT + 2 + dur(VO.book) + 8;
 const TURN_LEN = 4 + dur(VO.turn) + 10;
 // The CRM → Telegram chapters need time for the messages to land and be read.
-const MIN_AFTER_LEN = [0, 0, 132, 0, 112, 0, 0, 0];
-const CH_AFTER = VO.chapters.map(([b]) => Math.max(40, 4 + dur(b) + 8));
-const CH_LEN = VO.chapters.map(([, a], i) => CH_AFTER[i] + Math.max(4 + dur(a) + 12, MIN_AFTER_LEN[i]));
+// Which recorded line each chapter uses (index into VO.chapters); null = not recorded yet.
+const CH_VO: (number | null)[] = [0, null, 1, 2, 3, 4, null, null, 5, 6, null];
+const chVo = (i: number) => (CH_VO[i] === null ? null : VO.chapters[CH_VO[i] as number]);
+const minAfter = (i: number) => ((CHAPTERS[i] as { minAfter?: number }).minAfter ?? 0);
+const CH_AFTER = CHAPTERS.map((_, i) => { const v = chVo(i); return v ? Math.max(40, 4 + dur(v[0]) + 8) : 60; });
+const CH_LEN = CHAPTERS.map((_, i) => { const v = chVo(i); return CH_AFTER[i] + Math.max(v ? 4 + dur(v[1]) + 12 : 120, minAfter(i)); });
 const CH_FROM = TITLE_LEN + PROBLEM_LEN + TURN_LEN;
 const CH_START = CH_LEN.map((_, i) => CH_FROM + CH_LEN.slice(0, i).reduce((x, y) => x + y, 0));
 const CH_TOTAL = CH_LEN.reduce((x, y) => x + y, 0);
@@ -161,7 +202,10 @@ const CUES: Cue[] = [
   { at: TITLE_LEN + 4, from: VO.phone[0], to: VO.phone[1] },
   { at: TITLE_LEN + BOOK_AT + 2, from: VO.book[0], to: VO.book[1] },
   { at: TITLE_LEN + PROBLEM_LEN + 4, from: VO.turn[0], to: VO.turn[1] },
-  ...VO.chapters.flatMap(([b, a], i) => {
+  ...CHAPTERS.flatMap((_, i) => {
+    const v = chVo(i);
+    if (!v) return [];
+    const [b, a] = v;
     const start = CH_START[i];
     const afterAt = CH_AFTER[i] + 4;
     return [
@@ -335,14 +379,14 @@ const Summary: React.FC = () => {
       <div style={{ position: 'absolute', left: 120, top: 138, fontFamily: SANS, fontWeight: 800, fontSize: 76, color: C.ink, letterSpacing: '-0.03em', opacity: head, transform: `translateY(${(1 - head) * 30}px)` }}>
         Что получает <Accent>ваша пекарня</Accent>
       </div>
-      <div style={{ position: 'absolute', left: 120, right: 120, top: 300, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 26 }}>
+      <div style={{ position: 'absolute', left: 120, right: 120, top: 268, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20 }}>
         {CHAPTERS.map((c, i) => {
-          const p = spring({ frame: frame - 12 - i * 5, fps, config: { stiffness: 200, damping: 18 } });
+          const p = spring({ frame: frame - 10 - i * 4, fps, config: { stiffness: 200, damping: 18 } });
           return (
-            <div key={i} style={{ height: 250, padding: '30px 30px', borderRadius: 30, background: '#fff', border: '2px solid rgba(45,21,5,0.08)', boxShadow: '0 16px 40px rgba(60,30,10,0.07)', opacity: p, transform: `translateY(${(1 - p) * 40}px)` }}>
+            <div key={i} style={{ height: 196, padding: '24px 26px', borderRadius: 26, background: '#fff', border: '2px solid rgba(45,21,5,0.08)', boxShadow: '0 16px 40px rgba(60,30,10,0.07)', opacity: p, transform: `translateY(${(1 - p) * 40}px)` }}>
               <div style={{ fontFamily: MONO, fontSize: 24, color: C.orange }}>{String(i + 1).padStart(2, '0')}</div>
-              <div style={{ fontFamily: SANS, fontWeight: 800, fontSize: 34, lineHeight: 1.12, color: C.ink, marginTop: 14, letterSpacing: '-0.02em' }}>{c.title}</div>
-              <div style={{ fontFamily: SANS, fontWeight: 500, fontSize: 23, lineHeight: 1.35, color: '#7A604B', marginTop: 12 }}>{c.short}</div>
+              <div style={{ fontFamily: SANS, fontWeight: 800, fontSize: 30, lineHeight: 1.12, color: C.ink, marginTop: 10, letterSpacing: '-0.02em' }}>{c.title}</div>
+              <div style={{ fontFamily: SANS, fontWeight: 500, fontSize: 21, lineHeight: 1.35, color: '#7A604B', marginTop: 10 }}>{c.short}</div>
             </div>
           );
         })}
