@@ -3,7 +3,7 @@ import { AbsoluteFill, Audio, interpolate, OffthreadVideo, Sequence, spring, sta
 import { Accent, C, Grain, MONO, SANS, SERIF, Words } from '../ui';
 import { clamp, Sfx } from '../kit';
 import { LockPhone } from '../scenes/Rush';
-import { Chapter, CHAPTER_LEN } from './Chapter';
+import { AFTER, Chapter, CHAPTER_LEN } from './Chapter';
 import { PH, PH_X, PH_Y } from './devices';
 import {
   BoardArt,
@@ -109,18 +109,93 @@ const CHAPTERS = [
   },
 ];
 
-const TITLE_LEN = 150;
-const PROBLEM_LEN = 186;
+const TITLE_LEN = 160;
+const PROBLEM_LEN = 222;
+const BOOK_AT = 120; // inside the problem scene: phone → paper book
 const TURN_LEN = 48;
 const SUMMARY_LEN = 270;
-const OUTRO_LEN = 90;
+const OUTRO_LEN = 100;
 const CH_FROM = TITLE_LEN + PROBLEM_LEN + TURN_LEN;
 const SUMMARY_FROM = CH_FROM + CHAPTERS.length * CHAPTER_LEN;
 const OUTRO_FROM = SUMMARY_FROM + SUMMARY_LEN;
 export const DECK_FRAMES = OUTRO_FROM + OUTRO_LEN;
 
-const VOICE = false; // public/voice-deck.mp3, read to the `vo` lines
-const MUSIC = false; // public/music.mp3, licensed
+/*
+ * The owner's own read of the script (public/voice-deck.mp3, cleaned and levelled), cut into
+ * cues by word timings from a speech recogniser. [start, end] are seconds in that file.
+ */
+const VO = {
+  title: [0.0, 4.95],
+  phone: [5.05, 8.88],
+  book: [8.9, 12.2],
+  turn: [12.4, 13.4],
+  chapters: [
+    [[13.45, 15.3], [15.45, 19.7]],
+    [[19.85, 21.65], [21.65, 24.9]],
+    [[25.05, 26.85], [27.05, 31.2]],
+    [[31.4, 32.75], [32.9, 36.65]],
+    [[36.8, 37.95], [38.12, 41.85]],
+    [[41.95, 43.55], [43.75, 48.2]],
+    [[48.4, 49.95], [50.1, 54.65]],
+    [[54.82, 57.4], [57.48, 61.7]],
+  ],
+  summary: [61.9, 69.85],
+  outro: [70.0, 73.0],
+} as const;
+
+type Cue = { at: number; from: number; to: number };
+const sec = (s: number) => Math.round(s * 30);
+const CUES: Cue[] = [
+  { at: 6, from: VO.title[0], to: VO.title[1] },
+  { at: TITLE_LEN + 4, from: VO.phone[0], to: VO.phone[1] },
+  { at: TITLE_LEN + BOOK_AT + 2, from: VO.book[0], to: VO.book[1] },
+  { at: TITLE_LEN + PROBLEM_LEN + 4, from: VO.turn[0], to: VO.turn[1] },
+  ...VO.chapters.flatMap(([b, a], i) => {
+    const start = CH_FROM + i * CHAPTER_LEN;
+    // The answer never starts before the question has finished.
+    const afterAt = Math.max(AFTER + 4, 4 + sec(b[1] - b[0]) + 5);
+    return [
+      { at: start + 4, from: b[0], to: b[1] },
+      { at: start + afterAt, from: a[0], to: a[1] },
+    ];
+  }),
+  { at: SUMMARY_FROM + 8, from: VO.summary[0], to: VO.summary[1] },
+  { at: OUTRO_FROM + 3, from: VO.outro[0], to: VO.outro[1] },
+];
+
+const Voice: React.FC = () => (
+  <>
+    {CUES.map((c, i) => (
+      <Sequence key={i} from={c.at} durationInFrames={sec(c.to - c.from) + 2} layout="none">
+        <Audio src={staticFile('voice-deck.mp3')} startFrom={sec(c.from)} endAt={sec(c.to) + 2} />
+      </Sequence>
+    ))}
+  </>
+);
+
+/** The music bed dips under the voice and comes back up in the gaps. */
+const musicVolume = (f: number) => {
+  const speaking = CUES.some((c) => f >= c.at - 6 && f <= c.at + sec(c.to - c.from) + 8);
+  const fadeIn = interpolate(f, [0, 30], [0, 1], clamp);
+  const fadeOut = interpolate(f, [DECK_FRAMES - 60, DECK_FRAMES], [1, 0], clamp);
+  return (speaking ? 0.16 : 0.34) * fadeIn * fadeOut;
+};
+
+/** One soft, warm space behind every slide: light pools drifting over a cream gradient. */
+const Backdrop: React.FC = () => {
+  const frame = useCurrentFrame();
+  const orb = (x: number, y: number, r: number, color: string, phase: number) => (
+    <div style={{ position: 'absolute', left: x + Math.sin(frame / 140 + phase) * 80 - r, top: y + Math.cos(frame / 170 + phase) * 60 - r, width: r * 2, height: r * 2, borderRadius: '50%', background: `radial-gradient(closest-side, ${color}, transparent)` }} />
+  );
+  return (
+    <AbsoluteFill style={{ background: 'radial-gradient(120% 100% at 70% 40%, #FBF6EE 0%, #F3EADF 60%, #EADDCD 100%)', overflow: 'hidden' }}>
+      {orb(1450, 380, 620, 'rgba(232,180,48,0.16)', 0)}
+      {orb(1700, 900, 520, 'rgba(208,105,42,0.12)', 2)}
+      {orb(300, 900, 560, 'rgba(208,105,42,0.07)', 4)}
+      <AbsoluteFill style={{ opacity: 0.5, backgroundImage: 'radial-gradient(rgba(45,21,5,0.07) 1.2px, transparent 1.2px)', backgroundSize: '34px 34px', maskImage: 'radial-gradient(80% 70% at 70% 50%, #000, transparent)' }} />
+    </AbsoluteFill>
+  );
+};
 
 /** The bakery at dawn (AI footage supplied by the owner), darkened under the title. */
 const Dawn: React.FC<{ from: number; rate?: number; push?: number; dim?: number }> = ({ from, rate = 1, push = 0.06, dim = 0.55 }) => {
@@ -166,7 +241,7 @@ const Outro: React.FC = () => {
   const c = interpolate(frame, [40, 54], [0, 1], clamp);
   return (
     <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'flex-start', paddingTop: 150, textAlign: 'center' }}>
-      <Dawn from={211} rate={0.5} push={0.05} dim={0.5} />
+      <Dawn from={211} rate={0.45} push={0.05} dim={0.5} />
       <div style={{ position: 'relative', fontFamily: SANS, fontWeight: 800, fontSize: 110, lineHeight: 1.08, color: C.cream, letterSpacing: '-0.03em', textShadow: '0 10px 40px rgba(0,0,0,0.45)' }}>
         <div style={{ opacity: a, transform: `translateY(${(1 - a) * 30}px)` }}>Руки — для теста.</div>
         <div style={{ opacity: b, transform: `translateY(${(1 - b) * 30}px)` }}>
@@ -183,15 +258,15 @@ const Outro: React.FC = () => {
 /** The morning, first as the phone filling up, then as the paper book. */
 const Problem: React.FC = () => {
   const frame = useCurrentFrame();
-  const book = frame >= 96;
+  const book = frame >= BOOK_AT;
   return (
-    <AbsoluteFill style={{ background: C.cream }}>
+    <AbsoluteFill>
       <div style={{ position: 'absolute', left: 120, top: 330, width: 700, fontFamily: SANS, fontWeight: 800, fontSize: 84, lineHeight: 1.06, color: C.ink, letterSpacing: '-0.03em' }}>
         {book ? (
           <>
-            <Words at={98}>{['Заказы —', 'в звонках,']}</Words>
+            <Words at={BOOK_AT + 2}>{['Заказы —', 'в звонках,']}</Words>
             <br />
-            <Words at={106}>{['директе', 'и', <Accent key="t">тетради.</Accent>]}</Words>
+            <Words at={BOOK_AT + 10}>{['директе', 'и', <Accent key="t">тетради.</Accent>]}</Words>
           </>
         ) : (
           <>
@@ -202,12 +277,12 @@ const Problem: React.FC = () => {
         )}
       </div>
       {!book && (
-        <div style={{ position: 'absolute', left: PH_X, top: PH_Y, width: 686, height: 1445, transformOrigin: '0 0', transform: `scale(${(PH.w + PH.bezel * 2) / 686})` }}>
+        <div style={{ position: 'absolute', left: PH_X, top: PH_Y, width: 686, height: 1445, transformOrigin: '0 0', transform: `perspective(2400px) rotateY(-14deg) rotateX(5deg) scale(${(PH.w + PH.bezel * 2) / 686})` }}>
           <LockPhone style={{ left: -(1080 - 686) / 2, top: -420 }} />
         </div>
       )}
       {book && (
-        <Sequence from={96} layout="none">
+        <Sequence from={BOOK_AT} layout="none">
           <NotebookArt />
           <Sfx at={2} name="pen" volume={0.5} />
           <Sfx at={20} name="pen" volume={0.5} />
@@ -219,7 +294,7 @@ const Problem: React.FC = () => {
 };
 
 const Turn: React.FC = () => (
-  <AbsoluteFill style={{ background: C.cream, alignItems: 'center', justifyContent: 'center' }}>
+  <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center' }}>
     <div style={{ fontFamily: SANS, fontWeight: 800, fontSize: 150, color: C.ink, letterSpacing: '-0.03em' }}>
       <Words at={2} step={7}>{['А', 'если', <Accent key="t">так?</Accent>]}</Words>
     </div>
@@ -232,7 +307,7 @@ const Summary: React.FC = () => {
   const { fps } = useVideoConfig();
   const head = spring({ frame: frame - 2, fps, config: { stiffness: 160, damping: 18 } });
   return (
-    <AbsoluteFill style={{ background: C.cream }}>
+    <AbsoluteFill>
       <div style={{ position: 'absolute', left: 120, top: 96, fontFamily: MONO, fontSize: 26, color: C.orange, opacity: head }}>// итог</div>
       <div style={{ position: 'absolute', left: 120, top: 138, fontFamily: SANS, fontWeight: 800, fontSize: 76, color: C.ink, letterSpacing: '-0.03em', opacity: head, transform: `translateY(${(1 - head) * 30}px)` }}>
         Что получает <Accent>ваша пекарня</Accent>
@@ -289,6 +364,7 @@ const ChapterBar: React.FC = () => {
 
 export const Deck: React.FC = () => (
   <AbsoluteFill style={{ background: C.cream }}>
+    <Backdrop />
     <Sequence durationInFrames={TITLE_LEN}>
       <Title />
     </Sequence>
@@ -300,7 +376,7 @@ export const Deck: React.FC = () => (
     </Sequence>
     {CHAPTERS.map((c, i) => (
       <Sequence key={i} from={CH_FROM + i * CHAPTER_LEN} durationInFrames={CHAPTER_LEN}>
-        <AbsoluteFill style={{ background: C.cream }}>
+        <AbsoluteFill>
           <Chapter n={i + 1} title={c.title} before={c.before} benefit={c.benefit} line={c.line} beforeArt={c.beforeArt} afterArt={c.afterArt} />
         </AbsoluteFill>
       </Sequence>
@@ -315,7 +391,7 @@ export const Deck: React.FC = () => (
       <Outro />
     </Sequence>
     <Grain opacity={0.04} />
-    {VOICE && <Audio src={staticFile('voice-deck.mp3')} />}
-    {MUSIC && <Audio src={staticFile('music.mp3')} volume={VOICE ? 0.2 : 0.5} />}
+    <Voice />
+    <Audio src={staticFile('music-deck.mp3')} volume={musicVolume} />
   </AbsoluteFill>
 );

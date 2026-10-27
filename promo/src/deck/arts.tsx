@@ -235,7 +235,7 @@ export const StockArt: React.FC = () => {
 
 /** 05 — the customer gets «готов» from the bot. */
 export const ReadyArt: React.FC = () => (
-  <div style={{ position: 'absolute', left: PH_X, top: PH_Y, width: 686, height: 1445, transformOrigin: '0 0', transform: `scale(${(PH.w + PH.bezel * 2) / 686})` }}>
+  <div style={{ position: 'absolute', left: PH_X, top: PH_Y, width: 686, height: 1445, transformOrigin: '0 0', transform: `perspective(2400px) rotateY(-14deg) rotateX(5deg) scale(${(PH.w + PH.bezel * 2) / 686})` }}>
     <ChatPhone style={{ left: -(1080 - 686) / 2, top: -420 }} />
     <Sfx at={10} name="ding" volume={0.6} />
     <Sfx at={34} name="pop" volume={0.6} />
