@@ -1,19 +1,29 @@
 import { gsap } from './gsapMotion';
 
 /*
- * Scene-wide motion variables, written only onto the few elements that read them. Setting
- * them on <html> would make every element in the document recalculate its styles on every
- * pointer move or animation frame.
+ * Scene-wide motion, written only onto the few elements that use it. Setting it on <html>
+ * (or as inherited custom properties on large subtrees) would restyle the whole document on
+ * every pointer move or animation frame.
  */
 
-// Pointer position in -1..1, read by the depth parallax and the sphere's light.
-const PARALLAX = '.scene-root, .about-stage, .worlds-page, .hero-copy, .about-copy, .services-copy, .contact-copy, .sphere-lean, .sphere-caustic';
-// The sun's height (0 → 1 from page 1 to page 5), read by the warm grade, glass rims and glare.
-const SUN = '.sun-grade, .glass, .glass-dark, .glare';
+// Pointer parallax. Each element gets its transform written directly (no inherited custom
+// properties), so a pointer move restyles only these few elements, not their subtrees.
+const SCENE = '.scene-root, .about-stage, .worlds-page'; // moves with the scenes
+const NEAR = '.hero-copy, .about-copy, .services-copy, .contact-copy'; // headlines, a little nearer
+const DEPTH_MQ = '(hover: hover) and (pointer: fine) and (min-width: 768px) and (min-aspect-ratio: 4/3)';
 
-let parallaxEls: HTMLElement[] = [];
-let parallaxAt = 0;
+let cache: { scene: HTMLElement[]; near: HTMLElement[]; lean: HTMLElement[]; caustic: HTMLElement[] } | null = null;
+let cacheAt = 0;
 let pending: { x: number; y: number } | null = null;
+const query = (sel: string) => [...document.querySelectorAll<HTMLElement>(sel)];
+
+function elements(t: number) {
+  if (!cache || t - cacheAt > 1000 || cache.scene.some((el) => !el.isConnected)) {
+    cache = { scene: query(SCENE), near: query(NEAR), lean: query('.sphere-lean'), caustic: query('.sphere-caustic') };
+    cacheAt = t;
+  }
+  return cache;
+}
 
 export function setPointer(x: number, y: number) {
   const first = !pending;
@@ -21,19 +31,31 @@ export function setPointer(x: number, y: number) {
   if (!first) return;
   requestAnimationFrame((t) => {
     if (!pending) return;
-    if (t - parallaxAt > 1000 || parallaxEls.some((el) => !el.isConnected)) {
-      parallaxEls = [...document.querySelectorAll<HTMLElement>(PARALLAX)];
-      parallaxAt = t;
-    }
-    const px = pending.x.toFixed(3);
-    const py = pending.y.toFixed(3);
+    const { x: px, y: py } = pending;
     pending = null;
-    for (const el of parallaxEls) {
-      el.style.setProperty('--px', px);
-      el.style.setProperty('--py', py);
-    }
+    const els = elements(t);
+    // The sphere's glint leans toward the pointer, its caustic away (always on).
+    const hc = Math.max(window.innerWidth / 1536, window.innerHeight / 1024);
+    els.lean.forEach((el) => (el.style.transform = `translate3d(${(px * 4).toFixed(2)}%, ${(py * 3).toFixed(2)}%, 0)`));
+    els.caustic.forEach((el) => (el.style.transform = `translate3d(${(px * -14 * hc).toFixed(1)}px, 0, 0)`));
+    if (!window.matchMedia(DEPTH_MQ).matches) return;
+    const scene = `translate3d(${(px * -9).toFixed(2)}px, ${(py * -6).toFixed(2)}px, 0) scale(1.03)`;
+    const near = `translate3d(${(px * -7).toFixed(2)}px, ${(py * -4).toFixed(2)}px, 0)`;
+    els.scene.forEach((el) => (el.style.transform = scene));
+    els.near.forEach((el) => (el.style.transform = near));
   });
 }
+
+// Leaving the depth layout (a narrow window, a touch screen) drops the parallax transforms.
+if (typeof window !== 'undefined') {
+  window.matchMedia(DEPTH_MQ).addEventListener('change', (e) => {
+    if (e.matches) return;
+    query(`${SCENE}, ${NEAR}`).forEach((el) => (el.style.transform = ''));
+  });
+}
+
+// The sun's height (0 → 1 from page 1 to page 5), read by the warm grade, glass rims and glare.
+const SUN = '.sun-grade, .glass, .glass-dark, .glare';
 
 const sun = { v: 0 };
 let sunTween: gsap.core.Tween | null = null;

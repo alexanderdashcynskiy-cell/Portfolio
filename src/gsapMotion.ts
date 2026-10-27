@@ -6,7 +6,7 @@ gsap.registerPlugin(SplitText, DrawSVGPlugin);
 
 /*
  * GSAP layer on top of the page choreography in index.css:
- * - headlines split into characters that resolve out of a blur as a wave;
+ * - headlines split into characters that fade in as a wave (the line itself carries the blur);
  * - the page label's underline, dividers, rules and icon strokes draw themselves in.
  * Pages arriving by a finished drag (scrub) are shown at once: the gesture was the reveal.
  */
@@ -39,7 +39,7 @@ export function settlePage(page: HTMLElement | null | undefined) {
   if (!page) return;
   const p = parts(page);
   gsap.killTweensOf([...p.chars, ...p.eyebrows, ...p.dividers, ...p.rules, ...p.strokes]);
-  gsap.set(p.chars, { opacity: 1, clearProps: 'filter' });
+  gsap.set(p.chars, { opacity: 1 });
   gsap.set([...p.eyebrows, ...p.dividers, ...p.rules], { clearProps: 'backgroundSize,transform' });
   gsap.set(p.strokes, { drawSVG: '100%' });
 }
@@ -53,8 +53,8 @@ export function playPageIn(page: HTMLElement | null | undefined, delay = 0.32) {
   const tl = gsap.timeline({ delay });
   tl.fromTo(
     p.chars,
-    { opacity: 0, filter: 'blur(8px)' },
-    { opacity: 1, filter: 'blur(0px)', duration: 0.95, ease: 'power3.out', stagger: 0.024, clearProps: 'filter' },
+    { opacity: 0 },
+    { opacity: 1, duration: 0.8, ease: 'power3.out', stagger: 0.022 },
     0,
   );
   p.eyebrows.forEach((el) => {
