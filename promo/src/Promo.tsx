@@ -11,7 +11,7 @@ import { EndCard, Tagline } from './scenes/Outro';
 const SCENES = [
   { C: Hook, len: 80 },
   { C: Menu, len: 72 },
-  { C: Shop, len: 140 },
+  { C: Shop, len: 160 },
   { C: Crm, len: 150 },
   { C: Tagline, len: 92 },
   { C: EndCard, len: 90 },

@@ -3,9 +3,9 @@ import { AbsoluteFill, Img, staticFile, useCurrentFrame, useVideoConfig, spring 
 import { Accent, C, Cup, Hud, MONO, SANS, Words } from '../ui';
 
 const ITEMS = [
-  { tag: '// новинка', n: '01', name: 'Круассан', price: '3.20', img: 'croissant.jpg', x: 40, y: 760, r: -7 },
+  { tag: '// новинка', n: '01', name: 'Круассан', price: '3.50', img: 'croissant.jpg', x: 40, y: 760, r: -7 },
   { tag: '// выпечка', n: '02', name: 'Хачапури', price: '2.10', img: 'hachapuri.jpg', x: 384, y: 700, r: 1 },
-  { tag: '// десерт', n: '03', name: 'Медовик', price: '4.20', img: 'medovik.jpg', x: 728, y: 770, r: 7 },
+  { tag: '// десерт', n: '03', name: 'Медовик', price: '3.90', img: 'medovik.jpg', x: 728, y: 770, r: 7 },
 ];
 
 /** 02 — hard cut to orange: the menu deals itself onto the table. */

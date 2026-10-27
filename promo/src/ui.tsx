@@ -187,7 +187,7 @@ export const Phone: React.FC<{ children: React.ReactNode; style?: React.CSSPrope
   >
     <div style={{ position: 'relative', width: 540, height: 1170, borderRadius: 68, overflow: 'hidden', background: C.cream }}>
       {children}
-      <div style={{ position: 'absolute', top: 18, left: '50%', width: 150, height: 42, marginLeft: -75, borderRadius: 30, background: '#120a05' }} />
+      <div style={{ position: 'absolute', top: 18, left: '50%', width: 150, height: 42, marginLeft: -75, borderRadius: 30, background: '#120a05', zIndex: 10 }} />
     </div>
   </div>
 );

@@ -3,14 +3,14 @@ import { AbsoluteFill, interpolate, useCurrentFrame } from 'remotion';
 import { Accent, C, Cup, Hud, MONO, Panel, SANS, SERIF, usePop, Words } from '../ui';
 
 const ORDER = [
-  ['Сосиска в тесте', '1.85'],
-  ['Хачапури', '2.10'],
-  ['Пирожок с мясом', '1.75'],
+  ['Перепечи с сыром', '2.50'],
+  ['Круассан французский', '3.50'],
+  ['Пончик глазированный', '2.20'],
 ];
 const STOCK = [
-  ['Сосиска в тесте', 20],
-  ['Хачапури', 12],
-  ['Пирожок с мясом', 9],
+  ['Перепечи с сыром', 14],
+  ['Круассан', 20],
+  ['Пончик', 9],
 ] as const;
 const BARS = [0.32, 0.5, 0.44, 0.7, 0.62, 0.86];
 const STATUS = [
@@ -27,7 +27,7 @@ export const Crm: React.FC<{ offset: number }> = ({ offset }) => {
   const tick = interpolate(frame, [24, 40], [0, 1], clamp);
   const ease = 1 - Math.pow(1 - tick, 3);
   const orders = frame >= 30 ? 44 : 43;
-  const revenue = 783.2 + ease * 5.7;
+  const revenue = 783.2 + ease * 8.2;
   const stock = interpolate(frame, [40, 54], [0, 1], clamp);
   const status = [...STATUS].reverse().find((s) => frame >= s.at)!;
   const statusPop = usePop(STATUS.reduce((a, s) => (frame >= s.at ? s.at : a), 0), 380, 14);
@@ -77,7 +77,7 @@ export const Crm: React.FC<{ offset: number }> = ({ offset }) => {
           >
             {status.text}
           </span>
-          <span style={{ fontFamily: SANS, fontWeight: 800, fontSize: 52, color: C.ink, letterSpacing: '-0.02em' }}>5.70 Б</span>
+          <span style={{ fontFamily: SANS, fontWeight: 800, fontSize: 52, color: C.ink, letterSpacing: '-0.02em' }}>8.20 Б</span>
         </div>
       </Panel>
 
