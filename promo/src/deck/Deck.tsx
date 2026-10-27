@@ -1,9 +1,9 @@
 import React from 'react';
 import { AbsoluteFill, Audio, interpolate, OffthreadVideo, Sequence, spring, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
 import { Accent, C, Grain, MONO, SANS, SERIF, Words } from '../ui';
-import { clamp, Sfx } from '../kit';
+import { clamp, easeInOut, Sfx } from '../kit';
 import { LockPhone } from '../scenes/Rush';
-import { AFTER, Chapter, CHAPTER_LEN } from './Chapter';
+import { Chapter, OVERLAP } from './Chapter';
 import { PH, PH_X, PH_Y } from './devices';
 import {
   CallArt,
@@ -55,7 +55,6 @@ const CHAPTERS = [
     line: 'Заказ из Mini App сразу в CRM. «Принять заказ» — и клиенту в Telegram уходят чек и подтверждение.',
     beforeArt: <NotebookArt />,
     afterArt: <AcceptArt />,
-    len: 270,
     vo: 'Вместо тетради — все заказы на одном экране. Ни один не потеряется.',
   },
   {
@@ -76,7 +75,6 @@ const CHAPTERS = [
     line: 'Нажали «Готово» в CRM — бот сам пишет клиенту, что заказ ждёт его.',
     beforeArt: <CallArt who="Ольга" sub="3-й звонок за утро" bubble="Ну что, готово?" />,
     afterArt: <ReadyClickArt />,
-    len: 270,
     vo: 'Когда заказ готов, клиент получает сообщение сам. Меньше звонков «ну что там?».',
   },
   {
@@ -111,20 +109,7 @@ const CHAPTERS = [
   },
 ];
 
-const TITLE_LEN = 160;
-const PROBLEM_LEN = 222;
-const BOOK_AT = 120; // inside the problem scene: phone → paper book
-const TURN_LEN = 48;
-const SUMMARY_LEN = 270;
-const OUTRO_LEN = 100;
-const CH_FROM = TITLE_LEN + PROBLEM_LEN + TURN_LEN;
-const CH_LEN = CHAPTERS.map((c) => ('len' in c && c.len ? c.len : CHAPTER_LEN));
-const CH_START = CH_LEN.map((_, i) => CH_FROM + CH_LEN.slice(0, i).reduce((a, b) => a + b, 0));
-const CH_TOTAL = CH_LEN.reduce((a, b) => a + b, 0);
-const SUMMARY_FROM = CH_FROM + CH_TOTAL;
-const OUTRO_FROM = SUMMARY_FROM + SUMMARY_LEN;
-export const DECK_FRAMES = OUTRO_FROM + OUTRO_LEN;
-
+const sec = (s: number) => Math.round(s * 30);
 /*
  * The owner's own read of the script (public/voice-deck.mp3, cleaned and levelled), cut into
  * cues by word timings from a speech recogniser. [start, end] are seconds in that file.
@@ -148,8 +133,29 @@ const VO = {
   outro: [67.24, 70.54],
 } as const;
 
+/*
+ * The timeline is cut to the voice: every scene ends a breath after its last word, and
+ * neighbouring chapters overlap by OVERLAP frames so one pushes the next in, never a blank.
+ */
+const dur = (c: readonly [number, number]) => sec(c[1] - c[0]);
+const TITLE_LEN = 6 + dur(VO.title) + 8;
+const BOOK_AT = 4 + dur(VO.phone) + 6; // inside the problem scene: phone → paper book
+const PROBLEM_LEN = BOOK_AT + 2 + dur(VO.book) + 8;
+const TURN_LEN = 4 + dur(VO.turn) + 10;
+// The CRM → Telegram chapters need time for the messages to land and be read.
+const MIN_AFTER_LEN = [0, 0, 132, 0, 112, 0, 0, 0];
+const CH_AFTER = VO.chapters.map(([b]) => Math.max(40, 4 + dur(b) + 8));
+const CH_LEN = VO.chapters.map(([, a], i) => CH_AFTER[i] + Math.max(4 + dur(a) + 12, MIN_AFTER_LEN[i]));
+const CH_FROM = TITLE_LEN + PROBLEM_LEN + TURN_LEN;
+const CH_START = CH_LEN.map((_, i) => CH_FROM + CH_LEN.slice(0, i).reduce((x, y) => x + y, 0));
+const CH_TOTAL = CH_LEN.reduce((x, y) => x + y, 0);
+const SUMMARY_FROM = CH_FROM + CH_TOTAL;
+const SUMMARY_LEN = 8 + dur(VO.summary) + 20;
+const OUTRO_FROM = SUMMARY_FROM + SUMMARY_LEN;
+const OUTRO_LEN = 3 + dur(VO.outro) + 14;
+export const DECK_FRAMES = OUTRO_FROM + OUTRO_LEN;
+
 type Cue = { at: number; from: number; to: number };
-const sec = (s: number) => Math.round(s * 30);
 const CUES: Cue[] = [
   { at: 6, from: VO.title[0], to: VO.title[1] },
   { at: TITLE_LEN + 4, from: VO.phone[0], to: VO.phone[1] },
@@ -157,8 +163,7 @@ const CUES: Cue[] = [
   { at: TITLE_LEN + PROBLEM_LEN + 4, from: VO.turn[0], to: VO.turn[1] },
   ...VO.chapters.flatMap(([b, a], i) => {
     const start = CH_START[i];
-    // The answer never starts before the question has finished.
-    const afterAt = Math.max(AFTER + 4, 4 + sec(b[1] - b[0]) + 5);
+    const afterAt = CH_AFTER[i] + 4;
     return [
       { at: start + 4, from: b[0], to: b[1] },
       { at: start + afterAt, from: a[0], to: a[1] },
@@ -220,7 +225,7 @@ const Title: React.FC = () => {
   const { fps } = useVideoConfig();
   const a = spring({ frame: frame - 20, fps, config: { stiffness: 120, damping: 20 } });
   const b = interpolate(frame, [40, 56], [0, 1], clamp);
-  const out = interpolate(frame, [TITLE_LEN - 10, TITLE_LEN], [1, 0], clamp);
+  const out = interpolate(frame, [TITLE_LEN - 4, TITLE_LEN + OVERLAP], [1, 0], clamp);
   return (
     <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center', textAlign: 'center', opacity: out }}>
       <Dawn from={0} />
@@ -231,7 +236,7 @@ const Title: React.FC = () => {
       <div style={{ position: 'relative', fontFamily: SANS, fontWeight: 500, fontSize: 44, color: C.cream, marginTop: 40, opacity: b, textShadow: '0 4px 20px rgba(0,0,0,0.5)' }}>
         Как заказ проходит через пекарню — <Accent color="#F09A5B">без единого звонка.</Accent>
       </div>
-      <div style={{ position: 'absolute', bottom: 80, fontFamily: MONO, fontSize: 24, color: 'rgba(251,246,238,0.6)', opacity: b }}>на примере пекарни «Мамин Хлеб»</div>
+      <div style={{ position: 'absolute', bottom: 80, fontFamily: MONO, fontSize: 24, color: 'rgba(251,246,238,0.6)', opacity: b }}>демо на рабочем продукте</div>
       <Sfx at={20} name="hit" volume={0.45} />
     </AbsoluteFill>
   );
@@ -298,6 +303,19 @@ const Problem: React.FC = () => {
   );
 };
 
+/** The same push the chapters use, for the scenes around them. */
+const Push: React.FC<{ len: number; children: React.ReactNode }> = ({ len, children }) => {
+  const frame = useCurrentFrame();
+  const enter = 1 - easeInOut(interpolate(frame, [0, OVERLAP], [0, 1], clamp));
+  const exit = easeInOut(interpolate(frame, [len, len + OVERLAP], [0, 1], clamp));
+  const blur = (enter + exit) * 10;
+  return (
+    <AbsoluteFill style={{ opacity: 1 - Math.max(enter, exit) * 0.9, transform: `translateX(${enter * 160 - exit * 160}px) scale(${1 + 0.02 * (frame / (len + OVERLAP))})`, filter: blur > 0.2 ? `blur(${blur}px)` : undefined }}>
+      {children}
+    </AbsoluteFill>
+  );
+};
+
 const Turn: React.FC = () => (
   <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center' }}>
     <div style={{ fontFamily: SANS, fontWeight: 800, fontSize: 150, color: C.ink, letterSpacing: '-0.03em' }}>
@@ -334,7 +352,7 @@ const Summary: React.FC = () => {
           Всё это — <Accent>одна система</Accent> для вашей пекарни.
         </div>
         <div style={{ textAlign: 'right', fontFamily: MONO, fontSize: 22, color: C.muted, lineHeight: 1.6 }}>
-          Mini App + CRM · пример: «Мамин Хлеб»
+          Mini App + CRM для пекарни
           <br />
           Alexander Dashcynskiy · дизайн и разработка
         </div>
@@ -371,19 +389,23 @@ const ChapterBar: React.FC = () => {
 export const Deck: React.FC = () => (
   <AbsoluteFill style={{ background: C.cream }}>
     <Backdrop />
-    <Sequence durationInFrames={TITLE_LEN}>
+    <Sequence durationInFrames={TITLE_LEN + OVERLAP}>
       <Title />
     </Sequence>
-    <Sequence from={TITLE_LEN} durationInFrames={PROBLEM_LEN}>
-      <Problem />
+    <Sequence from={TITLE_LEN} durationInFrames={PROBLEM_LEN + OVERLAP}>
+      <Push len={PROBLEM_LEN}>
+        <Problem />
+      </Push>
     </Sequence>
-    <Sequence from={TITLE_LEN + PROBLEM_LEN} durationInFrames={TURN_LEN}>
-      <Turn />
+    <Sequence from={TITLE_LEN + PROBLEM_LEN} durationInFrames={TURN_LEN + OVERLAP}>
+      <Push len={TURN_LEN}>
+        <Turn />
+      </Push>
     </Sequence>
     {CHAPTERS.map((c, i) => (
-      <Sequence key={i} from={CH_START[i]} durationInFrames={CH_LEN[i]}>
+      <Sequence key={i} from={CH_START[i]} durationInFrames={CH_LEN[i] + OVERLAP}>
         <AbsoluteFill>
-          <Chapter n={i + 1} title={c.title} before={c.before} benefit={c.benefit} line={c.line} beforeArt={c.beforeArt} afterArt={c.afterArt} len={CH_LEN[i]} />
+          <Chapter n={i + 1} title={c.title} before={c.before} benefit={c.benefit} line={c.line} beforeArt={c.beforeArt} afterArt={c.afterArt} len={CH_LEN[i]} after={CH_AFTER[i]} />
         </AbsoluteFill>
       </Sequence>
     ))}
@@ -391,7 +413,9 @@ export const Deck: React.FC = () => (
       <ChapterBar />
     </Sequence>
     <Sequence from={SUMMARY_FROM} durationInFrames={SUMMARY_LEN}>
-      <Summary />
+      <Push len={SUMMARY_LEN + 99}>
+        <Summary />
+      </Push>
     </Sequence>
     <Sequence from={OUTRO_FROM} durationInFrames={OUTRO_LEN}>
       <Outro />

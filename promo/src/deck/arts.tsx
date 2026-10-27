@@ -255,7 +255,7 @@ export const NumbersArt: React.FC = () => {
       <div style={{ position: 'absolute', left: LP.x + LP.w - 600, top: LP_Y + LP.h - 230, width: 580, padding: '24px 28px', borderRadius: 26, background: '#fff', boxShadow: '0 30px 60px rgba(45,21,5,0.25)', fontFamily: SANS, display: 'flex', gap: 22, alignItems: 'center', transform: `translateY(${(1 - doc) * 60}px)`, opacity: doc }}>
         <div style={{ width: 74, height: 74, borderRadius: 37, background: '#2AABEE', color: '#fff', fontSize: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>✈</div>
         <div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: '#8a96a3', letterSpacing: '0.05em' }}>TELEGRAM · МАМИН ХЛЕБ</div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: '#8a96a3', letterSpacing: '0.05em' }}>TELEGRAM · ПЕКАРНЯ</div>
           <div style={{ fontSize: 30, fontWeight: 800, color: '#111', marginTop: 4 }}>📄 Отчёт смены 27.10.pdf</div>
           <div style={{ fontSize: 24, fontWeight: 500, color: '#555', marginTop: 2 }}>23 заказа · выручка 296.3 · средний чек 13</div>
         </div>
@@ -336,10 +336,10 @@ const TgChat: React.FC<{ messages: Msg[] }> = ({ messages }) => {
         <div style={{ position: 'absolute', top: 22, left: 44, fontWeight: 700, fontSize: 15 }}>14:02</div>
         <div style={{ position: 'absolute', top: 18, left: '50%', width: 110, height: 32, marginLeft: -55, borderRadius: 18, background: '#000' }} />
         <div style={{ position: 'absolute', top: 66, left: 0, right: 0, textAlign: 'center' }}>
-          <div style={{ fontWeight: 700, fontSize: 17, color: '#111' }}>Мамин Хлеб</div>
+          <div style={{ fontWeight: 700, fontSize: 17, color: '#111' }}>Пекарня</div>
           <div style={{ fontSize: 13, color: '#8a96a3' }}>бот</div>
         </div>
-        <div style={{ position: 'absolute', top: 62, right: 18, width: 42, height: 42, borderRadius: 21, background: 'linear-gradient(135deg,#E8B430,#C9A227)', color: '#fff', fontWeight: 800, fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>МХ</div>
+        <div style={{ position: 'absolute', top: 62, right: 18, width: 42, height: 42, borderRadius: 21, background: 'linear-gradient(135deg,#E8B430,#C9A227)', color: '#fff', fontWeight: 800, fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>П</div>
       </div>
       <div style={{ position: 'absolute', left: 12, right: 12, bottom: 80, display: 'flex', flexDirection: 'column', gap: 8 }}>
         {messages.map((m, i) => {

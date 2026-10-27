@@ -53,10 +53,10 @@ export const ChatPhone: React.FC<{ style?: React.CSSProperties }> = ({ style }) 
           <div style={{ position: 'absolute', top: 33, left: '50%', width: 190, height: 56, marginLeft: -95, borderRadius: 30, background: '#000' }} />
           <div style={{ position: 'absolute', top: 118, left: 40, fontFamily: SANS, fontSize: 40, color: '#2AABEE' }}>‹</div>
           <div style={{ position: 'absolute', top: 108, left: 0, right: 0, textAlign: 'center', fontFamily: SANS }}>
-            <div style={{ fontWeight: 700, fontSize: 30, color: '#111' }}>Мамин Хлеб</div>
+            <div style={{ fontWeight: 700, fontSize: 30, color: '#111' }}>Пекарня</div>
             <div style={{ fontSize: 22, color: '#8a96a3', marginTop: 2 }}>бот</div>
           </div>
-          <div style={{ position: 'absolute', top: 106, right: 34, width: 70, height: 70, borderRadius: 35, background: 'linear-gradient(135deg,#E8B430,#C9A227)', color: '#fff', fontFamily: SANS, fontWeight: 800, fontSize: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>МХ</div>
+          <div style={{ position: 'absolute', top: 106, right: 34, width: 70, height: 70, borderRadius: 35, background: 'linear-gradient(135deg,#E8B430,#C9A227)', color: '#fff', fontFamily: SANS, fontWeight: 800, fontSize: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>П</div>
         </div>
         <div style={{ position: 'absolute', left: 24, right: 24, bottom: 150, display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ alignSelf: 'center', padding: '6px 18px', borderRadius: 20, background: 'rgba(0,0,0,0.18)', color: '#fff', fontFamily: SANS, fontSize: 21, fontWeight: 600 }}>Сегодня</div>
@@ -97,7 +97,7 @@ export const ChatPhone: React.FC<{ style?: React.CSSProperties }> = ({ style }) 
               <span>TELEGRAM</span>
               <span style={{ letterSpacing: 0, fontWeight: 500 }}>сейчас</span>
             </div>
-            <div style={{ fontSize: 27, fontWeight: 700, color: '#111', marginTop: 4 }}>Мамин Хлеб</div>
+            <div style={{ fontSize: 27, fontWeight: 700, color: '#111', marginTop: 4 }}>Пекарня</div>
             <div style={{ fontSize: 26, fontWeight: 500, color: '#222' }}>🍞 Ваш заказ №1244 готов!</div>
           </div>
         </div>
