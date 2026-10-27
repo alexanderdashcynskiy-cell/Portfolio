@@ -1,0 +1,278 @@
+import React from 'react';
+import { AbsoluteFill, Audio, interpolate, Sequence, spring, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
+import { Accent, C, Grain, MONO, SANS, SERIF, Words } from '../ui';
+import { clamp, Sfx } from '../kit';
+import { LockPhone } from '../scenes/Rush';
+import { Chapter, CHAPTER_LEN } from './Chapter';
+import { PH, PH_X, PH_Y } from './devices';
+import {
+  BoardArt,
+  CallArt,
+  CheckoutArt,
+  DialogArt,
+  NotebookArt,
+  NotesArt,
+  NumbersArt,
+  OrderArt,
+  ReadyArt,
+  RepeatArt,
+  StaffArt,
+  StockArt,
+  SumsArt,
+} from './arts';
+
+/*
+ * The negotiation film, 16:9: a title, the morning's problem, then eight benefits as
+ * «было → стало», and a summary slide to stop on. Every product claim is backed by the code
+ * of the Mini App and the CRM; the voice-over lines are kept next to the scenes they belong to.
+ */
+const CHAPTERS = [
+  {
+    title: 'Заказ без звонка',
+    short: 'Заказы через Mini App, без трубки',
+    before: 'Телефон звонит, а руки в тесте.',
+    benefit: <>Заказ приходит <Accent>сам.</Accent></>,
+    line: 'Клиент выбирает и оформляет заказ в Telegram Mini App. Брать трубку не нужно.',
+    beforeArt: <CallArt who="+375 29 ••• •• 17" sub="мобильный · 5-й пропущенный" />,
+    afterArt: <OrderArt />,
+    vo: 'Клиент заказывает сам — в Телеграме. Вам не нужно брать трубку.',
+  },
+  {
+    title: 'Детали — от клиента',
+    short: 'Имя, телефон, время — в заказе',
+    before: 'Переспрашивать имя, номер и время.',
+    benefit: <>Всё уже <Accent>в заказе.</Accent></>,
+    line: 'Имя, телефон, время самовывоза или адрес доставки и сумма — клиент указывает сам.',
+    beforeArt: <DialogArt lines={['— Во сколько заберёте?', '— Ну, часа в два…', '— Повторите номер, пожалуйста?', '— А это на какое имя?']} />,
+    afterArt: <CheckoutArt />,
+    vo: 'Имя, телефон, время — всё уже в заказе. Ничего не нужно переспрашивать.',
+  },
+  {
+    title: 'Каждый заказ на виду',
+    short: 'Все заказы и статусы в CRM',
+    before: 'Тетрадь: почерк, зачёркивания, «уточнить».',
+    benefit: <>Все заказы — <Accent>на одном экране.</Accent></>,
+    line: 'Заказ из Mini App сразу появляется в CRM: самовывоз, доставка, предзаказ — со статусами.',
+    beforeArt: <NotebookArt />,
+    afterArt: <BoardArt />,
+    vo: 'Вместо тетради — все заказы на одном экране. Ни один не потеряется.',
+  },
+  {
+    title: 'Склад считает сам',
+    short: 'Остатки списываются автоматически',
+    before: '«Медовик ещё есть?» — идти и пересчитывать.',
+    benefit: <>Остатки <Accent>списываются сами.</Accent></>,
+    line: 'При каждом заказе остаток товара уменьшается автоматически — видно, что заканчивается.',
+    beforeArt: <NotesArt notes={['Медовик — кончился?!', 'Пересчитать полки', 'Багет — сколько осталось?']} />,
+    afterArt: <StockArt />,
+    vo: 'Остатки списываются сами. Вы видите, что заканчивается, ещё до вопроса клиента.',
+  },
+  {
+    title: 'Клиент знает, когда готово',
+    short: 'Бот сам пишет клиенту «готово»',
+    before: 'Звонок: «Ну что, мой заказ готов?»',
+    benefit: <>Клиент узнаёт <Accent>без звонка.</Accent></>,
+    line: 'Когда в CRM заказ отмечен готовым, бот сам пишет клиенту в Telegram.',
+    beforeArt: <CallArt who="Ольга" sub="3-й звонок за утро" bubble="Ну что, готово?" />,
+    afterArt: <ReadyArt />,
+    vo: 'Когда заказ готов, клиент получает сообщение сам. Меньше звонков «ну что там?».',
+  },
+  {
+    title: 'Цифры дня без подсчётов',
+    short: 'Дашборд и отчёт смены в Telegram',
+    before: 'Вечером сводить кассу и тетрадь вручную.',
+    benefit: <>Цифры дня — <Accent>уже посчитаны.</Accent></>,
+    line: 'Выручка, заказы, средний чек и пиковые часы на дашборде. Отчёт смены приходит в Telegram.',
+    beforeArt: <SumsArt />,
+    afterArt: <NumbersArt />,
+    vo: 'Выручка, средний чек, отчёт смены — посчитаны сами и приходят вам в Телеграм.',
+  },
+  {
+    title: 'Повторный заказ в два касания',
+    short: 'История и повтор заказа',
+    before: '«Мне как в прошлый раз…» — «А что вы брали?»',
+    benefit: <>Постоянным — <Accent>проще вернуться.</Accent></>,
+    line: 'В Mini App хранится история заказов: «Повторить заказ» — и корзина снова собрана.',
+    beforeArt: <DialogArt lines={['— Мне как в прошлый раз!', '— А что вы брали?..', '— Ну… круассан, и ещё что-то…']} />,
+    afterArt: <RepeatArt />,
+    vo: 'Постоянным клиентам проще вернуться: прошлый заказ повторяется в два касания.',
+  },
+  {
+    title: 'Касса и команда',
+    short: 'Касса, роли и журнал смен',
+    before: 'Касса отдельно, смены — на словах.',
+    benefit: <>Касса, роли и смены — <Accent>в той же системе.</Accent></>,
+    line: 'Продажи у прилавка, сотрудники с ролями (кассир видит заказы, пекарь — только склад) и журнал входов.',
+    beforeArt: <NotesArt notes={['Кто сегодня на смене?', 'Касса — свести с тетрадью', 'Игорь пришёл во сколько?']} />,
+    afterArt: <StaffArt />,
+    vo: 'Касса, сотрудники с ролями и журнал смен — в той же системе.',
+  },
+];
+
+const TITLE_LEN = 96;
+const PROBLEM_LEN = 186;
+const TURN_LEN = 48;
+const SUMMARY_LEN = 330;
+const CH_FROM = TITLE_LEN + PROBLEM_LEN + TURN_LEN;
+const SUMMARY_FROM = CH_FROM + CHAPTERS.length * CHAPTER_LEN;
+export const DECK_FRAMES = SUMMARY_FROM + SUMMARY_LEN;
+
+const VOICE = false; // public/voice-deck.mp3, read to the `vo` lines
+const MUSIC = false; // public/music.mp3, licensed
+
+const Title: React.FC = () => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const a = spring({ frame: frame - 4, fps, config: { stiffness: 140, damping: 18 } });
+  const b = interpolate(frame, [18, 30], [0, 1], clamp);
+  return (
+    <AbsoluteFill style={{ background: C.cream, alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
+      <div style={{ fontFamily: MONO, fontSize: 28, color: C.muted, opacity: b, marginBottom: 26 }}>// для пекарен и кофеен</div>
+      <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 150, lineHeight: 1, color: C.ink, opacity: a, transform: `translateY(${(1 - a) * 40}px)` }}>
+        Mini App <span style={{ fontStyle: 'italic', color: C.orange }}>+ CRM</span>
+      </div>
+      <div style={{ fontFamily: SANS, fontWeight: 500, fontSize: 44, color: C.ink, marginTop: 40, opacity: b }}>
+        Как заказ проходит через пекарню — <Accent>без единого звонка.</Accent>
+      </div>
+      <div style={{ position: 'absolute', bottom: 80, fontFamily: MONO, fontSize: 24, color: C.muted, opacity: b }}>на примере пекарни «Мамин Хлеб»</div>
+      <Sfx at={4} name="hit" volume={0.5} />
+    </AbsoluteFill>
+  );
+};
+
+/** The morning, first as the phone filling up, then as the paper book. */
+const Problem: React.FC = () => {
+  const frame = useCurrentFrame();
+  const book = frame >= 96;
+  return (
+    <AbsoluteFill style={{ background: C.cream }}>
+      <div style={{ position: 'absolute', left: 120, top: 330, width: 700, fontFamily: SANS, fontWeight: 800, fontSize: 84, lineHeight: 1.06, color: C.ink, letterSpacing: '-0.03em' }}>
+        {book ? (
+          <>
+            <Words at={98}>{['Заказы —', 'в звонках,']}</Words>
+            <br />
+            <Words at={106}>{['директе', 'и', <Accent key="t">тетради.</Accent>]}</Words>
+          </>
+        ) : (
+          <>
+            <Words at={2}>{['8:00.', 'Пекарня', 'открылась.']}</Words>
+            <br />
+            <Words at={30}>{['Телефон —', <Accent key="t">тоже.</Accent>]}</Words>
+          </>
+        )}
+      </div>
+      {!book && (
+        <div style={{ position: 'absolute', left: PH_X, top: PH_Y, width: 686, height: 1445, transformOrigin: '0 0', transform: `scale(${(PH.w + PH.bezel * 2) / 686})` }}>
+          <LockPhone style={{ left: -(1080 - 686) / 2, top: -420 }} />
+        </div>
+      )}
+      {book && (
+        <Sequence from={96} layout="none">
+          <NotebookArt />
+          <Sfx at={2} name="pen" volume={0.5} />
+          <Sfx at={20} name="pen" volume={0.5} />
+          <Sfx at={50} name="slap" volume={0.7} />
+        </Sequence>
+      )}
+    </AbsoluteFill>
+  );
+};
+
+const Turn: React.FC = () => (
+  <AbsoluteFill style={{ background: C.cream, alignItems: 'center', justifyContent: 'center' }}>
+    <div style={{ fontFamily: SANS, fontWeight: 800, fontSize: 150, color: C.ink, letterSpacing: '-0.03em' }}>
+      <Words at={2} step={7}>{['А', 'если', <Accent key="t">так?</Accent>]}</Words>
+    </div>
+    <Sfx at={2} name="whoosh" volume={0.6} />
+  </AbsoluteFill>
+);
+
+const Summary: React.FC = () => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const head = spring({ frame: frame - 2, fps, config: { stiffness: 160, damping: 18 } });
+  return (
+    <AbsoluteFill style={{ background: C.cream }}>
+      <div style={{ position: 'absolute', left: 120, top: 96, fontFamily: MONO, fontSize: 26, color: C.orange, opacity: head }}>// итог</div>
+      <div style={{ position: 'absolute', left: 120, top: 138, fontFamily: SANS, fontWeight: 800, fontSize: 76, color: C.ink, letterSpacing: '-0.03em', opacity: head, transform: `translateY(${(1 - head) * 30}px)` }}>
+        Что получает <Accent>ваша пекарня</Accent>
+      </div>
+      <div style={{ position: 'absolute', left: 120, right: 120, top: 300, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 26 }}>
+        {CHAPTERS.map((c, i) => {
+          const p = spring({ frame: frame - 12 - i * 5, fps, config: { stiffness: 200, damping: 18 } });
+          return (
+            <div key={i} style={{ height: 250, padding: '30px 30px', borderRadius: 30, background: '#fff', border: '2px solid rgba(45,21,5,0.08)', boxShadow: '0 16px 40px rgba(60,30,10,0.07)', opacity: p, transform: `translateY(${(1 - p) * 40}px)` }}>
+              <div style={{ fontFamily: MONO, fontSize: 24, color: C.orange }}>{String(i + 1).padStart(2, '0')}</div>
+              <div style={{ fontFamily: SANS, fontWeight: 800, fontSize: 34, lineHeight: 1.12, color: C.ink, marginTop: 14, letterSpacing: '-0.02em' }}>{c.title}</div>
+              <div style={{ fontFamily: SANS, fontWeight: 500, fontSize: 23, lineHeight: 1.35, color: '#7A604B', marginTop: 12 }}>{c.short}</div>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ position: 'absolute', left: 120, right: 120, bottom: 90, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', opacity: interpolate(frame, [60, 76], [0, 1], clamp) }}>
+        <div style={{ fontFamily: SANS, fontWeight: 800, fontSize: 52, color: C.ink, letterSpacing: '-0.02em' }}>
+          Руки — для теста. <Accent>Заказы — для системы.</Accent>
+        </div>
+        <div style={{ textAlign: 'right', fontFamily: MONO, fontSize: 22, color: C.muted, lineHeight: 1.6 }}>
+          Mini App + CRM · пример: «Мамин Хлеб»
+          <br />
+          Alexander Dashcynskiy · дизайн и разработка
+        </div>
+      </div>
+      <Sfx at={2} name="hit" volume={0.6} />
+    </AbsoluteFill>
+  );
+};
+
+/** Top bar during the chapters: the eight steps, and the call counter that stays at zero. */
+const ChapterBar: React.FC = () => {
+  const frame = useCurrentFrame();
+  const active = Math.floor(frame / CHAPTER_LEN);
+  return (
+    <>
+      <div style={{ position: 'absolute', left: 120, top: 110, display: 'flex', gap: 10 }}>
+        {CHAPTERS.map((_, i) => {
+          const fill = i < active ? 1 : i > active ? 0 : (frame % CHAPTER_LEN) / CHAPTER_LEN;
+          return (
+            <div key={i} style={{ width: 70, height: 6, borderRadius: 3, background: 'rgba(45,21,5,0.1)', overflow: 'hidden' }}>
+              <div style={{ width: `${fill * 100}%`, height: '100%', background: C.orange }} />
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ position: 'absolute', left: 120, bottom: 80, padding: '14px 24px', borderRadius: 999, background: '#fff', border: '2px solid rgba(45,21,5,0.08)', fontFamily: SANS, fontSize: 24, fontWeight: 600, color: C.ink }}>
+        Звонков, чтобы принять заказ: <span style={{ color: '#1D8A5A', fontWeight: 800 }}>0</span>
+      </div>
+    </>
+  );
+};
+
+export const Deck: React.FC = () => (
+  <AbsoluteFill style={{ background: C.cream }}>
+    <Sequence durationInFrames={TITLE_LEN}>
+      <Title />
+    </Sequence>
+    <Sequence from={TITLE_LEN} durationInFrames={PROBLEM_LEN}>
+      <Problem />
+    </Sequence>
+    <Sequence from={TITLE_LEN + PROBLEM_LEN} durationInFrames={TURN_LEN}>
+      <Turn />
+    </Sequence>
+    {CHAPTERS.map((c, i) => (
+      <Sequence key={i} from={CH_FROM + i * CHAPTER_LEN} durationInFrames={CHAPTER_LEN}>
+        <AbsoluteFill style={{ background: C.cream }}>
+          <Chapter n={i + 1} title={c.title} before={c.before} benefit={c.benefit} line={c.line} beforeArt={c.beforeArt} afterArt={c.afterArt} />
+        </AbsoluteFill>
+      </Sequence>
+    ))}
+    <Sequence from={CH_FROM} durationInFrames={CHAPTERS.length * CHAPTER_LEN}>
+      <ChapterBar />
+    </Sequence>
+    <Sequence from={SUMMARY_FROM} durationInFrames={SUMMARY_LEN}>
+      <Summary />
+    </Sequence>
+    <Grain opacity={0.04} />
+    {VOICE && <Audio src={staticFile('voice-deck.mp3')} />}
+    {MUSIC && <Audio src={staticFile('music.mp3')} volume={VOICE ? 0.2 : 0.5} />}
+  </AbsoluteFill>
+);

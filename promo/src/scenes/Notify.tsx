@@ -34,19 +34,16 @@ const Message: React.FC<{ lines: string[]; time: string; p?: number }> = ({ line
   </div>
 );
 
-/** 06 — the CRM marks it ready; the customer gets the bot's message. One calm notification, not six. */
-export const Notify: React.FC<{ offset: number }> = ({ offset }) => {
+/** The bot's chat on the customer's phone: a push banner, typing, then «готов». */
+export const ChatPhone: React.FC<{ style?: React.CSSProperties }> = ({ style }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const banner = spring({ frame: frame - 10, fps, config: { stiffness: 200, damping: 18 } });
   const bannerOut = spring({ frame: frame - 40, fps, config: { stiffness: 200, damping: 20 } });
   const msg = spring({ frame: frame - 34, fps, config: { stiffness: 220, damping: 18 } });
   const typing = frame >= 16 && frame < 34;
-
   return (
-    <AbsoluteFill style={{ background: C.cream }}>
-      <Hud chapter="// 05 — telegram" offset={offset} />
-      <Caption lines={[['Клиент', 'узнаёт'], ['без', <Accent key="z">звонка.</Accent>]]} at={0} size={96} />
+    <div style={{ position: 'absolute', inset: 0, ...style }}>
       <IPhone>
         <div style={{ position: 'absolute', inset: 0, background: '#DDE5D7' }} />
         <div style={{ position: 'absolute', inset: 0, opacity: 0.18, backgroundImage: 'radial-gradient(#7d9a6b 1.5px, transparent 1.5px)', backgroundSize: '26px 26px' }} />
@@ -105,6 +102,20 @@ export const Notify: React.FC<{ offset: number }> = ({ offset }) => {
           </div>
         </div>
       </IPhone>
+    </div>
+  );
+};
+
+/** 06 — the CRM marks it ready; the customer gets the bot's message. One calm notification, not six. */
+export const Notify: React.FC<{ offset: number }> = ({ offset }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+
+  return (
+    <AbsoluteFill style={{ background: C.cream }}>
+      <Hud chapter="// 05 — telegram" offset={offset} />
+      <Caption lines={[['Клиент', 'узнаёт'], ['без', <Accent key="z">звонка.</Accent>]]} at={0} size={96} />
+      <ChatPhone />
       <Sfx at={10} name="ding" volume={0.6} />
       <Sfx at={34} name="pop" volume={0.6} />
     </AbsoluteFill>

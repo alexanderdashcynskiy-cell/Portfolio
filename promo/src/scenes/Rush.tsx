@@ -47,21 +47,16 @@ const Notification: React.FC<{ n: Note; y: number; p: number }> = ({ n, y, p }) 
   </div>
 );
 
-/** 01 — 8:00, the phone on the counter fills up with questions; it shakes with each one. */
-export const Rush: React.FC<{ offset: number }> = ({ offset }) => {
+/** The lock screen at 8:00 filling with notifications; it shakes with each one. */
+export const LockPhone: React.FC<{ style?: React.CSSProperties }> = ({ style }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const enter = spring({ frame, fps, config: { stiffness: 120, damping: 18 } });
   const last = [...NOTES].reverse().find((n) => frame >= n.at);
   const since = last ? frame - last.at : 99;
   const shake = since < 10 ? Math.sin(since * 2.6) * 9 * (1 - since / 10) : 0;
-
   return (
-    <AbsoluteFill style={{ background: C.cream }}>
-      <Hud chapter="// 01 — 8:00" offset={offset} />
-      <Caption lines={[['Пекарня', 'открылась.'], ['Телефон —', <Accent key="t">тоже.</Accent>]]} at={2} size={84} />
-
-      <IPhone style={{ transform: `translate(${shake}px, ${(1 - enter) * 900}px) rotate(${shake * 0.15}deg)` }}>
+    <div style={{ position: 'absolute', inset: 0, ...style }}>
+      <IPhone style={{ transform: `translateX(${shake}px) rotate(${shake * 0.15}deg)` }}>
         <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(120% 80% at 50% 0%, #c98a4b 0%, #7a4422 45%, #2b170c 100%)' }} />
         {/* Status bar and island, as on the captured screens. */}
         <div style={{ position: 'absolute', top: 36, left: 74, fontFamily: SANS, fontWeight: 700, fontSize: 26, color: '#fff' }}>8:00</div>
@@ -79,6 +74,22 @@ export const Rush: React.FC<{ offset: number }> = ({ offset }) => {
         })}
         <div style={{ position: 'absolute', bottom: 22, left: '50%', width: 220, height: 8, marginLeft: -110, borderRadius: 4, background: 'rgba(255,255,255,0.8)' }} />
       </IPhone>
+    </div>
+  );
+};
+
+/** 01 — 8:00, the phone on the counter fills up with questions; it shakes with each one. */
+export const Rush: React.FC<{ offset: number }> = ({ offset }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const enter = spring({ frame, fps, config: { stiffness: 120, damping: 18 } });
+
+  return (
+    <AbsoluteFill style={{ background: C.cream }}>
+      <Hud chapter="// 01 — 8:00" offset={offset} />
+      <Caption lines={[['Пекарня', 'открылась.'], ['Телефон —', <Accent key="t">тоже.</Accent>]]} at={2} size={84} />
+
+      <LockPhone style={{ transform: `translateY(${(1 - enter) * 900}px)` }} />
 
       {NOTES.map((n) => (
         <React.Fragment key={n.at}>
