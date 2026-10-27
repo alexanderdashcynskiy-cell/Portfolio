@@ -298,3 +298,171 @@ export const StaffArt: React.FC = () => {
     </Laptop>
   );
 };
+
+/* ───────────── CRM button → Telegram: the real flow, with the server's own texts ───────────── */
+
+type Line = { t: string; b?: boolean };
+type Msg = { lines: Line[]; time: string; at: number; goneAt?: number };
+
+const RULE = '━━━━━━━━━━━━━━━━━━━━';
+// server.ts → updateOrderStatusInternal, status «Принят»: the receipt, then the greeting.
+// The order's content is stored by the bot as «◆ name xN — price Br» lines and sent as is.
+const RECEIPT: Line[] = [
+  { t: '🧾 ВАШ САМОВЫВОЗ №1244', b: true },
+  { t: RULE },
+  { t: '👤 Аня' },
+  { t: '📞 +375 (33) 214-55-08' },
+  { t: '📍 Самовывоз: ул. Ленина 74' },
+  { t: RULE },
+  { t: '🧺 Состав:', b: true },
+  { t: '◆ Перепечи с Сыром x1 — 2.50 Br' },
+  { t: '◆ Круассан Французский x1 — 3.50 Br' },
+  { t: '◆ Пончик Глазированный x1 — 2.20 Br' },
+  { t: RULE },
+  { t: '💰 Итого: 8.2 р.', b: true },
+];
+const GREETING: Line[] = [{ t: '✅ Здравствуйте, Аня! 🥐', b: true }, { t: 'Ваш заказ №1244 принят и уже готовится.' }, { t: 'Мы уведомим вас о готовности.' }];
+// Status «Готов», pickup: the greeting is deleted and this one is sent instead.
+const READY: Line[] = [{ t: '🍞 Ваш заказ №1244 готов!', b: true }, { t: 'Ждём вас по адресу:' }, { t: '📍 г. Витебск, ул. Ленина 74' }];
+
+/** The customer's Telegram chat with the bot, drawn at the phone's own screen size. */
+const TgChat: React.FC<{ messages: Msg[] }> = ({ messages }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  return (
+    <div style={{ position: 'absolute', inset: 0, background: '#DDE5D7', fontFamily: SANS }}>
+      <div style={{ position: 'absolute', inset: 0, opacity: 0.18, backgroundImage: 'radial-gradient(#7d9a6b 1px, transparent 1px)', backgroundSize: '16px 16px' }} />
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 120, background: 'rgba(250,250,250,0.97)', borderBottom: '1px solid rgba(0,0,0,0.08)' }}>
+        <div style={{ position: 'absolute', top: 22, left: 44, fontWeight: 700, fontSize: 15 }}>14:02</div>
+        <div style={{ position: 'absolute', top: 18, left: '50%', width: 110, height: 32, marginLeft: -55, borderRadius: 18, background: '#000' }} />
+        <div style={{ position: 'absolute', top: 66, left: 0, right: 0, textAlign: 'center' }}>
+          <div style={{ fontWeight: 700, fontSize: 17, color: '#111' }}>Мамин Хлеб</div>
+          <div style={{ fontSize: 13, color: '#8a96a3' }}>бот</div>
+        </div>
+        <div style={{ position: 'absolute', top: 62, right: 18, width: 42, height: 42, borderRadius: 21, background: 'linear-gradient(135deg,#E8B430,#C9A227)', color: '#fff', fontWeight: 800, fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>МХ</div>
+      </div>
+      <div style={{ position: 'absolute', left: 12, right: 12, bottom: 80, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {messages.map((m, i) => {
+          if (frame < m.at) return null;
+          const p = spring({ frame: frame - m.at, fps, config: { stiffness: 220, damping: 18 } });
+          const gone = m.goneAt === undefined ? 0 : interpolate(frame, [m.goneAt, m.goneAt + 10], [0, 1], clamp);
+          if (gone >= 1) return null;
+          return (
+            <div key={i} style={{ alignSelf: 'flex-start', maxWidth: '88%', padding: '10px 14px 7px', borderRadius: '18px 18px 18px 5px', background: '#fff', boxShadow: '0 1px 1px rgba(0,0,0,0.06)', fontSize: 14.5, lineHeight: 1.36, color: '#111', transform: `translateY(${(1 - p) * 24}px) scale(${(0.94 + p * 0.06) * (1 - gone * 0.2)})`, transformOrigin: '0 100%', opacity: p * (1 - gone), maxHeight: 400 * (1 - gone) }}>
+              {m.lines.map((l, j) => (
+                <div key={j} style={{ fontWeight: l.b ? 700 : 500, whiteSpace: 'nowrap', letterSpacing: l.t === RULE ? '-0.12em' : 0, color: l.t === RULE ? '#9aa4ad' : undefined }}>{l.t}</div>
+              ))}
+              <div style={{ textAlign: 'right', fontSize: 11, color: '#8a96a3', marginTop: 2 }}>{m.time}</div>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 64, background: 'rgba(250,250,250,0.97)', borderTop: '1px solid rgba(0,0,0,0.08)' }}>
+        <div style={{ position: 'absolute', left: 50, right: 50, top: 12, height: 34, borderRadius: 17, background: '#fff', border: '1px solid rgba(0,0,0,0.1)', fontSize: 14, color: '#9aa4ad', display: 'flex', alignItems: 'center', paddingLeft: 16 }}>Сообщение</div>
+      </div>
+    </div>
+  );
+};
+
+/** A macOS arrow that glides to (x, y) on the CRM capture and clicks at `click`. */
+const Cursor: React.FC<{ x: number; y: number; from: number; click: number; scale: number }> = ({ x, y, from, click, scale }) => {
+  const frame = useCurrentFrame();
+  const t = easeInOut(interpolate(frame, [from, click - 4], [0, 1], clamp));
+  const cx = x + (1 - t) * 420;
+  const cy = y + (1 - t) * 260;
+  const press = frame >= click && frame < click + 5 ? 0.85 : 1;
+  const ring = interpolate(frame, [click, click + 16], [0, 1], clamp);
+  if (frame < from) return null;
+  return (
+    <div style={{ position: 'absolute', left: lpx(cx), top: lpx(cy), zIndex: 30 }}>
+      {frame >= click && ring < 1 && <div style={{ position: 'absolute', left: -30 / scale, top: -30 / scale, width: 60 / scale, height: 60 / scale, borderRadius: '50%', border: `${3 / scale}px solid ${C.orange}`, transform: `scale(${0.4 + ring})`, opacity: 1 - ring }} />}
+      <svg width={26 / scale} height={36 / scale} viewBox="0 0 26 36" style={{ transform: `scale(${press})`, transformOrigin: '0 0', filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.35))' }}>
+        <path d="M2 2 L2 28 L8.5 22 L13 33 L17.5 31 L13 20.5 L22 20.5 Z" fill="#111" stroke="#fff" strokeWidth="2" strokeLinejoin="round" />
+      </svg>
+    </div>
+  );
+};
+
+// The #1244 card and its first button, in CRM capture pixels (see the capture script).
+const CARD = { x: 100, y: 137, w: 294, h: 612 };
+const BUTTON = { x: 192, y: 694 };
+
+/** Laptop with the order card, zoomed in; the cursor presses a button and the card moves on. */
+const CrmClick: React.FC<{ before: string; after: string; click: number }> = ({ before, after, click }) => {
+  const frame = useCurrentFrame();
+  const t = easeInOut(interpolate(frame, [4, 24], [0, 1], clamp));
+  const zoom = 1.45;
+  const s = 1 + (zoom - 1) * t;
+  const flash = interpolate(frame, [click + 2, click + 8, click + 26], [0, 1, 0], clamp);
+  return (
+    <Laptop>
+      <LaptopScreen name={frame >= click + 3 ? after : before} t={t} fx={CARD.x + CARD.w / 2 + 160} fy={CARD.y + CARD.h / 2 + 10} zoom={zoom}>
+        <div style={{ position: 'absolute', left: lpx(CARD.x - 4), top: lpx(CARD.y - 4), width: lpx(CARD.w + 8), height: lpx(CARD.h + 8), borderRadius: lpx(36), border: `${3 / s}px solid ${C.orange}`, boxShadow: `0 0 ${24 / s}px rgba(208,105,42,0.5)`, opacity: flash }} />
+        <Cursor x={BUTTON.x} y={BUTTON.y} from={8} click={click} scale={s} />
+      </LaptopScreen>
+    </Laptop>
+  );
+};
+
+/** A smaller phone in front of the laptop, on the right: the customer's side of the same moment. */
+const SidePhone: React.FC<{ at: number; focus: number; children: React.ReactNode }> = ({ at, focus, children }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const p = spring({ frame: frame - at, fps, config: { stiffness: 150, damping: 18 } });
+  // Comes in small at the laptop's right, then steps forward when the messages land.
+  const scale = 0.8 + 0.26 * focus;
+  const x = 230 - 150 * focus + (1 - p) * 500;
+  return (
+    <div style={{ position: 'absolute', inset: 0, transformOrigin: `${PH_X + PH.w / 2}px 540px`, transform: `translate(${x}px, 0px) scale(${scale})`, opacity: Math.min(1, p * 1.6) }}>
+      <Phone>{children}</Phone>
+    </div>
+  );
+};
+
+/** 03 — «Принять заказ» in the CRM; the bot sends the receipt and the greeting. */
+/** Pushes the laptop back while the phone has the floor. */
+const Back: React.FC<{ focus: number; children: React.ReactNode }> = ({ focus, children }) => (
+  <div style={{ position: 'absolute', inset: 0, opacity: 1 - 0.5 * focus, transform: `translateX(${-60 * focus}px) scale(${1 - 0.05 * focus})`, transformOrigin: '1300px 540px' }}>{children}</div>
+);
+
+export const AcceptArt: React.FC = () => {
+  const frame = useCurrentFrame();
+  const focus = easeInOut(interpolate(frame, [46, 66], [0, 1], clamp));
+  return (
+  <>
+    <Back focus={focus}>
+      <CrmClick before="d9-accept-before" after="d9-accepted" click={34} />
+    </Back>
+    <SidePhone at={40} focus={focus}>
+      <TgChat messages={[{ lines: RECEIPT, time: '14:02', at: 52 }, { lines: GREETING, time: '14:02', at: 76 }]} />
+    </SidePhone>
+    <Sfx at={34} name="tap" volume={0.9} />
+    <Sfx at={52} name="pop" volume={0.7} />
+    <Sfx at={76} name="pop" volume={0.7} />
+  </>
+  );
+};
+
+/** 05 — «Готово» in the CRM; the greeting is replaced by «готов». */
+export const ReadyClickArt: React.FC = () => {
+  const frame = useCurrentFrame();
+  const focus = easeInOut(interpolate(frame, [36, 54], [0, 1], clamp));
+  return (
+  <>
+    <Back focus={focus}>
+      <CrmClick before="d9-accepted" after="d10-ready" click={30} />
+    </Back>
+    <SidePhone at={0} focus={focus}>
+      <TgChat
+        messages={[
+          { lines: RECEIPT, time: '14:02', at: -99 },
+          { lines: GREETING, time: '14:02', at: -99, goneAt: 40 },
+          { lines: READY, time: '14:21', at: 54 },
+        ]}
+      />
+    </SidePhone>
+    <Sfx at={30} name="tap" volume={0.9} />
+    <Sfx at={54} name="ding" volume={0.6} />
+  </>
+  );
+};

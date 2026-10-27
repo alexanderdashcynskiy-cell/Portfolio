@@ -18,7 +18,8 @@ export const Chapter: React.FC<{
   line: string;
   beforeArt: React.ReactNode;
   afterArt: React.ReactNode;
-}> = ({ n, title, before, benefit, line, beforeArt, afterArt }) => {
+  len?: number;
+}> = ({ n, title, before, benefit, line, beforeArt, afterArt, len = CHAPTER_LEN }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const pop = (at: number, k = 200, d = 18) => spring({ frame: frame - at, fps, config: { stiffness: k, damping: d } });
@@ -27,7 +28,7 @@ export const Chapter: React.FC<{
   const afterIn = pop(AFTER + 2, 170, 20);
   const benefitIn = pop(AFTER + 8);
   const lineIn = pop(AFTER + 18);
-  const exit = interpolate(frame, [CHAPTER_LEN - 10, CHAPTER_LEN], [0, 1], clamp);
+  const exit = interpolate(frame, [len - 10, len], [0, 1], clamp);
   const pill = (bg: string, fg: string): React.CSSProperties => ({ display: 'inline-block', fontFamily: MONO, fontSize: 22, letterSpacing: '0.14em', padding: '8px 18px', borderRadius: 999, background: bg, color: fg, marginBottom: 26 });
 
   return (

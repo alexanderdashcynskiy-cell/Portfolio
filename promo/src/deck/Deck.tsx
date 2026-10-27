@@ -6,7 +6,6 @@ import { LockPhone } from '../scenes/Rush';
 import { AFTER, Chapter, CHAPTER_LEN } from './Chapter';
 import { PH, PH_X, PH_Y } from './devices';
 import {
-  BoardArt,
   CallArt,
   CheckoutArt,
   DialogArt,
@@ -14,7 +13,8 @@ import {
   NotesArt,
   NumbersArt,
   OrderArt,
-  ReadyArt,
+  AcceptArt,
+  ReadyClickArt,
   RepeatArt,
   StaffArt,
   StockArt,
@@ -49,12 +49,13 @@ const CHAPTERS = [
   },
   {
     title: 'Каждый заказ на виду',
-    short: 'Все заказы и статусы в CRM',
+    short: 'Заказ в CRM, «Принять» — чек клиенту',
     before: 'Тетрадь: почерк, зачёркивания, «уточнить».',
-    benefit: <>Все заказы — <Accent>на одном экране.</Accent></>,
-    line: 'Заказ из Mini App сразу появляется в CRM: самовывоз, доставка, предзаказ — со статусами.',
+    benefit: <>Принять заказ — <Accent>одна кнопка.</Accent></>,
+    line: 'Заказ из Mini App сразу в CRM. «Принять заказ» — и клиенту в Telegram уходят чек и подтверждение.',
     beforeArt: <NotebookArt />,
-    afterArt: <BoardArt />,
+    afterArt: <AcceptArt />,
+    len: 270,
     vo: 'Вместо тетради — все заказы на одном экране. Ни один не потеряется.',
   },
   {
@@ -69,12 +70,13 @@ const CHAPTERS = [
   },
   {
     title: 'Клиент знает, когда готово',
-    short: 'Бот сам пишет клиенту «готово»',
+    short: '«Готово» в CRM — сообщение клиенту',
     before: 'Звонок: «Ну что, мой заказ готов?»',
     benefit: <>Клиент узнаёт <Accent>без звонка.</Accent></>,
-    line: 'Когда в CRM заказ отмечен готовым, бот сам пишет клиенту в Telegram.',
+    line: 'Нажали «Готово» в CRM — бот сам пишет клиенту, что заказ ждёт его.',
     beforeArt: <CallArt who="Ольга" sub="3-й звонок за утро" bubble="Ну что, готово?" />,
-    afterArt: <ReadyArt />,
+    afterArt: <ReadyClickArt />,
+    len: 270,
     vo: 'Когда заказ готов, клиент получает сообщение сам. Меньше звонков «ну что там?».',
   },
   {
@@ -116,7 +118,10 @@ const TURN_LEN = 48;
 const SUMMARY_LEN = 270;
 const OUTRO_LEN = 100;
 const CH_FROM = TITLE_LEN + PROBLEM_LEN + TURN_LEN;
-const SUMMARY_FROM = CH_FROM + CHAPTERS.length * CHAPTER_LEN;
+const CH_LEN = CHAPTERS.map((c) => ('len' in c && c.len ? c.len : CHAPTER_LEN));
+const CH_START = CH_LEN.map((_, i) => CH_FROM + CH_LEN.slice(0, i).reduce((a, b) => a + b, 0));
+const CH_TOTAL = CH_LEN.reduce((a, b) => a + b, 0);
+const SUMMARY_FROM = CH_FROM + CH_TOTAL;
 const OUTRO_FROM = SUMMARY_FROM + SUMMARY_LEN;
 export const DECK_FRAMES = OUTRO_FROM + OUTRO_LEN;
 
@@ -151,7 +156,7 @@ const CUES: Cue[] = [
   { at: TITLE_LEN + BOOK_AT + 2, from: VO.book[0], to: VO.book[1] },
   { at: TITLE_LEN + PROBLEM_LEN + 4, from: VO.turn[0], to: VO.turn[1] },
   ...VO.chapters.flatMap(([b, a], i) => {
-    const start = CH_FROM + i * CHAPTER_LEN;
+    const start = CH_START[i];
     // The answer never starts before the question has finished.
     const afterAt = Math.max(AFTER + 4, 4 + sec(b[1] - b[0]) + 5);
     return [
@@ -342,12 +347,13 @@ const Summary: React.FC = () => {
 /** Top bar during the chapters: the eight steps, and the call counter that stays at zero. */
 const ChapterBar: React.FC = () => {
   const frame = useCurrentFrame();
-  const active = Math.floor(frame / CHAPTER_LEN);
+  const abs = CH_FROM + frame;
+  const active = Math.max(0, CH_START.filter((st) => abs >= st).length - 1);
   return (
     <>
       <div style={{ position: 'absolute', left: 120, top: 110, display: 'flex', gap: 10 }}>
         {CHAPTERS.map((_, i) => {
-          const fill = i < active ? 1 : i > active ? 0 : (frame % CHAPTER_LEN) / CHAPTER_LEN;
+          const fill = i < active ? 1 : i > active ? 0 : (abs - CH_START[i]) / CH_LEN[i];
           return (
             <div key={i} style={{ width: 70, height: 6, borderRadius: 3, background: 'rgba(45,21,5,0.1)', overflow: 'hidden' }}>
               <div style={{ width: `${fill * 100}%`, height: '100%', background: C.orange }} />
@@ -375,13 +381,13 @@ export const Deck: React.FC = () => (
       <Turn />
     </Sequence>
     {CHAPTERS.map((c, i) => (
-      <Sequence key={i} from={CH_FROM + i * CHAPTER_LEN} durationInFrames={CHAPTER_LEN}>
+      <Sequence key={i} from={CH_START[i]} durationInFrames={CH_LEN[i]}>
         <AbsoluteFill>
-          <Chapter n={i + 1} title={c.title} before={c.before} benefit={c.benefit} line={c.line} beforeArt={c.beforeArt} afterArt={c.afterArt} />
+          <Chapter n={i + 1} title={c.title} before={c.before} benefit={c.benefit} line={c.line} beforeArt={c.beforeArt} afterArt={c.afterArt} len={CH_LEN[i]} />
         </AbsoluteFill>
       </Sequence>
     ))}
-    <Sequence from={CH_FROM} durationInFrames={CHAPTERS.length * CHAPTER_LEN}>
+    <Sequence from={CH_FROM} durationInFrames={CH_TOTAL}>
       <ChapterBar />
     </Sequence>
     <Sequence from={SUMMARY_FROM} durationInFrames={SUMMARY_LEN}>
