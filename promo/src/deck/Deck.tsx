@@ -1,5 +1,5 @@
 import React from 'react';
-import { AbsoluteFill, Audio, interpolate, Sequence, spring, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
+import { AbsoluteFill, Audio, interpolate, OffthreadVideo, Sequence, spring, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
 import { Accent, C, Grain, MONO, SANS, SERIF, Words } from '../ui';
 import { clamp, Sfx } from '../kit';
 import { LockPhone } from '../scenes/Rush';
@@ -109,33 +109,73 @@ const CHAPTERS = [
   },
 ];
 
-const TITLE_LEN = 96;
+const TITLE_LEN = 150;
 const PROBLEM_LEN = 186;
 const TURN_LEN = 48;
-const SUMMARY_LEN = 330;
+const SUMMARY_LEN = 270;
+const OUTRO_LEN = 90;
 const CH_FROM = TITLE_LEN + PROBLEM_LEN + TURN_LEN;
 const SUMMARY_FROM = CH_FROM + CHAPTERS.length * CHAPTER_LEN;
-export const DECK_FRAMES = SUMMARY_FROM + SUMMARY_LEN;
+const OUTRO_FROM = SUMMARY_FROM + SUMMARY_LEN;
+export const DECK_FRAMES = OUTRO_FROM + OUTRO_LEN;
 
 const VOICE = false; // public/voice-deck.mp3, read to the `vo` lines
 const MUSIC = false; // public/music.mp3, licensed
 
+/** The bakery at dawn (AI footage supplied by the owner), darkened under the title. */
+const Dawn: React.FC<{ from: number; rate?: number; push?: number; dim?: number }> = ({ from, rate = 1, push = 0.06, dim = 0.55 }) => {
+  const frame = useCurrentFrame();
+  const { durationInFrames } = useVideoConfig();
+  const s = 1 + push * (frame / durationInFrames);
+  return (
+    <AbsoluteFill style={{ overflow: 'hidden', background: '#000' }}>
+      <OffthreadVideo src={staticFile('video/dawn.mp4')} startFrom={from} playbackRate={rate} volume={2.5} style={{ width: '100%', height: '100%', objectFit: 'cover', transform: `scale(${s})` }} />
+      <AbsoluteFill style={{ background: `radial-gradient(120% 90% at 50% 45%, rgba(20,10,4,${dim * 0.6}) 0%, rgba(20,10,4,${Math.min(0.92, dim + 0.3)}) 100%)` }} />
+    </AbsoluteFill>
+  );
+};
+
 const Title: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const a = spring({ frame: frame - 4, fps, config: { stiffness: 140, damping: 18 } });
-  const b = interpolate(frame, [18, 30], [0, 1], clamp);
+  const a = spring({ frame: frame - 20, fps, config: { stiffness: 120, damping: 20 } });
+  const b = interpolate(frame, [40, 56], [0, 1], clamp);
+  const out = interpolate(frame, [TITLE_LEN - 10, TITLE_LEN], [1, 0], clamp);
   return (
-    <AbsoluteFill style={{ background: C.cream, alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
-      <div style={{ fontFamily: MONO, fontSize: 28, color: C.muted, opacity: b, marginBottom: 26 }}>// для пекарен и кофеен</div>
-      <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 150, lineHeight: 1, color: C.ink, opacity: a, transform: `translateY(${(1 - a) * 40}px)` }}>
-        Mini App <span style={{ fontStyle: 'italic', color: C.orange }}>+ CRM</span>
+    <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center', textAlign: 'center', opacity: out }}>
+      <Dawn from={0} />
+      <div style={{ position: 'relative', fontFamily: MONO, fontSize: 28, color: 'rgba(251,246,238,0.7)', opacity: b, marginBottom: 26 }}>// для пекарен и кофеен</div>
+      <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 150, lineHeight: 1, color: C.cream, opacity: a, transform: `translateY(${(1 - a) * 40}px)`, textShadow: '0 10px 40px rgba(0,0,0,0.4)' }}>
+        Mini App <span style={{ fontStyle: 'italic', color: '#F09A5B' }}>+ CRM</span>
       </div>
-      <div style={{ fontFamily: SANS, fontWeight: 500, fontSize: 44, color: C.ink, marginTop: 40, opacity: b }}>
-        Как заказ проходит через пекарню — <Accent>без единого звонка.</Accent>
+      <div style={{ position: 'relative', fontFamily: SANS, fontWeight: 500, fontSize: 44, color: C.cream, marginTop: 40, opacity: b, textShadow: '0 4px 20px rgba(0,0,0,0.5)' }}>
+        Как заказ проходит через пекарню — <Accent color="#F09A5B">без единого звонка.</Accent>
       </div>
-      <div style={{ position: 'absolute', bottom: 80, fontFamily: MONO, fontSize: 24, color: C.muted, opacity: b }}>на примере пекарни «Мамин Хлеб»</div>
-      <Sfx at={4} name="hit" volume={0.5} />
+      <div style={{ position: 'absolute', bottom: 80, fontFamily: MONO, fontSize: 24, color: 'rgba(251,246,238,0.6)', opacity: b }}>на примере пекарни «Мамин Хлеб»</div>
+      <Sfx at={20} name="hit" volume={0.45} />
+    </AbsoluteFill>
+  );
+};
+
+/** The last word, back on the dough: what stays with the baker, and what the system takes. */
+const Outro: React.FC = () => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const a = spring({ frame: frame - 8, fps, config: { stiffness: 120, damping: 20 } });
+  const b = spring({ frame: frame - 22, fps, config: { stiffness: 120, damping: 20 } });
+  const c = interpolate(frame, [40, 54], [0, 1], clamp);
+  return (
+    <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'flex-start', paddingTop: 150, textAlign: 'center' }}>
+      <Dawn from={211} rate={0.5} push={0.05} dim={0.5} />
+      <div style={{ position: 'relative', fontFamily: SANS, fontWeight: 800, fontSize: 110, lineHeight: 1.08, color: C.cream, letterSpacing: '-0.03em', textShadow: '0 10px 40px rgba(0,0,0,0.45)' }}>
+        <div style={{ opacity: a, transform: `translateY(${(1 - a) * 30}px)` }}>Руки — для теста.</div>
+        <div style={{ opacity: b, transform: `translateY(${(1 - b) * 30}px)` }}>
+          <Accent color="#F09A5B">Заказы — для системы.</Accent>
+        </div>
+      </div>
+      <div style={{ position: 'absolute', bottom: 80, fontFamily: MONO, fontSize: 24, color: 'rgba(251,246,238,0.7)', opacity: c }}>
+        Mini App + CRM · Alexander Dashcynskiy · дизайн и разработка
+      </div>
     </AbsoluteFill>
   );
 };
@@ -210,8 +250,8 @@ const Summary: React.FC = () => {
         })}
       </div>
       <div style={{ position: 'absolute', left: 120, right: 120, bottom: 90, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', opacity: interpolate(frame, [60, 76], [0, 1], clamp) }}>
-        <div style={{ fontFamily: SANS, fontWeight: 800, fontSize: 52, color: C.ink, letterSpacing: '-0.02em' }}>
-          Руки — для теста. <Accent>Заказы — для системы.</Accent>
+        <div style={{ fontFamily: SANS, fontWeight: 600, fontSize: 34, color: C.ink }}>
+          Всё это — <Accent>одна система</Accent> для вашей пекарни.
         </div>
         <div style={{ textAlign: 'right', fontFamily: MONO, fontSize: 22, color: C.muted, lineHeight: 1.6 }}>
           Mini App + CRM · пример: «Мамин Хлеб»
@@ -270,6 +310,9 @@ export const Deck: React.FC = () => (
     </Sequence>
     <Sequence from={SUMMARY_FROM} durationInFrames={SUMMARY_LEN}>
       <Summary />
+    </Sequence>
+    <Sequence from={OUTRO_FROM} durationInFrames={OUTRO_LEN}>
+      <Outro />
     </Sequence>
     <Grain opacity={0.04} />
     {VOICE && <Audio src={staticFile('voice-deck.mp3')} />}
