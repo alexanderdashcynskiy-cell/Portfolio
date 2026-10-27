@@ -6,3 +6,5 @@ coverage/
 *.log
 .env*
 !.env.example
+promo/node_modules
+promo/out
