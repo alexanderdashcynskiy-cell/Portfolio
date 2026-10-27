@@ -1524,7 +1524,6 @@ body {
 .sphere-lean {
   position: absolute;
   inset: 0;
-  transform: translate3d(calc(var(--px, 0) * 4%), calc(var(--py, 0) * 3%), 0);
   transition: transform 1.6s var(--ease-out);
 }
 .sphere-glint {
@@ -1579,7 +1578,6 @@ body {
   height: calc(52 * var(--hc));
   border-radius: 50%;
   background: radial-gradient(ellipse, rgba(255, 228, 180, 0.75), rgba(255, 196, 130, 0.25) 45%, transparent 72%);
-  transform: translate3d(calc(var(--px, 0) * -14 * var(--hc)), 0, 0);
   transition: transform 1.6s var(--ease-out);
   animation: sphereCaustic 4.6s ease-in-out infinite;
 }
@@ -1899,31 +1897,23 @@ body {
   background-image: linear-gradient(-45deg, transparent 60%, color-mix(in srgb, rgba(255, 246, 232, 0.42), rgba(255, 190, 120, 0.5) calc(var(--sun) * 80%)) 70%, transparent 80%, transparent 100%);
 }
 
+/* Depth parallax: the transforms are written per element by sceneVars.ts (never through
+   inherited custom properties, which would restyle whole subtrees on every pointer move). */
 @media (hover: hover) and (pointer: fine) and (min-width: 768px) and (min-aspect-ratio: 4/3) {
-  .scene-root {
-    will-change: transform;
-    --dx: calc(var(--px, 0) * -9px);
-    --dy: calc(var(--py, 0) * -6px);
-    transform: translate3d(var(--dx), var(--dy), 0) scale(1.03);
-    transition: transform 1.6s var(--ease-out);
-  }
-  /* Content pinned to a scene moves exactly with it (same shift, same scale about the
-     window's centre). */
+  .scene-root,
   .about-stage,
-  .worlds-page {
-    transform: translate3d(calc(var(--px, 0) * -9px), calc(var(--py, 0) * -6px), 0) scale(1.03);
-    transition: transform 1.6s var(--ease-out);
-  }
-  .about-stage {
-    transform-origin: calc(50vw - var(--stage-left)) calc(var(--vh) / 2 - var(--stage-top));
-  }
-  /* Headlines sit nearer the camera: they move a little further. */
+  .worlds-page,
   .hero-copy,
   .about-copy,
   .services-copy,
   .contact-copy {
-    transform: translate3d(calc(var(--px, 0) * -7px), calc(var(--py, 0) * -4px), 0);
     transition: transform 1.6s var(--ease-out);
+  }
+  .scene-root {
+    will-change: transform;
+  }
+  .about-stage {
+    transform-origin: calc(50vw - var(--stage-left)) calc(var(--vh) / 2 - var(--stage-top));
   }
 }
 
