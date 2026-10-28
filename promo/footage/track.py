@@ -87,8 +87,17 @@ while True:
         frames.append(None if q is None else q.tolist())
     i += 1
 
-# Fill gaps, then smooth each coordinate with a short centred window.
 arr = np.array([np.full((4, 2), np.nan) if q is None else q for q in frames])
+# Glare on the screen can break a frame's quad: drop any frame whose corners stray from the
+# running median of their neighbours, and let the gap be filled from either side.
+med = arr.copy()
+for i in range(len(arr)):
+    win = arr[max(0, i - 12):i + 13]
+    med[i] = np.nanmedian(win, axis=0)
+stray = np.nanmax(np.linalg.norm(arr - med, axis=2), axis=1) > 12
+arr[stray] = np.nan
+print('stray frames:', int(stray.sum()))
+# Fill gaps, then smooth each coordinate with a short centred window.
 for k in range(4):
     for d in range(2):
         v = arr[:, k, d]

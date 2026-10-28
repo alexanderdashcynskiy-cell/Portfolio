@@ -2,13 +2,14 @@ import React from 'react';
 import { AbsoluteFill, Audio, Img, interpolate, OffthreadVideo, Sequence, spring, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
 import { Accent, C, MONO, SANS } from '../ui';
 import { clamp, easeInOut, Sfx } from '../kit';
-import { Phone } from '../deck/devices';
+import { PH, ppt } from '../deck/devices';
 import { GREETING, ISSUED, RATED, READY, REVIEW, TgChat, THANKS } from '../deck/arts';
 import { MiniApp, ORDER } from '../oneorder/OneOrder';
 import v1 from './tracks/v1.json';
 import v2 from './tracks/v2.json';
 import v3a from './tracks/v3a.json';
 import v3b from './tracks/v3b.json';
+import v4 from './tracks/v4.json';
 
 /*
  * «Один заказ» on generated bakery footage. Each green screen is tracked frame by frame
@@ -325,18 +326,15 @@ const OpeningWords: React.FC = () => {
   );
 };
 
-/** Until the vertical phone shot arrives: the Mini App on a phone over the bakery, out of focus. */
+/** Аня at the bakery's window, ordering in the Mini App on her own phone. */
 const OrderShot: React.FC = () => (
-  <AbsoluteFill>
-    <AbsoluteFill style={{ overflow: 'hidden' }}>
-      <OffthreadVideo src={staticFile('footage/v2.mp4')} startFrom={150} muted style={{ width: 1920, height: 1080, filter: 'blur(16px) brightness(0.72)', transformOrigin: '0 50%', transform: 'scale(2.9)' }} />
-    </AbsoluteFill>
-    <Phone>
-      <Sequence from={-ORDER} layout="none">
-        <MiniApp />
-      </Sequence>
-    </Phone>
-  </AbsoluteFill>
+  <Shot src="footage/v4-clean.mp4" cutout="footage/v4-cutout.webm" track={v4 as Track} from={0} rate={1} cw={PH.w} ch={PH.h} radius={34} grow={1.03} cam={(f) => push(f, 0, 200, 1.12, 900, 520)} screen={{ boxShadow: '0 0 0 40px #FEFDF9' }}>
+    <Sequence from={-ORDER} layout="none">
+      <MiniApp />
+    </Sequence>
+    {/* The captures have an island; this phone has a notch of its own, in the footage */}
+    <div style={{ position: 'absolute', left: ppt(140), top: 0, width: ppt(150), height: ppt(48), background: '#FEFDF9' }} />
+  </Shot>
 );
 
 const DayCrm: React.FC = () => {

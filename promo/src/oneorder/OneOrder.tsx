@@ -294,10 +294,10 @@ export const MiniApp: React.FC = () => {
       <PhoneScreen name="m2-feed" style={{ transform: `translateY(${(1 - scroll) * drift}px)`, opacity: scroll }} />
       {cart < 1 && <Badge count={count} changedAt={changedAt} {...P(409, 87)} size={ppt(19)} />}
       {frame >= o(34) && cart < 1 && <Badge count={count} changedAt={changedAt} {...P(398, 831)} size={ppt(17)} />}
-      <div style={{ position: 'absolute', inset: 0, transform: `translateY(${(1 - cart) * 100}%)` }}>
+      <div style={{ position: 'absolute', inset: 0, transform: `translateY(${(1 - cart) * 100}%)`, clipPath: cart < 1 ? `inset(${ppt(54)}px 0 0 0)` : undefined }}>
         <PhoneScreen name="m4-cart" />
       </div>
-      <div style={{ position: 'absolute', inset: 0, transform: `translateX(${(1 - checkout) * 100}%)` }}>
+      <div style={{ position: 'absolute', inset: 0, transform: `translateX(${(1 - checkout) * 100}%)`, clipPath: checkout < 1 ? `inset(${ppt(54)}px 0 0 0)` : undefined }}>
         <PhoneScreen name="m5-checkout" />
         {boxes.map((b, i) => {
           const p = spring({ frame: frame - b.at, fps: 30, config: { stiffness: 260, damping: 16 } });

@@ -40,6 +40,8 @@ while True:
     m = cv2.dilate(m, np.ones((9, 9), np.uint8))
     # Spill: greenish pixels outside the screen become neutral and a touch darker.
     spill = cv2.inRange(hsv, (30, 25, 15), (95, 255, 255))
+    # only next to the screen: green leaves out of the window stay green
+    spill = cv2.bitwise_and(spill, cv2.dilate(m, np.ones((41, 41), np.uint8)))
     spill = cv2.bitwise_and(spill, cv2.bitwise_not(m))
     spill = cv2.GaussianBlur(spill, (7, 7), 0).astype(np.float32) / 255
     grey = cv2.cvtColor(cv2.cvtColor(f, cv2.COLOR_BGR2GRAY), cv2.COLOR_GRAY2BGR).astype(np.float32) * 0.8
