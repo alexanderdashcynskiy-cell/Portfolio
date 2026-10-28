@@ -24,6 +24,7 @@ import {
   ReviewsArt,
   AnalyticsArt,
   KassaArt,
+  ReconcileArt,
 } from './arts';
 
 /*
@@ -126,6 +127,16 @@ const CHAPTERS = [
     vo: 'Выручка, средний чек, отчёт смены — посчитаны сами и приходят вам в Телеграм.',
   },
   {
+    title: 'Сверка и закрытие смены',
+    short: 'Касса и терминал против системы',
+    before: 'Касса не сошлась — ищи, где потерялось.',
+    benefit: <>Расхождение — <Accent>видно сразу.</Accent></>,
+    line: 'Вводите наличные и сумму по терминалу — система сверяет по каждому способу оплаты. Без причины расхождения смену не закрыть.',
+    beforeArt: <SumsArt rows={['Касса — 127,36', 'Терминал — 215,84', 'В системе — 345,70', 'Не хватает 2,50… где?', 'Пересчитать ещё раз']} />,
+    afterArt: <ReconcileArt />,
+    minAfter: 176,
+  },
+  {
     title: 'Повторный заказ в два касания',
     short: 'История и повтор заказа',
     before: '«Мне как в прошлый раз…» — «А что вы брали?»',
@@ -182,7 +193,7 @@ const PROBLEM_LEN = BOOK_AT + 2 + dur(VO.book) + 8;
 const TURN_LEN = 4 + dur(VO.turn) + 10;
 // The CRM → Telegram chapters need time for the messages to land and be read.
 // Which recorded line each chapter uses (index into VO.chapters); null = not recorded yet.
-const CH_VO: (number | null)[] = [0, null, 1, 2, 3, 4, null, null, 5, 6, null];
+const CH_VO: (number | null)[] = [0, null, 1, 2, 3, 4, null, null, 5, null, 6, null];
 const chVo = (i: number) => (CH_VO[i] === null ? null : VO.chapters[CH_VO[i] as number]);
 const minAfter = (i: number) => ((CHAPTERS[i] as { minAfter?: number }).minAfter ?? 0);
 const CH_AFTER = CHAPTERS.map((_, i) => { const v = chVo(i); return v ? Math.max(40, 4 + dur(v[0]) + 8) : 60; });
@@ -375,23 +386,23 @@ const Summary: React.FC = () => {
   const head = spring({ frame: frame - 2, fps, config: { stiffness: 160, damping: 18 } });
   return (
     <AbsoluteFill>
-      <div style={{ position: 'absolute', left: 120, top: 96, fontFamily: MONO, fontSize: 26, color: C.orange, opacity: head }}>// итог</div>
-      <div style={{ position: 'absolute', left: 120, top: 138, fontFamily: SANS, fontWeight: 800, fontSize: 76, color: C.ink, letterSpacing: '-0.03em', opacity: head, transform: `translateY(${(1 - head) * 30}px)` }}>
+      <div style={{ position: 'absolute', left: 120, top: 64, fontFamily: MONO, fontSize: 26, color: C.orange, opacity: head }}>// итог</div>
+      <div style={{ position: 'absolute', left: 120, top: 100, fontFamily: SANS, fontWeight: 800, fontSize: 72, color: C.ink, letterSpacing: '-0.03em', opacity: head, transform: `translateY(${(1 - head) * 30}px)` }}>
         Что получает <Accent>ваша пекарня</Accent>
       </div>
-      <div style={{ position: 'absolute', left: 120, right: 120, top: 268, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20 }}>
+      <div style={{ position: 'absolute', left: 120, right: 120, top: 214, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
         {CHAPTERS.map((c, i) => {
           const p = spring({ frame: frame - 10 - i * 4, fps, config: { stiffness: 200, damping: 18 } });
           return (
-            <div key={i} style={{ height: 196, padding: '24px 26px', borderRadius: 26, background: '#fff', border: '2px solid rgba(45,21,5,0.08)', boxShadow: '0 16px 40px rgba(60,30,10,0.07)', opacity: p, transform: `translateY(${(1 - p) * 40}px)` }}>
+            <div key={i} style={{ height: 206, padding: '20px 26px', borderRadius: 26, background: '#fff', border: '2px solid rgba(45,21,5,0.08)', boxShadow: '0 16px 40px rgba(60,30,10,0.07)', opacity: p, transform: `translateY(${(1 - p) * 40}px)` }}>
               <div style={{ fontFamily: MONO, fontSize: 24, color: C.orange }}>{String(i + 1).padStart(2, '0')}</div>
-              <div style={{ fontFamily: SANS, fontWeight: 800, fontSize: 30, lineHeight: 1.12, color: C.ink, marginTop: 10, letterSpacing: '-0.02em' }}>{c.title}</div>
-              <div style={{ fontFamily: SANS, fontWeight: 500, fontSize: 21, lineHeight: 1.35, color: '#7A604B', marginTop: 10 }}>{c.short}</div>
+              <div style={{ fontFamily: SANS, fontWeight: 800, fontSize: 30, lineHeight: 1.12, color: C.ink, marginTop: 8, letterSpacing: '-0.02em' }}>{c.title}</div>
+              <div style={{ fontFamily: SANS, fontWeight: 500, fontSize: 21, lineHeight: 1.35, color: '#7A604B', marginTop: 8 }}>{c.short}</div>
             </div>
           );
         })}
       </div>
-      <div style={{ position: 'absolute', left: 120, right: 120, bottom: 90, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', opacity: interpolate(frame, [60, 76], [0, 1], clamp) }}>
+      <div style={{ position: 'absolute', left: 120, right: 120, bottom: 56, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', opacity: interpolate(frame, [60, 76], [0, 1], clamp) }}>
         <div style={{ fontFamily: SANS, fontWeight: 600, fontSize: 34, color: C.ink }}>
           Всё это — <Accent>одна система</Accent> для вашей пекарни.
         </div>
@@ -406,7 +417,7 @@ const Summary: React.FC = () => {
   );
 };
 
-/** Top bar during the chapters: the eight steps, and the call counter that stays at zero. */
+/** Top bar during the chapters: the chapters, and the call counter that stays at zero. */
 const ChapterBar: React.FC = () => {
   const frame = useCurrentFrame();
   const abs = CH_FROM + frame;

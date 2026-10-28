@@ -100,9 +100,8 @@ export const NotesArt: React.FC<{ notes: string[] }> = ({ notes }) => {
 };
 
 /** End-of-day sums on paper, with question marks. */
-export const SumsArt: React.FC = () => {
+export const SumsArt: React.FC<{ rows?: string[] }> = ({ rows = ['Касса — 296,3?', 'Тетрадь — 23 заказа', 'Доставка — 7 или 8?', 'Медовик — сколько ушло?', 'Итого: ???'] }) => {
   const frame = useCurrentFrame();
-  const rows = ['Касса — 296,3?', 'Тетрадь — 23 заказа', 'Доставка — 7 или 8?', 'Медовик — сколько ушло?', 'Итого: ???'];
   return (
     <div style={{ position: 'absolute', left: 1020, top: 200, width: 720, height: 700, background: '#FFFDF6', borderRadius: 12, boxShadow: '0 40px 80px rgba(60,30,10,0.22)', transform: 'rotate(2deg)', padding: '50px 60px', backgroundImage: 'repeating-linear-gradient(to bottom, transparent 0, transparent 70px, #cfdcea 70px, #cfdcea 72px)', backgroundPosition: '0 60px' }}>
       {rows.map((r, i) => (
@@ -257,7 +256,7 @@ export const NumbersArt: React.FC = () => {
         <div>
           <div style={{ fontSize: 22, fontWeight: 700, color: '#8a96a3', letterSpacing: '0.05em' }}>TELEGRAM · ПЕКАРНЯ</div>
           <div style={{ fontSize: 30, fontWeight: 800, color: '#111', marginTop: 4 }}>📄 Отчёт смены 27.10.pdf</div>
-          <div style={{ fontSize: 24, fontWeight: 500, color: '#555', marginTop: 2 }}>23 заказа · выручка 296.3 · средний чек 13</div>
+          <div style={{ fontSize: 24, fontWeight: 500, color: '#555', marginTop: 2 }}>29 заказов · выручка 345.70 · средний чек 11.92</div>
         </div>
       </div>
       <Sfx at={70} name="pop" volume={0.7} />
@@ -589,7 +588,7 @@ export const AnalyticsArt: React.FC = () => {
         <div>
           <div style={{ fontSize: 22, fontWeight: 700, color: '#8a96a3', letterSpacing: '0.05em' }}>TELEGRAM · ПЕКАРНЯ</div>
           <div style={{ fontSize: 30, fontWeight: 800, color: '#111', marginTop: 4 }}>📄 Отчёт смены 27.10.pdf</div>
-          <div style={{ fontSize: 24, fontWeight: 500, color: '#555', marginTop: 2 }}>23 заказа · выручка 296.3 · средний чек 13</div>
+          <div style={{ fontSize: 24, fontWeight: 500, color: '#555', marginTop: 2 }}>29 заказов · выручка 345.70 · средний чек 11.92</div>
         </div>
       </div>
       <Sfx at={44} name="whoosh" volume={0.3} />
@@ -634,5 +633,53 @@ export const KassaArt: React.FC = () => {
       ))}
       <Sfx at={24 + digits.length * 3 + 2} name="chime" volume={0.6} />
     </Laptop>
+  );
+};
+
+/** 10 — closing the shift: cash and terminal against the system, the gap explained, then «Закрыть смену». */
+export const ReconcileArt: React.FC = () => {
+  const frame = useCurrentFrame();
+  // Four real states of the «Сверка» tab; each one eases in from the whole page to its detail.
+  const phase = frame < 34 ? 0 : frame < 82 ? 1 : frame < 120 ? 2 : 3;
+  const starts = [4, 34, 82, 120];
+  const t = easeInOut(interpolate(frame, [starts[phase], starts[phase] + 16], [phase === 0 ? 0 : 0.35, 1], clamp));
+  const shots = [
+    { name: 'c1-recon-input', fx: 590, fy: 440, zoom: 1.3 },
+    { name: 'c2-recon-result', fx: 900, fy: 560, zoom: 1.55 },
+    { name: 'c3-recon-reason', fx: 756, fy: 480, zoom: 1.5 },
+    { name: 'c4-recon-closed', fx: 1050, fy: 640, zoom: 1.5 },
+  ];
+  const s = shots[phase];
+  const scale = 1 + (s.zoom - 1) * t;
+  // The card row that doesn't match, in capture pixels.
+  const ROW = { x: 53, y: 612, w: 1406, h: 66 };
+  const ring = spring({ frame: frame - 46, fps: 30, config: { stiffness: 220, damping: 14 } });
+  const doc = spring({ frame: frame - 150, fps: 30, config: { stiffness: 220, damping: 18 } });
+  return (
+    <>
+      <Laptop>
+        <LaptopScreen name={s.name} t={t} fx={s.fx} fy={s.fy} zoom={s.zoom}>
+          {phase === 0 && <Cursor x={756} y={519} from={6} click={28} scale={scale} />}
+          {phase === 1 && (
+            <div style={{ position: 'absolute', left: lpx(ROW.x), top: lpx(ROW.y), width: lpx(ROW.w), height: lpx(ROW.h), borderRadius: lpx(14), border: `${lpx(3)}px solid ${C.orange}`, boxShadow: `0 0 ${lpx(18)}px rgba(208,105,42,0.45)`, opacity: ring, transform: `scale(${1.04 - ring * 0.04})` }} />
+          )}
+          {phase === 2 && <Cursor x={871} y={658} from={88} click={112} scale={scale} />}
+          {phase === 3 && <Cursor x={1240} y={675} from={124} click={144} scale={scale} />}
+        </LaptopScreen>
+      </Laptop>
+      <div style={{ position: 'absolute', left: LP.x + LP.w - 660, top: LP_Y + 30, width: 640, padding: '24px 28px', borderRadius: 26, background: '#fff', boxShadow: '0 30px 60px rgba(45,21,5,0.25)', fontFamily: SANS, display: 'flex', gap: 22, alignItems: 'center', transform: `translateY(${(1 - doc) * 60}px)`, opacity: doc }}>
+        <div style={{ width: 74, height: 74, borderRadius: 37, background: '#2AABEE', color: '#fff', fontSize: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>✈</div>
+        <div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: '#8a96a3', letterSpacing: '0.05em' }}>TELEGRAM · ПЕКАРНЯ</div>
+          <div style={{ fontSize: 30, fontWeight: 800, color: '#111', marginTop: 4 }}>📄 Отчёт смены 27.10.pdf</div>
+          <div style={{ fontSize: 24, fontWeight: 500, color: '#555', marginTop: 2 }}>Сверка: карта −2.50 руб — возврат по терминалу</div>
+        </div>
+      </div>
+      <Sfx at={28} name="tap" volume={0.9} />
+      <Sfx at={46} name="pop" volume={0.5} />
+      <Sfx at={112} name="tap" volume={0.9} />
+      <Sfx at={144} name="tap" volume={0.9} />
+      <Sfx at={150} name="ding" volume={0.6} />
+    </>
   );
 };
