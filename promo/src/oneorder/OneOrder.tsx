@@ -33,38 +33,43 @@ const CALLS = [
   { q: '«Мой заказ приняли?»', end: ACCEPT + 92 },
   { q: '«Ну что, готово?»', end: READY_AT + 56 },
   { q: '«Вам всё понравилось?»', end: RATING + 120 },
-  { q: '«Сколько сегодня наторговали?»', end: NUMBERS + 70 },
-  { q: '«Почему касса не сходится?»', end: RECON + 160 },
-];
-const RING_AT = (i: number) => 10 + i * 14;
+  // The evening calls come in at their own time, already in the list.
+  { q: '«Сколько сегодня наторговали?»', end: NUMBERS + 70, at: NUMBERS + 10 },
+  { q: '«Почему касса не сходится?»', end: RECON + 160, at: RECON + 10 },
+] as { q: string; end: number; at?: number }[];
+const RING_AT = (i: number) => CALLS[i].at ?? 10 + i * 16;
+const MORNING = CALLS.filter((c) => c.at === undefined).length;
 // Where each call sits in the dark opening, before it settles into the list.
 const SCATTER = [
-  [1060, 150], [1280, 300], [980, 430], [1240, 560], [1000, 700], [1290, 830], [1080, 950],
+  [1060, 170], [1300, 350], [1000, 530], [1260, 710], [1040, 880], [120, 0], [120, 0],
 ];
 const LIST_Y = 610;
 const ROW = 50;
 
 const Rings: React.FC = () => (
   <>
-    {CALLS.map((c, i) => {
+    {CALLS.slice(0, MORNING).map((c, i) => {
       const from = RING_AT(i);
+      const stop = ORDER - 4;
       return (
         <React.Fragment key={i}>
-          <Sequence from={from} durationInFrames={c.end - from + 8} layout="none">
+          <Sequence from={from} durationInFrames={stop - from} layout="none">
             <Audio
               src={staticFile(`sfx/ring${(i % 4) + 1}.wav`)}
               loop
-              volume={(f) => {
-                const g = f + from;
-                const base = interpolate(g, [ORDER - 30, ORDER + 20], [0.3, 0.1], clamp);
-                return base * interpolate(f, [c.end - from, c.end - from + 8], [1, 0], clamp);
-              }}
+              volume={(f) => 0.3 * interpolate(f + from, [ORDER - 50, stop], [1, 0], clamp)}
             />
           </Sequence>
-          <Sfx at={c.end} name="hangup" volume={0.45} />
         </React.Fragment>
       );
     })}
+    {CALLS.map((c) => (
+      <Sfx key={c.end} at={c.end} name="hangup" volume={0.25} />
+    ))}
+    {/* An evening call only buzzes once: no more ringing after the morning. */}
+    {CALLS.filter((c) => c.at !== undefined).map((c) => (
+      <Sfx key={c.at} at={c.at as number} name="buzz" volume={0.3} />
+    ))}
   </>
 );
 
@@ -78,7 +83,7 @@ const Call: React.FC<{ i: number; morph: number }> = ({ i, morph }) => {
   const strike = interpolate(frame, [c.end, c.end + 10], [0, 1], clamp);
   const ringing = frame < c.end;
   const pulse = ringing ? 0.5 + 0.5 * Math.sin(frame / 3) : 0;
-  const m = morph;
+  const m = c.at !== undefined ? 1 : morph;
   const left = lerp(SCATTER[i][0], 120, m) + shake;
   const top = lerp(SCATTER[i][1], LIST_Y + i * ROW, m);
   const w = lerp(600, 660, m);
