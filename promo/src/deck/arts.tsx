@@ -300,13 +300,13 @@ export const StaffArt: React.FC = () => {
 
 /* ───────────── CRM button → Telegram: the real flow, with the server's own texts ───────────── */
 
-type Line = { t: string; b?: boolean };
-type Msg = { lines: Line[]; time: string; at: number; goneAt?: number; out?: boolean; keyboard?: string[]; pressed?: { key: number; at: number } };
+export type Line = { t: string; b?: boolean };
+export type Msg = { lines: Line[]; time: string; at: number; goneAt?: number; out?: boolean; keyboard?: string[]; pressed?: { key: number; at: number } };
 
 const RULE = '━━━━━━━━━━━━━━━━━━━━';
 // server.ts → updateOrderStatusInternal, status «Принят»: the receipt, then the greeting.
 // The order's content is stored by the bot as «◆ name xN — price Br» lines and sent as is.
-const RECEIPT: Line[] = [
+export const RECEIPT: Line[] = [
   { t: '🧾 ВАШ САМОВЫВОЗ №1244', b: true },
   { t: RULE },
   { t: '👤 Аня' },
@@ -320,12 +320,12 @@ const RECEIPT: Line[] = [
   { t: RULE },
   { t: '💰 Итого: 8.2 р.', b: true },
 ];
-const GREETING: Line[] = [{ t: '✅ Здравствуйте, Аня! 🥐', b: true }, { t: 'Ваш заказ №1244 принят и уже готовится.' }, { t: 'Мы уведомим вас о готовности.' }];
+export const GREETING: Line[] = [{ t: '✅ Здравствуйте, Аня! 🥐', b: true }, { t: 'Ваш заказ №1244 принят и уже готовится.' }, { t: 'Мы уведомим вас о готовности.' }];
 // Status «Готов», pickup: the greeting is deleted and this one is sent instead.
-const READY: Line[] = [{ t: '🍞 Ваш заказ №1244 готов!', b: true }, { t: 'Ждём вас по адресу:' }, { t: '📍 г. Витебск, ул. Ленина 74' }];
+export const READY: Line[] = [{ t: '🍞 Ваш заказ №1244 готов!', b: true }, { t: 'Ждём вас по адресу:' }, { t: '📍 г. Витебск, ул. Ленина 74' }];
 
 /** The customer's Telegram chat with the bot, drawn at the phone's own screen size. */
-const TgChat: React.FC<{ messages: Msg[] }> = ({ messages }) => {
+export const TgChat: React.FC<{ messages: Msg[] }> = ({ messages }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   return (
@@ -374,7 +374,7 @@ const TgChat: React.FC<{ messages: Msg[] }> = ({ messages }) => {
 };
 
 /** A macOS arrow that glides to (x, y) on the CRM capture and clicks at `click`. */
-const Cursor: React.FC<{ x: number; y: number; from: number; click: number; scale: number }> = ({ x, y, from, click, scale }) => {
+export const Cursor: React.FC<{ x: number; y: number; from: number; click: number; scale: number }> = ({ x, y, from, click, scale }) => {
   const frame = useCurrentFrame();
   const t = easeInOut(interpolate(frame, [from, click - 4], [0, 1], clamp));
   const cx = x + (1 - t) * 420;
@@ -393,8 +393,8 @@ const Cursor: React.FC<{ x: number; y: number; from: number; click: number; scal
 };
 
 // The #1244 card and its first button, in CRM capture pixels (see the capture script).
-const CARD = { x: 100, y: 137, w: 294, h: 612 };
-const BUTTON = { x: 192, y: 694 };
+export const CARD = { x: 100, y: 137, w: 294, h: 612 };
+export const BUTTON = { x: 192, y: 694 };
 
 /** Laptop with the order card, zoomed in; the cursor presses a button and the card moves on. */
 const CrmClick: React.FC<{ before: string; after: string; click: number }> = ({ before, after, click }) => {
@@ -414,7 +414,7 @@ const CrmClick: React.FC<{ before: string; after: string; click: number }> = ({ 
 };
 
 /** A smaller phone in front of the laptop, on the right: the customer's side of the same moment. */
-const SidePhone: React.FC<{ at: number; focus: number; children: React.ReactNode }> = ({ at, focus, children }) => {
+export const SidePhone: React.FC<{ at: number; focus: number; children: React.ReactNode }> = ({ at, focus, children }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const p = spring({ frame: frame - at, fps, config: { stiffness: 150, damping: 18 } });
@@ -430,7 +430,7 @@ const SidePhone: React.FC<{ at: number; focus: number; children: React.ReactNode
 
 /** 03 — «Принять заказ» in the CRM; the bot sends the receipt and the greeting. */
 /** Pushes the laptop back while the phone has the floor. */
-const Back: React.FC<{ focus: number; children: React.ReactNode }> = ({ focus, children }) => (
+export const Back: React.FC<{ focus: number; children: React.ReactNode }> = ({ focus, children }) => (
   <div style={{ position: 'absolute', inset: 0, opacity: 1 - 0.5 * focus, transform: `translateX(${-60 * focus}px) scale(${1 - 0.05 * focus})`, transformOrigin: '1300px 540px' }}>{children}</div>
 );
 
@@ -505,10 +505,10 @@ export const PreorderArt: React.FC = () => {
 };
 
 // server.ts → sendRatingMessage and the review flow in the webhook handler.
-const ISSUED: Line[] = [{ t: '✅ Ваш заказ №1244 выдан!', b: true }, { t: 'Спасибо, что выбрали нас!' }, { t: '' }, { t: '⭐ Оцените качество обслуживания:', b: true }];
-const RATED: Line[] = [{ t: '⭐ Вы поставили оценку 5/5!' }, { t: '' }, { t: '💬 Напишите ваш отзыв', b: true }, { t: 'или отправьте /skip чтобы пропустить' }];
-const REVIEW = 'Перепечи — просто огонь! И всё было готово ровно к 14:30, спасибо 🙌';
-const THANKS: Line[] = [{ t: '🙏 Спасибо за отзыв!', b: true }, { t: 'Мы ценим ваше мнение.' }];
+export const ISSUED: Line[] = [{ t: '✅ Ваш заказ №1244 выдан!', b: true }, { t: 'Спасибо, что выбрали нас!' }, { t: '' }, { t: '⭐ Оцените качество обслуживания:', b: true }];
+export const RATED: Line[] = [{ t: '⭐ Вы поставили оценку 5/5!' }, { t: '' }, { t: '💬 Напишите ваш отзыв', b: true }, { t: 'или отправьте /skip чтобы пропустить' }];
+export const REVIEW = 'Перепечи — просто огонь! И всё было готово ровно к 14:30, спасибо 🙌';
+export const THANKS: Line[] = [{ t: '🙏 Спасибо за отзыв!', b: true }, { t: 'Мы ценим ваше мнение.' }];
 
 /** 07 — «Выдать клиенту» → the bot asks for stars → a review comes back. */
 export const RatingArt: React.FC = () => {
