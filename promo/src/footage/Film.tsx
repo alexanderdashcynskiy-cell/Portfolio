@@ -67,7 +67,7 @@ const homography = (w: number, h: number, q: number[][]) => {
 };
 
 /** The tracked quad at a video time, in output pixels, grown a hair to cover the green edge. */
-const quadAt = (track: Track, t: number) => {
+const quadAt = (track: Track, t: number, grow: number) => {
   const x = (t - track.start) * track.fps;
   const i = Math.max(0, Math.min(track.quads.length - 1, Math.floor(x)));
   const j = Math.min(track.quads.length - 1, i + 1);
@@ -75,7 +75,7 @@ const quadAt = (track: Track, t: number) => {
   const q = track.quads[i].map((p, k) => [lerp(p[0], track.quads[j][k][0], fr) * K, lerp(p[1], track.quads[j][k][1], fr) * K]);
   const cx = q.reduce((s, p) => s + p[0], 0) / 4;
   const cy = q.reduce((s, p) => s + p[1], 0) / 4;
-  return q.map(([px, py]) => [cx + (px - cx) * 1.012, cy + (py - cy) * 1.012]);
+  return q.map(([px, py]) => [cx + (px - cx) * grow, cy + (py - cy) * grow]);
 };
 
 type Cam = { z: number; cx: number; cy: number };
@@ -94,11 +94,14 @@ const Shot: React.FC<{
   radius?: number;
   cam?: (f: number) => Cam;
   screen?: React.CSSProperties;
+  grow?: number;
+  /** The same footage with the screen cut out (footage/masks.py), laid over the new screen. */
+  cutout?: string;
   children: React.ReactNode;
-}> = ({ src, track, from, rate, cw, ch, radius = 0, cam, screen, children }) => {
+}> = ({ src, track, from, rate, cw, ch, radius = 0, cam, screen, grow = 1.012, cutout, children }) => {
   const frame = useCurrentFrame();
   const t = from + (frame / 30) * rate;
-  const q = quadAt(track, t);
+  const q = quadAt(track, t, grow);
   const c = cam ? cam(frame) : { z: 1, cx: 960, cy: 540 };
   const tx = Math.min(0, Math.max(1920 - 1920 * c.z, 960 - c.cx * c.z));
   const ty = Math.min(0, Math.max(1080 - 1080 * c.z, 540 - c.cy * c.z));
@@ -106,11 +109,14 @@ const Shot: React.FC<{
     <AbsoluteFill style={{ overflow: 'hidden', background: '#000' }}>
       <div style={{ position: 'absolute', inset: 0, transformOrigin: '0 0', transform: `translate(${tx}px, ${ty}px) scale(${c.z})` }}>
         <OffthreadVideo src={staticFile(src)} startFrom={Math.round(from * 30)} playbackRate={rate} muted style={{ position: 'absolute', inset: 0, width: 1920, height: 1080 }} />
-        <div style={{ position: 'absolute', left: 0, top: 0, width: cw, height: ch, transformOrigin: '0 0', transform: homography(cw, ch, q), borderRadius: radius, overflow: 'hidden', ...screen }}>
-          {children}
-          {/* A faint glass sheen so the screen sits in the room */}
-          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(120deg, rgba(255,255,255,0.10), rgba(255,255,255,0) 40%, rgba(0,0,0,0.06))' }} />
+        <div style={{ position: 'absolute', inset: 0 }}>
+          <div style={{ position: 'absolute', left: 0, top: 0, width: cw, height: ch, transformOrigin: '0 0', transform: homography(cw, ch, q), borderRadius: radius, overflow: 'hidden', ...screen }}>
+            {children}
+            {/* A faint glass sheen so the screen sits in the room */}
+            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(120deg, rgba(255,255,255,0.10), rgba(255,255,255,0) 40%, rgba(0,0,0,0.06))' }} />
+          </div>
         </div>
+        {cutout && <OffthreadVideo src={staticFile(cutout)} startFrom={Math.round(from * 30)} playbackRate={rate} muted transparent style={{ position: 'absolute', inset: 0, width: 1920, height: 1080 }} />}
       </div>
     </AbsoluteFill>
   );
@@ -189,16 +195,15 @@ const IncomingCall: React.FC = () => {
   const p = interpolate(local, [0, 8], [0, 1], clamp);
   const pulse = 0.5 + 0.5 * Math.sin(frame / 3);
   return (
-    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, #2b2f36, #121418)', fontFamily: SANS, color: '#fff' }}>
-      <div style={{ position: 'absolute', left: 14, top: 140, width: 30, height: 116, borderRadius: 15, background: '#000' }} />
-      <div style={{ position: 'absolute', left: 90, top: 70, opacity: p }}>
-        <div style={{ fontSize: 26, color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>Входящий вызов…</div>
-        <div style={{ fontSize: 44, fontWeight: 700, marginTop: 6 }}>{NUMBERS[i]}</div>
-        <div style={{ fontSize: 34, fontWeight: 600, marginTop: 36, color: '#FFD9A8' }}>«{CALL_QUOTES[i]}»</div>
+    <div style={{ position: 'absolute', inset: 0, background: '#191c21', fontFamily: SANS, color: '#fff' }}>
+      <div style={{ position: 'absolute', left: 78, top: 58, opacity: p }}>
+        <div style={{ fontSize: 30, color: 'rgba(255,255,255,0.65)', fontWeight: 600 }}>Входящий вызов</div>
+        <div style={{ fontSize: 58, fontWeight: 700, marginTop: 4, letterSpacing: '-0.01em' }}>{NUMBERS[i]}</div>
+        <div style={{ fontSize: 38, fontWeight: 600, marginTop: 28, color: '#FFD9A8', maxWidth: 560 }}>«{CALL_QUOTES[i]}»</div>
       </div>
-      <div style={{ position: 'absolute', right: 70, top: 90, display: 'flex', flexDirection: 'column', gap: 40 }}>
-        <div style={{ width: 96, height: 96, borderRadius: 48, background: '#34C759', boxShadow: `0 0 0 ${8 + pulse * 14}px rgba(52,199,89,0.25)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 46 }}>✆</div>
-        <div style={{ width: 96, height: 96, borderRadius: 48, background: '#FF3B30', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 46, transform: 'rotate(135deg)' }}>✆</div>
+      <div style={{ position: 'absolute', right: 50, top: 84, display: 'flex', flexDirection: 'column', gap: 34 }}>
+        <div style={{ width: 92, height: 92, borderRadius: 46, background: '#34C759', boxShadow: `0 0 0 ${8 + pulse * 14}px rgba(52,199,89,0.25)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 44 }}>✆</div>
+        <div style={{ width: 92, height: 92, borderRadius: 46, background: '#FF3B30', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 44, transform: 'rotate(135deg)' }}>✆</div>
       </div>
     </div>
   );
@@ -230,7 +235,7 @@ const Caption: React.FC<{ from: number; to: number; time: string; title: React.R
           const strike = interpolate(frame, [c.at, c.at + 10], [0, 1], clamp);
           const ringing = frame < c.at;
           return (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14, opacity: inP, fontFamily: SANS, fontSize: 28, fontWeight: 600, color: '#FFF8EE' }}>
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14, whiteSpace: 'nowrap', opacity: inP, fontFamily: SANS, fontSize: 28, fontWeight: 600, color: '#FFF8EE' }}>
               <div style={{ width: 36, height: 36, borderRadius: 18, background: ringing ? C.orange : 'rgba(255,255,255,0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, boxShadow: ringing ? `0 0 0 ${4 + 5 * (0.5 + 0.5 * Math.sin(frame / 3))}px rgba(208,105,42,0.3)` : undefined }}>{ringing ? '✆' : '✓'}</div>
               <span style={{ textShadow: '0 2px 12px rgba(0,0,0,0.6)', opacity: 1 - 0.4 * strike, textDecorationLine: 'line-through', textDecorationThickness: 3, textDecorationColor: `rgba(240,154,91,${strike})` }}>«{c.q}»</span>
               <span style={{ fontFamily: MONO, fontSize: 20, color: '#F3B27A', opacity: strike, letterSpacing: '0.08em' }}>— БЕЗ ЗВОНКА</span>
@@ -245,16 +250,43 @@ const Caption: React.FC<{ from: number; to: number; time: string; title: React.R
 /** A message card pinned top right: Telegram, or the CRM's own figure. */
 const Note: React.FC<{ at: number; until: number; icon: string; head: string; title: string; sub: string; color?: string }> = ({ at, until, icon, head, title, sub, color = '#2AABEE' }) => {
   const frame = useCurrentFrame();
-  const p = spring({ frame: frame - at, fps: 30, config: { stiffness: 220, damping: 18 } });
-  const out = interpolate(frame, [until, until + 10], [1, 0], clamp);
-  if (frame < at || frame > until + 10) return null;
+  const p = spring({ frame: frame - at, fps: 30, config: { stiffness: 170, damping: 20 } });
+  const out = interpolate(frame, [until, until + 12], [1, 0], clamp);
+  if (frame < at || frame > until + 12) return null;
+  const o = Math.min(p, out);
+  // A system banner on frosted glass: the room shows through it, so it sits in the picture.
   return (
-    <div style={{ position: 'absolute', right: 80, top: 70, width: 640, padding: '24px 28px', borderRadius: 26, background: 'rgba(255,255,255,0.96)', boxShadow: '0 30px 60px rgba(0,0,0,0.35)', fontFamily: SANS, display: 'flex', gap: 22, alignItems: 'center', transform: `translateY(${(1 - p) * -50}px)`, opacity: Math.min(p, out) }}>
-      <div style={{ width: 74, height: 74, borderRadius: 37, background: color, color: '#fff', fontSize: 34, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{icon}</div>
-      <div>
-        <div style={{ fontSize: 22, fontWeight: 700, color: '#8a96a3', letterSpacing: '0.05em' }}>{head}</div>
-        <div style={{ fontSize: 30, fontWeight: 800, color: '#111', marginTop: 4 }}>{title}</div>
-        <div style={{ fontSize: 24, fontWeight: 500, color: '#555', marginTop: 2 }}>{sub}</div>
+    <div
+      style={{
+        position: 'absolute',
+        right: 72,
+        top: 64,
+        width: 540,
+        padding: '18px 22px',
+        borderRadius: 24,
+        background: 'rgba(28,20,14,0.38)',
+        backdropFilter: 'blur(26px) saturate(150%)',
+        border: '1px solid rgba(255,255,255,0.16)',
+        boxShadow: '0 18px 44px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.12)',
+        fontFamily: SANS,
+        color: '#FFF8EE',
+        display: 'flex',
+        gap: 16,
+        alignItems: 'flex-start',
+        opacity: o,
+        transform: `translateY(${(1 - p) * -28}px) scale(${0.97 + 0.03 * p})`,
+        transformOrigin: '50% 0',
+        filter: o < 0.98 ? `blur(${(1 - o) * 6}px)` : undefined,
+      }}
+    >
+      <div style={{ width: 46, height: 46, borderRadius: 12, background: color, color: '#fff', fontSize: 22, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>{icon}</div>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 17, fontWeight: 600, letterSpacing: '0.04em', color: 'rgba(255,248,238,0.6)' }}>
+          <span>{head}</span>
+          <span style={{ letterSpacing: 0 }}>сейчас</span>
+        </div>
+        <div style={{ fontSize: 24, fontWeight: 700, marginTop: 4 }}>{title}</div>
+        <div style={{ fontSize: 20, fontWeight: 500, color: 'rgba(255,248,238,0.78)', marginTop: 2 }}>{sub}</div>
       </div>
     </div>
   );
@@ -271,7 +303,7 @@ const BTN = { x: 192, y: 694 };
 
 const Opening: React.FC = () => (
   <>
-    <Shot src="footage/v1.mp4" track={v1 as Track} from={0} rate={1} cw={860} ch={397} radius={60} cam={(f) => push(f, 0, 240, 1.18, 1000, 760)} screen={{ filter: 'brightness(0.92)' }}>
+    <Shot src="footage/v1-clean.mp4" track={v1 as Track} from={0} rate={1} cw={860} ch={397} radius={60} grow={1.06} cutout="footage/v1-cutout.webm" cam={(f) => push(f, 0, 240, 1.18, 1000, 760)} screen={{ filter: 'brightness(0.95)', boxShadow: '0 0 0 160px #191c21' }}>
       <IncomingCall />
     </Shot>
   </>
@@ -393,7 +425,6 @@ export const Film: React.FC = () => {
     <AbsoluteFill style={{ background: '#000', opacity: fadeOut }}>
       <Sequence from={S1} durationInFrames={S2 - S1}>
         <Opening />
-        <Shade />
         <OpeningWords />
       </Sequence>
 
