@@ -288,6 +288,26 @@ const Note: React.FC<{ at: number; until: number; icon: string; head: string; ti
 /** Darkens the bottom left so the words read over any footage. */
 const Shade: React.FC = () => <AbsoluteFill style={{ background: 'linear-gradient(to top, rgba(10,6,3,0.72) 0%, rgba(10,6,3,0.25) 38%, rgba(10,6,3,0) 60%)' }} />;
 
+/*
+ * The voice (public/voice-film.mp3), cut into phrases by word timings from a speech recogniser:
+ * [frame in the film, start s, end s]. Each phrase lands on the moment it describes.
+ */
+const VOICE: [number, number, number][] = [
+  [S1 + 16, 0.0, 5.3], // Восемь утра. Руки в тесте — а телефон уже звонит. И так весь день.
+  [S2 + 4, 5.65, 6.85], // А теперь иначе.
+  [S2 + 40, 7.1, 11.9], // Аня заказывает сама, в Телеграме: выбрала, указала время — готово.
+  [S3 + 30, 12.05, 14.05], // Заказ сразу у вас на экране.
+  [S3 + 110, 14.2, 17.75], // Одно нажатие — и Аня уже получила чек и подтверждение.
+  [S4 + 10, 17.9, 20.05], // Готово — бот напишет ей сам.
+  [S4 + 66, 20.17, 22.7], // А после выдачи попросит оценку и отзыв.
+  [S5 + 8, 22.88, 24.9], // На отзыв — ответ в один клик.
+  [S5 + 100, 25.0, 27.35], // А её восемь двадцать уже в выручке.
+  [S6 + 12, 27.55, 30.65], // Вечером — сверка кассы и отчёт смены в Телеграм.
+  [S6 + 176, 30.8, 32.55], // Минута — и смена закрыта.
+  [S7 + 30, 32.65, 34.6], // Телефон молчит. Можно печь.
+];
+const speaking = (f: number) => VOICE.some(([at, a, b]) => f >= at - 6 && f <= at + (b - a) * 30 + 6);
+
 /* ───────────── The film ───────────── */
 
 // The card's slot on the CRM board, in capture pixels.
@@ -468,10 +488,16 @@ export const Film: React.FC = () => {
       <Caption from={S5 + 100} to={S6} time="18:00 · выручка" title={<>Её 8.20 — <Accent color="#F3B27A">уже в выручке.</Accent></>} calls={[{ q: 'Сколько сегодня наторговали?', at: S5 + 124 }]} />
       <Caption from={S6} to={S7} time="21:00 · закрытие смены" title={<>Смена закрыта <Accent color="#F3B27A">за минуту.</Accent></>} calls={[{ q: 'Почему касса не сходится?', at: S6 + 150 }]} />
 
+      {VOICE.map(([at, a, b], i) => (
+        <Sequence key={i} from={at} durationInFrames={Math.round((b - a) * 30) + 4} layout="none">
+          <Audio src={staticFile('voice-film.mp3')} startFrom={Math.round(a * 30)} endAt={Math.round(b * 30) + 4} />
+        </Sequence>
+      ))}
+
       {/* Sound: the morning rings, then only the product */}
       {[0, 1, 2, 3].map((i) => (
         <Sequence key={i} from={10 + i * 22} durationInFrames={S2 - 10 - i * 22} layout="none">
-          <Audio src={staticFile(`sfx/ring${i + 1}.wav`)} loop volume={(f) => 0.32 * interpolate(f + 10 + i * 22, [S2 - 50, S2 - 4], [1, 0], clamp)} />
+          <Audio src={staticFile(`sfx/ring${i + 1}.wav`)} loop volume={(f) => (speaking(f + 10 + i * 22) ? 0.14 : 0.32) * interpolate(f + 10 + i * 22, [S2 - 50, S2 - 4], [1, 0], clamp)} />
         </Sequence>
       ))}
       {[S2 + 120, S2 + 176, S3 + 162, S4 + 22, S4 + 136, S5 + 124, S6 + 150].map((at) => (
@@ -491,7 +517,7 @@ export const Film: React.FC = () => {
       <Sfx at={S5 + 118} name="chime" volume={0.4} />
       <Sfx at={S6 + 186} name="ding" volume={0.55} />
       <Sequence from={S7 + 20} layout="none">
-        <Audio src={staticFile('music-deck.mp3')} volume={(f) => 0.3 * interpolate(f, [0, 45], [0, 1], clamp) * interpolate(f, [FILM_FRAMES - S7 - 70, FILM_FRAMES - S7 - 30], [1, 0], clamp)} />
+        <Audio src={staticFile('music-deck.mp3')} volume={(f) => (speaking(f + S7 + 20) ? 0.14 : 0.3) * interpolate(f, [0, 45], [0, 1], clamp) * interpolate(f, [FILM_FRAMES - S7 - 70, FILM_FRAMES - S7 - 30], [1, 0], clamp)} />
       </Sequence>
     </AbsoluteFill>
   );
