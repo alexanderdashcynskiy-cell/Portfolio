@@ -325,22 +325,22 @@ export const GREETING: Line[] = [{ t: '✅ Здравствуйте, Аня! �
 export const READY: Line[] = [{ t: '🍞 Ваш заказ №1244 готов!', b: true }, { t: 'Ждём вас по адресу:' }, { t: '📍 г. Витебск, ул. Ленина 74' }];
 
 /** The customer's Telegram chat with the bot, drawn at the phone's own screen size. */
-export const TgChat: React.FC<{ messages: Msg[] }> = ({ messages }) => {
+export const TgChat: React.FC<{ messages: Msg[]; bare?: boolean }> = ({ messages, bare }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   return (
     <div style={{ position: 'absolute', inset: 0, background: '#DDE5D7', fontFamily: SANS }}>
       <div style={{ position: 'absolute', inset: 0, opacity: 0.18, backgroundImage: 'radial-gradient(#7d9a6b 1px, transparent 1px)', backgroundSize: '16px 16px' }} />
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 120, background: 'rgba(250,250,250,0.97)', borderBottom: '1px solid rgba(0,0,0,0.08)' }}>
-        <div style={{ position: 'absolute', top: 22, left: 44, fontWeight: 700, fontSize: 15 }}>14:02</div>
-        <div style={{ position: 'absolute', top: 18, left: '50%', width: 110, height: 32, marginLeft: -55, borderRadius: 18, background: '#000' }} />
-        <div style={{ position: 'absolute', top: 66, left: 0, right: 0, textAlign: 'center' }}>
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: bare ? 60 : 120, background: 'rgba(250,250,250,0.97)', borderBottom: '1px solid rgba(0,0,0,0.08)' }}>
+        {!bare && <div style={{ position: 'absolute', top: 22, left: 44, fontWeight: 700, fontSize: 15 }}>14:02</div>}
+        {!bare && <div style={{ position: 'absolute', top: 18, left: '50%', width: 110, height: 32, marginLeft: -55, borderRadius: 18, background: '#000' }} />}
+        <div style={{ position: 'absolute', top: bare ? 10 : 66, left: 0, right: 0, textAlign: 'center' }}>
           <div style={{ fontWeight: 700, fontSize: 17, color: '#111' }}>Пекарня</div>
           <div style={{ fontSize: 13, color: '#8a96a3' }}>бот</div>
         </div>
-        <div style={{ position: 'absolute', top: 62, right: 18, width: 42, height: 42, borderRadius: 21, background: 'linear-gradient(135deg,#E8B430,#C9A227)', color: '#fff', fontWeight: 800, fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>П</div>
+        <div style={{ position: 'absolute', top: bare ? 9 : 62, right: 18, width: 42, height: 42, borderRadius: 21, background: 'linear-gradient(135deg,#E8B430,#C9A227)', color: '#fff', fontWeight: 800, fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>П</div>
       </div>
-      <div style={{ position: 'absolute', left: 12, right: 12, bottom: 80, display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ position: 'absolute', left: bare ? 70 : 12, right: bare ? 70 : 12, bottom: bare ? 66 : 80, top: bare ? 64 : undefined, overflow: bare ? 'hidden' : undefined, justifyContent: 'flex-end', display: 'flex', flexDirection: 'column', gap: 8 }}>
         {messages.map((m, i) => {
           if (frame < m.at) return null;
           const p = spring({ frame: frame - m.at, fps, config: { stiffness: 220, damping: 18 } });

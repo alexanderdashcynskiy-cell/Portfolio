@@ -12,7 +12,7 @@ import { Back, BUTTON, CARD, Cursor, GREETING, ISSUED, RATED, READY, RECEIPT, RE
  */
 
 // Beats, in frames.
-const ORDER = 165;
+export const ORDER = 165;
 const ACCEPT = 415;
 const READY_AT = 615;
 const RATING = 765;
@@ -272,7 +272,7 @@ const CrmView: React.FC = () => {
 const P = (x: number, y: number) => ({ x: ppt(x), y: ppt(y) });
 const o = (n: number) => ORDER + n;
 
-const MiniApp: React.FC = () => {
+export const MiniApp: React.FC = () => {
   const frame = useCurrentFrame();
   const adds = [o(8), o(46), o(58)];
   const count = adds.filter((t) => frame >= t).length;
