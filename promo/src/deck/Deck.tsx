@@ -24,7 +24,6 @@ import {
   ReviewsArt,
   AnalyticsArt,
   KassaArt,
-  ReconcileArt,
 } from './arts';
 
 /*
@@ -116,25 +115,15 @@ const CHAPTERS = [
     minAfter: 124,
   },
   {
-    title: 'Аналитика',
-    short: 'Выручка, чек, часы, хиты, отчёт смены',
+    title: 'Аналитика и сверка кассы',
+    short: 'Выручка, хиты, сверка кассы, отчёт смены',
     before: 'Вечером сводить кассу и тетрадь вручную.',
-    benefit: <>Аналитика — <Accent>уже посчитана.</Accent></>,
-    line: 'Выручка, заказы, средний чек, пиковые часы, бестселлеры и лояльность — на дашборде. Отчёт смены приходит в Telegram.',
+    benefit: <>Смена — <Accent>сведена за минуту.</Accent></>,
+    line: 'Выручка, чек, часы и хиты — на дашборде. Сверка находит расхождение по наличным и карте, отчёт смены приходит в Telegram.',
     beforeArt: <SumsArt />,
     afterArt: <AnalyticsArt />,
-    minAfter: 132,
+    minAfter: 250,
     vo: 'Выручка, средний чек, отчёт смены — посчитаны сами и приходят вам в Телеграм.',
-  },
-  {
-    title: 'Сверка и закрытие смены',
-    short: 'Касса и терминал против системы',
-    before: 'Касса не сошлась — ищи, где потерялось.',
-    benefit: <>Расхождение — <Accent>видно сразу.</Accent></>,
-    line: 'Вводите наличные и сумму по терминалу — система сверяет по каждому способу оплаты. Без причины расхождения смену не закрыть.',
-    beforeArt: <SumsArt rows={['Касса — 127,36', 'Терминал — 215,84', 'В системе — 345,70', 'Не хватает 2,50… где?', 'Пересчитать ещё раз']} />,
-    afterArt: <ReconcileArt />,
-    minAfter: 176,
   },
   {
     title: 'Повторный заказ в два касания',
@@ -159,27 +148,32 @@ const CHAPTERS = [
 ];
 
 const sec = (s: number) => Math.round(s * 30);
+const OUTRO_AT = 91.35; // where the first take's last line is spliced onto the new one
 /*
  * The owner's own read of the script (public/voice-deck.mp3, cleaned and levelled), cut into
  * cues by word timings from a speech recogniser. [start, end] are seconds in that file.
  */
 const VO = {
-  title: [0.68, 5.85],
-  phone: [6.15, 9.6],
-  book: [9.85, 12.97],
-  turn: [13.3, 14.23],
+  title: [0.28, 5.02],
+  phone: [5.25, 8.76],
+  book: [8.94, 12.0],
+  turn: [12.25, 13.22],
+  // One [before, after] pair per chapter, in order.
   chapters: [
-    [[14.55, 16.59], [16.9, 20.66]],
-    [[20.8, 22.5], [22.55, 26.18]],
-    [[26.47, 27.93], [28.19, 32.1]],
-    [[32.39, 33.53], [33.79, 37.19]],
-    [[37.46, 38.68], [38.92, 42.21]],
-    [[42.48, 43.89], [44.07, 48.35]],
-    [[48.65, 49.92], [50.17, 53.91]],
-    [[54.24, 56.54], [56.83, 60.62]],
+    [[13.39, 15.35], [15.48, 19.28]],
+    [[19.48, 21.24], [21.42, 27.31]],
+    [[27.48, 30.08], [30.19, 32.77]],
+    [[32.92, 34.38], [34.5, 39.64]],
+    [[39.8, 40.97], [41.11, 45.14]],
+    [[45.28, 46.43], [46.6, 49.88]],
+    [[50.06, 52.73], [52.86, 56.92]],
+    [[57.04, 58.69], [58.8, 65.28]],
+    [[65.42, 66.86], [66.98, 73.21]],
+    [[73.36, 74.65], [74.79, 78.38]],
+    [[78.51, 80.1], [80.23, 84.34]],
   ],
-  summary: [64.4, 67.02], // «…теперь в одной системе для вашей пекарни» (the count changed: re-record the start)
-  outro: [67.24, 70.54],
+  summary: [84.54, 90.59],
+  outro: [OUTRO_AT, OUTRO_AT + 3.3], // «Руки — для теста. Заказы — для системы.» (from the first take: the new one stops short)
 } as const;
 
 /*
@@ -193,7 +187,7 @@ const PROBLEM_LEN = BOOK_AT + 2 + dur(VO.book) + 8;
 const TURN_LEN = 4 + dur(VO.turn) + 10;
 // The CRM → Telegram chapters need time for the messages to land and be read.
 // Which recorded line each chapter uses (index into VO.chapters); null = not recorded yet.
-const CH_VO: (number | null)[] = [0, null, 1, 2, 3, 4, null, null, 5, null, 6, null];
+const CH_VO: (number | null)[] = CHAPTERS.map((_, i) => i);
 const chVo = (i: number) => (CH_VO[i] === null ? null : VO.chapters[CH_VO[i] as number]);
 const minAfter = (i: number) => ((CHAPTERS[i] as { minAfter?: number }).minAfter ?? 0);
 const CH_AFTER = CHAPTERS.map((_, i) => { const v = chVo(i); return v ? Math.max(40, 4 + dur(v[0]) + 8) : 60; });
