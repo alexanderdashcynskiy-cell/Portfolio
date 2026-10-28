@@ -7,9 +7,9 @@ import { GREETING, ISSUED, RATED, READY, REVIEW, TgChat, THANKS } from '../deck/
 import { MiniApp, ORDER } from '../oneorder/OneOrder';
 import v1 from './tracks/v1.json';
 import v2 from './tracks/v2.json';
-import v3a from './tracks/v3a.json';
 import v3b from './tracks/v3b.json';
 import v4 from './tracks/v4.json';
+import v4tail from './tracks/v4tail.json';
 
 /*
  * «Один заказ» on generated bakery footage. Each green screen is tracked frame by frame
@@ -23,10 +23,10 @@ const S1 = 0; // dough, the phone ringing
 const S2 = 240; // Аня orders
 const S3 = 450; // CRM by day: the order lands, «Принять»
 const S4 = 750; // Аня's phone: «готов», stars, review
-const S5 = 1000; // CRM: the reply, the day's revenue
-const S6 = 1200; // evening: reconciliation, the shift closes
-const S7 = 1470; // dawn: silence
-export const FILM_FRAMES = 1730;
+const S5 = 945; // CRM: the reply, the day's revenue
+const S6 = 1145; // evening: reconciliation, the shift closes
+const S7 = 1415; // dawn: silence
+export const FILM_FRAMES = 1675;
 
 const ease = (f: number, a: number, b: number) => easeInOut(interpolate(f, [a, b], [0, 1], clamp));
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
@@ -210,14 +210,6 @@ const IncomingCall: React.FC = () => {
   );
 };
 
-/** Аня's phone held sideways: the bot's chat in landscape, with the camera island on the left. */
-const SideChat: React.FC<{ messages: React.ComponentProps<typeof TgChat>['messages'] }> = ({ messages }) => (
-  <div style={{ position: 'absolute', inset: 0 }}>
-    <TgChat messages={messages} bare />
-    <div style={{ position: 'absolute', left: 10, top: 101, width: 22, height: 84, borderRadius: 11, background: '#000' }} />
-  </div>
-);
-
 /* ───────────── Words on the picture ───────────── */
 
 /** The time, one plain sentence, and the call it replaced, struck out. */
@@ -361,11 +353,11 @@ const DayCrm: React.FC = () => {
 
 const CHAT = [
   { lines: GREETING, time: '14:02', at: -99, goneAt: 14 },
-  { lines: READY, time: '14:21', at: 22, goneAt: 150 },
-  { lines: ISSUED, time: '14:33', at: 92, goneAt: 140, keyboard: ['⭐ 1', '⭐ 2', '⭐ 3', '⭐ 4', '⭐ 5'], pressed: { key: 4, at: 128 } },
-  { lines: RATED, time: '14:33', at: 146, goneAt: 186 },
-  { lines: [{ t: REVIEW }], time: '14:34', at: 170, out: true },
-  { lines: THANKS, time: '14:34', at: 196 },
+  { lines: READY, time: '14:21', at: 18, goneAt: 118 },
+  { lines: ISSUED, time: '14:33', at: 70, goneAt: 110, keyboard: ['⭐ 1', '⭐ 2', '⭐ 3', '⭐ 4', '⭐ 5'], pressed: { key: 4, at: 100 } },
+  { lines: RATED, time: '14:33', at: 114, goneAt: 150 },
+  { lines: [{ t: REVIEW }], time: '14:34', at: 132, out: true },
+  { lines: THANKS, time: '14:34', at: 154 },
 ];
 
 const ReplyAndRevenue: React.FC = () => (
@@ -440,8 +432,9 @@ export const Film: React.FC = () => {
       </Sequence>
 
       <Sequence from={S4} durationInFrames={S5 - S4}>
-        <Shot src="footage/v3.mp4" track={v3a as Track} from={0} rate={1} cw={620} ch={286} radius={38} cam={(f) => push(f, 0, 40, 1.4, 760, 580)}>
-          <SideChat messages={CHAT} />
+        <Shot src="footage/v4-tail-clean.mp4" cutout="footage/v4-tail-cutout.webm" track={v4tail as Track} from={0} rate={1} cw={PH.w} ch={PH.h} radius={34} grow={1.03} cam={(f) => push(f, 0, 50, 1.28, 760, 560)} screen={{ boxShadow: '0 0 0 40px #F9F9F9' }}>
+          <TgChat messages={CHAT} />
+          <div style={{ position: 'absolute', left: ppt(130), top: 0, width: ppt(170), height: ppt(58), background: '#F9F9F9' }} />
         </Shot>
         <Shade />
       </Sequence>
@@ -469,8 +462,8 @@ export const Film: React.FC = () => {
       {/* Words, on the film's own clock */}
       <Caption from={S2} to={S3} time="14:02 · заказ №1244" title={<>Аня заказывает <Accent color="#F3B27A">сама.</Accent></>} calls={[{ q: 'Алло! Можно сделать заказ?', at: S2 + 120 }, { q: 'Как вас зовут? На сколько?', at: S2 + 176 }]} />
       <Caption from={S3} to={S4} time="14:03 · CRM" title={<>«Принять» — и Аня <Accent color="#F3B27A">уже знает.</Accent></>} calls={[{ q: 'Мой заказ приняли?', at: S3 + 162 }]} />
-      <Caption from={S4} to={S4 + 112} time="14:21 · готово" title={<>Готово — бот <Accent color="#F3B27A">напишет сам.</Accent></>} calls={[{ q: 'Ну что, готово?', at: S4 + 26 }]} />
-      <Caption from={S4 + 112} to={S5} time="14:33 · выдан" title={<>Пять звёзд — <Accent color="#F3B27A">без напоминаний.</Accent></>} calls={[{ q: 'Вам всё понравилось?', at: S4 + 176 }]} />
+      <Caption from={S4} to={S4 + 88} time="14:21 · готово" title={<>Готово — бот <Accent color="#F3B27A">напишет сам.</Accent></>} calls={[{ q: 'Ну что, готово?', at: S4 + 22 }]} />
+      <Caption from={S4 + 88} to={S5} time="14:33 · выдан" title={<>Пять звёзд — <Accent color="#F3B27A">без напоминаний.</Accent></>} calls={[{ q: 'Вам всё понравилось?', at: S4 + 136 }]} />
       <Caption from={S5} to={S5 + 100} time="14:40 · отзыв" title={<>Ответ на отзыв — <Accent color="#F3B27A">в один клик.</Accent></>} />
       <Caption from={S5 + 100} to={S6} time="18:00 · выручка" title={<>Её 8.20 — <Accent color="#F3B27A">уже в выручке.</Accent></>} calls={[{ q: 'Сколько сегодня наторговали?', at: S5 + 124 }]} />
       <Caption from={S6} to={S7} time="21:00 · закрытие смены" title={<>Смена закрыта <Accent color="#F3B27A">за минуту.</Accent></>} calls={[{ q: 'Почему касса не сходится?', at: S6 + 150 }]} />
@@ -481,7 +474,7 @@ export const Film: React.FC = () => {
           <Audio src={staticFile(`sfx/ring${i + 1}.wav`)} loop volume={(f) => 0.32 * interpolate(f + 10 + i * 22, [S2 - 50, S2 - 4], [1, 0], clamp)} />
         </Sequence>
       ))}
-      {[S2 + 120, S2 + 176, S3 + 162, S4 + 26, S4 + 176, S5 + 124, S6 + 150].map((at) => (
+      {[S2 + 120, S2 + 176, S3 + 162, S4 + 22, S4 + 136, S5 + 124, S6 + 150].map((at) => (
         <Sfx key={at} at={at} name="hangup" volume={0.25} />
       ))}
       {[S3 + 120, S5 + 40, S5 + 72, S6 + 50, S6 + 142, S6 + 178].map((at) => (
@@ -490,11 +483,11 @@ export const Film: React.FC = () => {
       <Sfx at={S3 + 34} name="whoosh" volume={0.3} />
       <Sfx at={S3 + 46} name="pop" volume={0.6} />
       <Sfx at={S3 + 160} name="ding" volume={0.55} />
-      <Sfx at={S4 + 22} name="ding" volume={0.55} />
-      <Sfx at={S4 + 92} name="ding" volume={0.5} />
-      <Sfx at={S4 + 128} name="tap" volume={0.7} />
-      <Sfx at={S4 + 170} name="pop" volume={0.5} />
-      <Sfx at={S4 + 196} name="pop" volume={0.5} />
+      <Sfx at={S4 + 18} name="ding" volume={0.55} />
+      <Sfx at={S4 + 70} name="ding" volume={0.5} />
+      <Sfx at={S4 + 100} name="tap" volume={0.7} />
+      <Sfx at={S4 + 132} name="pop" volume={0.5} />
+      <Sfx at={S4 + 154} name="pop" volume={0.5} />
       <Sfx at={S5 + 118} name="chime" volume={0.4} />
       <Sfx at={S6 + 186} name="ding" volume={0.55} />
       <Sequence from={S7 + 20} layout="none">
