@@ -16,7 +16,7 @@ import v4tail from './tracks/v4tail.json';
  * (footage/track.py); the product's real screens are warped onto it with a homography.
  */
 
-type Track = { fps: number; width: number; height: number; start: number; quads: number[][][] };
+export type Track = { fps: number; width: number; height: number; start: number; quads: number[][][] };
 
 // Shots, in frames.
 const S1 = 0; // dough, the phone ringing
@@ -51,7 +51,7 @@ const solve = (A: number[][], b: number[]) => {
 };
 
 /** The CSS matrix that maps a w×h box onto the quad (TL, TR, BR, BL). */
-const homography = (w: number, h: number, q: number[][]) => {
+export const homography = (w: number, h: number, q: number[][]) => {
   const src = [[0, 0], [w, 0], [w, h], [0, h]];
   const A: number[][] = [];
   const b: number[] = [];
@@ -68,7 +68,7 @@ const homography = (w: number, h: number, q: number[][]) => {
 };
 
 /** The tracked quad at a video time, in output pixels, grown a hair to cover the green edge. */
-const quadAt = (track: Track, t: number, grow: number) => {
+export const quadAt = (track: Track, t: number, grow: number) => {
   const x = (t - track.start) * track.fps;
   const i = Math.max(0, Math.min(track.quads.length - 1, Math.floor(x)));
   const j = Math.min(track.quads.length - 1, i + 1);
@@ -79,13 +79,13 @@ const quadAt = (track: Track, t: number, grow: number) => {
   return q.map(([px, py]) => [cx + (px - cx) * grow, cy + (py - cy) * grow]);
 };
 
-type Cam = { z: number; cx: number; cy: number };
+export type Cam = { z: number; cx: number; cy: number };
 
 /**
  * One piece of footage with its screen replaced. `cam` pushes in on the frame: the point
  * (cx, cy) moves to the centre at zoom z.
  */
-const Shot: React.FC<{
+export const Shot: React.FC<{
   src: string;
   track: Track;
   from: number;
@@ -123,7 +123,7 @@ const Shot: React.FC<{
   );
 };
 
-const push = (f: number, a: number, b: number, z: number, cx: number, cy: number, back?: [number, number, number]) => {
+export const push = (f: number, a: number, b: number, z: number, cx: number, cy: number, back?: [number, number, number]) => {
   const t = ease(f, a, b);
   const o = back ? ease(f, back[0], back[1]) : 0;
   const zz = lerp(lerp(1, z, t), back ? back[2] : 1, o);
@@ -133,7 +133,7 @@ const push = (f: number, a: number, b: number, z: number, cx: number, cy: number
 /* ───────────── Screens ───────────── */
 
 /** The CRM at capture size (1512×982): screenshots on a schedule, an inner zoom, clicks. */
-const Crm: React.FC<{
+export const Crm: React.FC<{
   shots: { at: number; name: string }[];
   zoom?: { at: number; fx: number; fy: number; z: number }[];
   clicks?: { at: number; x: number; y: number }[];
@@ -189,7 +189,7 @@ const Pointer: React.FC<{ x: number; y: number; at: number; scale: number }> = (
 /** The ringing phone on the table: incoming calls, one after another. */
 const CALL_QUOTES = ['Алло! Можно сделать заказ?', 'Как вас зовут? На сколько?', 'Мой заказ приняли?', 'Ну что, готово?', 'А медовик ещё есть?'];
 const NUMBERS = ['+375 (29) 614-22-07', '+375 (33) 902-18-55', '+375 (44) 771-03-61', '+375 (29) 350-48-12', '+375 (33) 447-90-26'];
-const IncomingCall: React.FC = () => {
+export const IncomingCall: React.FC = () => {
   const frame = useCurrentFrame();
   const i = Math.min(CALL_QUOTES.length - 1, Math.floor(frame / 44));
   const local = frame - i * 44;
@@ -213,7 +213,7 @@ const IncomingCall: React.FC = () => {
 /* ───────────── Words on the picture ───────────── */
 
 /** The time, one plain sentence, and the call it replaced, struck out. */
-const Caption: React.FC<{ from: number; to: number; time: string; title: React.ReactNode; calls?: { q: string; at: number }[]; dark?: boolean }> = ({ from, to, time, title, calls = [] }) => {
+export const Caption: React.FC<{ from: number; to: number; time: string; title: React.ReactNode; calls?: { q: string; at: number }[]; dark?: boolean }> = ({ from, to, time, title, calls = [] }) => {
   const frame = useCurrentFrame();
   if (frame < from || frame > to + 2) return null;
   const p = ease(frame, from + 2, from + 18);
@@ -241,7 +241,7 @@ const Caption: React.FC<{ from: number; to: number; time: string; title: React.R
 };
 
 /** A message card pinned top right: Telegram, or the CRM's own figure. */
-const Note: React.FC<{ at: number; until: number; icon: string; head: string; title: string; sub: string; color?: string }> = ({ at, until, icon, head, title, sub, color = '#2AABEE' }) => {
+export const Note: React.FC<{ at: number; until: number; icon: string; head: string; title: string; sub: string; color?: string }> = ({ at, until, icon, head, title, sub, color = '#2AABEE' }) => {
   const frame = useCurrentFrame();
   const p = spring({ frame: frame - at, fps: 30, config: { stiffness: 170, damping: 20 } });
   const out = interpolate(frame, [until, until + 12], [1, 0], clamp);
@@ -286,7 +286,7 @@ const Note: React.FC<{ at: number; until: number; icon: string; head: string; ti
 };
 
 /** Darkens the bottom left so the words read over any footage. */
-const Shade: React.FC = () => <AbsoluteFill style={{ background: 'linear-gradient(to top, rgba(10,6,3,0.72) 0%, rgba(10,6,3,0.25) 38%, rgba(10,6,3,0) 60%)' }} />;
+export const Shade: React.FC = () => <AbsoluteFill style={{ background: 'linear-gradient(to top, rgba(10,6,3,0.72) 0%, rgba(10,6,3,0.25) 38%, rgba(10,6,3,0) 60%)' }} />;
 
 /*
  * The voice (public/voice-film.mp3), cut into phrases by word timings from a speech recogniser:
@@ -339,7 +339,7 @@ const OpeningWords: React.FC = () => {
 };
 
 /** Аня at the bakery's window, ordering in the Mini App on her own phone. */
-const OrderShot: React.FC = () => (
+export const OrderShot: React.FC = () => (
   <Shot src="footage/v4-clean.mp4" cutout="footage/v4-cutout.webm" track={v4 as Track} from={0} rate={1} cw={PH.w} ch={PH.h} radius={34} grow={1.03} cam={(f) => push(f, 0, 200, 1.12, 900, 520)} screen={{ boxShadow: '0 0 0 40px #FEFDF9' }}>
     <Sequence from={-ORDER} layout="none">
       <MiniApp />
@@ -349,7 +349,7 @@ const OrderShot: React.FC = () => (
   </Shot>
 );
 
-const DayCrm: React.FC = () => {
+export const DayCrm: React.FC = () => {
   const frame = useCurrentFrame();
   const drop = spring({ frame: frame - 34, fps: 30, config: { stiffness: 140, damping: 15 } });
   const glow = interpolate(frame, [44, 52, 80], [0, 1, 0], clamp);
@@ -371,7 +371,7 @@ const DayCrm: React.FC = () => {
   );
 };
 
-const CHAT = [
+export const CHAT = [
   { lines: GREETING, time: '14:02', at: -99, goneAt: 14 },
   { lines: READY, time: '14:21', at: 18, goneAt: 118 },
   { lines: ISSUED, time: '14:33', at: 70, goneAt: 110, keyboard: ['⭐ 1', '⭐ 2', '⭐ 3', '⭐ 4', '⭐ 5'], pressed: { key: 4, at: 100 } },
@@ -388,7 +388,7 @@ const ReplyAndRevenue: React.FC = () => (
   />
 );
 
-const Evening: React.FC = () => {
+export const Evening: React.FC = () => {
   const frame = useCurrentFrame();
   const ring = spring({ frame: frame - 66, fps: 30, config: { stiffness: 220, damping: 14 } });
   return (
