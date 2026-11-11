@@ -230,6 +230,24 @@ const AMBIENCE: { at: number; len: number; src: string; from: number; vol: numbe
   { at: 1852, len: 66, src: 'film/portrait.mp4', from: 0, vol: 1.4 },
 ];
 
+/*
+ * The voice (public/voice-brandfilm.mp3, ElevenLabs), cut into phrases by word timings from a
+ * speech recogniser: [frame in the film, start s, end s]. Each lands on the shot it describes;
+ * the bread, the smile and Аня reading her receipt are left to the music.
+ */
+const VOICE: [number, number, number][] = [
+  [22, 0.0, 8.25], // Пекарня просыпается раньше города. Мука… тесто… огонь в печи. Всё, ради чего он здесь.
+  [378, 8.62, 17.5], // Но в восемь — звонит телефон. Потом ещё раз. И ещё. Заказы — в звонках, в тетради… в голове.
+  [672, 17.9, 21.55], // А теперь клиент заказывает сам. В Телеграме. За минуту.
+  [925, 21.65, 23.45], // Заказ сразу в системе.
+  [985, 23.5, 27.3], // Одно нажатие — и клиент уже получил чек и подтверждение.
+  [1356, 27.45, 28.85], // Заказы идут…
+  [1452, 28.95, 30.7], // а телефон — молчит.
+  [1580, 30.85, 35.95], // Вечером смена закрыта за минуту. Касса сверена, отчёт — уже в Телеграме.
+  [1925, 36.9, 41.2], // Руки — для теста. Заказы — для системы.
+];
+const speaking = (f: number) => VOICE.some(([at, a, b]) => f >= at - 8 && f <= at + (b - a) * 30 + 8);
+
 export const BrandFilm: React.FC = () => {
   const frame = useCurrentFrame();
   const fadeIn = interpolate(frame, [0, 24], [0, 1], clamp);
@@ -268,16 +286,21 @@ export const BrandFilm: React.FC = () => {
       <Finish />
 
       {/* Sound */}
-      <Audio src={staticFile('music-animatic.mp3')} volume={(f) => 0.75 * interpolate(f, [BRAND_FRAMES - 40, BRAND_FRAMES], [1, 0], clamp)} />
+      <Audio src={staticFile('music-animatic.mp3')} volume={(f) => (speaking(f) ? 0.42 : 0.75) * interpolate(f, [BRAND_FRAMES - 40, BRAND_FRAMES], [1, 0], clamp)} />
+      {VOICE.map(([at, a, b], i) => (
+        <Sequence key={`v${i}`} from={at} durationInFrames={Math.round((b - a) * 30) + 4} layout="none">
+          <Audio src={staticFile('voice-brandfilm.mp3')} startFrom={Math.round(a * 30)} endAt={Math.round(b * 30) + 4} volume={1.1} />
+        </Sequence>
+      ))}
       {AMBIENCE.map((a, i) => (
         <Sequence key={i} from={a.at} durationInFrames={a.len} layout="none">
-          <Audio src={staticFile(a.src)} startFrom={Math.round(a.from * 30)} volume={(f) => a.vol * Math.min(interpolate(f, [0, 8], [0, 1], clamp), interpolate(f, [a.len - 8, a.len], [1, 0], clamp))} />
+          <Audio src={staticFile(a.src)} startFrom={Math.round(a.from * 30)} volume={(f) => a.vol * (speaking(f + a.at) ? 0.6 : 1) * Math.min(interpolate(f, [0, 8], [0, 1], clamp), interpolate(f, [a.len - 8, a.len], [1, 0], clamp))} />
         </Sequence>
       ))}
       {/* The morning's calls: they start with the phone, pile up, and drop out at the turn */}
       {[0, 1, 2, 3].map((i) => (
         <Sequence key={i} from={366 + i * 30} durationInFrames={660 - 366 - i * 30} layout="none">
-          <Audio src={staticFile(`sfx/ring${i + 1}.wav`)} loop volume={(f) => 0.24 * interpolate(f + 366 + i * 30, [630, 658], [1, 0], clamp)} />
+          <Audio src={staticFile(`sfx/ring${i + 1}.wav`)} loop volume={(f) => (speaking(f + 366 + i * 30) ? 0.13 : 0.24) * interpolate(f + 366 + i * 30, [630, 658], [1, 0], clamp)} />
         </Sequence>
       ))}
       <Sfx at={366} name="buzz" volume={0.5} />
