@@ -6,6 +6,7 @@ import { OneOrder, ONE_ORDER_FRAMES } from './oneorder/OneOrder';
 import { OrderFlight3D, FLIGHT_FRAMES } from './three/OrderFlight3D';
 import { Film, FILM_FRAMES } from './footage/Film';
 import { Animatic, ANIMATIC_FRAMES } from './animatic/Animatic';
+import { BrandFilm, BRAND_FRAMES } from './brandfilm/BrandFilm';
 import './fonts';
 
 export const Root: React.FC = () => (
@@ -16,5 +17,6 @@ export const Root: React.FC = () => (
     <Composition id="OneOrder-3D-Test" component={OrderFlight3D} durationInFrames={FLIGHT_FRAMES} fps={30} width={1920} height={1080} />
     <Composition id="OneOrder-Footage" component={Film} durationInFrames={FILM_FRAMES} fps={30} width={1920} height={1080} />
     <Composition id="BrandFilm-Animatic" component={Animatic} durationInFrames={ANIMATIC_FRAMES} fps={30} width={1920} height={1080} />
+    <Composition id="BrandFilm" component={BrandFilm} durationInFrames={BRAND_FRAMES} fps={30} width={1920} height={1080} />
   </>
 );

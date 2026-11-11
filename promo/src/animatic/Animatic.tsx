@@ -51,7 +51,7 @@ const Slate: React.FC<{ n: number; kind: string; text: string; seconds: number; 
 
 /* ───────────── Words: one phrase at a time, big, with room to read ───────────── */
 
-const Words: React.FC<{ at: number; until: number; children: React.ReactNode; size?: number; align?: 'left' | 'center' | 'top'; code?: string }> = ({ at, until, children, size = 84, align = 'left', code }) => {
+export const Words: React.FC<{ at: number; until: number; children: React.ReactNode; size?: number; align?: 'left' | 'center' | 'top'; code?: string }> = ({ at, until, children, size = 84, align = 'left', code }) => {
   const frame = useCurrentFrame();
   if (frame < at || frame > until + 14) return null;
   const p = ease(frame, at, at + 22);
@@ -68,7 +68,7 @@ const Words: React.FC<{ at: number; until: number; children: React.ReactNode; si
 
 /* ───────────── Act 1: the bakery wakes ───────────── */
 
-const Dawn: React.FC<{ from: number; rate?: number; dim?: number; len: number }> = ({ from, rate = 0.6, dim = 0.5, len }) => {
+export const Dawn: React.FC<{ from: number; rate?: number; dim?: number; len: number }> = ({ from, rate = 0.6, dim = 0.5, len }) => {
   const frame = useCurrentFrame();
   return (
     <AbsoluteFill style={{ background: '#000', overflow: 'hidden' }}>
@@ -81,13 +81,13 @@ const Dawn: React.FC<{ from: number; rate?: number; dim?: number; len: number }>
 /* ───────────── Act 3: the card leaves the phone ───────────── */
 
 /** Аня's order lifts off her phone and flies out of the frame to the right. */
-const CardOut: React.FC<{ at: number }> = ({ at }) => {
+export const CardOut: React.FC<{ at: number; x0?: number; y0?: number }> = ({ at, x0 = 1010, y0 = 420 }) => {
   const frame = useCurrentFrame();
   if (frame < at) return null;
   const t = ease(frame, at, at + 34);
   const lift = ease(frame, at, at + 12);
-  const x = 1010 + t * 1300;
-  const y = 420 - Math.sin(t * Math.PI) * 220 + t * 60;
+  const x = x0 + t * 1300;
+  const y = y0 - Math.sin(t * Math.PI) * 220 + t * 60;
   const s = 0.42 + lift * 0.28;
   return (
     <div style={{ position: 'absolute', left: x, top: y, width: 294, height: 612, transform: `scale(${s}) rotate(${-4 + t * 18}deg)`, transformOrigin: '0 0', filter: `blur(${t * 2.5}px)`, zIndex: 50 }}>
@@ -97,7 +97,7 @@ const CardOut: React.FC<{ at: number }> = ({ at }) => {
 };
 
 /** …and arrives from the left in the CRM shot, into the empty slot. */
-const CardIn: React.FC<{ len: number }> = ({ len }) => {
+export const CardIn: React.FC<{ len: number }> = ({ len }) => {
   const frame = useCurrentFrame();
   if (frame > len) return null;
   const t = ease(frame, 0, len);
@@ -116,7 +116,7 @@ const CHAT_CONFIRM = [
   { lines: GREETING, time: '14:02', at: 48 },
 ];
 
-const AnyaConfirm: React.FC = () => (
+export const AnyaConfirm: React.FC = () => (
   <Shot src="footage/v4-tail-clean.mp4" cutout="footage/v4-tail-cutout.webm" track={v4tail as Track} from={0} rate={1} cw={PH.w} ch={PH.h} radius={34} grow={1.03} cam={(f) => push(f, 0, 50, 1.28, 760, 560)} screen={{ boxShadow: '0 0 0 40px #F9F9F9' }}>
     <TgChat messages={CHAT_CONFIRM} />
     <div style={{ position: 'absolute', left: ppt(130), top: 0, width: ppt(170), height: ppt(58), background: '#F9F9F9' }} />
@@ -145,7 +145,7 @@ const QuietPhone: React.FC = () => {
 
 /* ───────────── Act 5 ───────────── */
 
-const Finale: React.FC<{ len: number }> = ({ len }) => {
+export const Finale: React.FC<{ len: number; contact?: string }> = ({ len, contact = '[контакт]' }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const a1 = spring({ frame: frame - 20, fps, config: { stiffness: 100, damping: 20 } });
@@ -162,7 +162,7 @@ const Finale: React.FC<{ len: number }> = ({ len }) => {
       </AbsoluteFill>
       <div style={{ position: 'absolute', bottom: 90, left: 0, right: 0, textAlign: 'center', opacity: cta }}>
         <div style={{ display: 'inline-block', padding: '16px 36px', borderRadius: 999, border: '1.5px solid rgba(251,246,238,0.5)', fontFamily: SANS, fontSize: 28, fontWeight: 600, color: C.cream }}>
-          Покажу на вашей пекарне за 15 минут · <span style={{ fontFamily: MONO, color: '#F3B27A' }}>[контакт]</span>
+          Покажу на вашей пекарне за 15 минут{contact && <> · <span style={{ fontFamily: MONO, color: '#F3B27A' }}>{contact}</span></>}
         </div>
         <div style={{ marginTop: 18, fontFamily: MONO, fontSize: 20, color: 'rgba(251,246,238,0.6)' }}>Mini App + CRM для пекарни · Alexander Dashcynskiy — дизайн и разработка</div>
       </div>
