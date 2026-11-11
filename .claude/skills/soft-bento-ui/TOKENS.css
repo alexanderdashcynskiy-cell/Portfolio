@@ -1,0 +1,88 @@
+/*
+ * Soft Bento UI — design tokens. Copy into the project and use the variables.
+ * Measured from the reference; the reference's green accent is replaced with warm orange.
+ */
+:root {
+  /* Surfaces */
+  --sb-canvas: #fcfcfc; /* page */
+  --sb-tray: #f2f2f0; /* pale warm grey around each component */
+  --sb-card: #ffffff; /* the component itself */
+  --sb-sunken: #ececea; /* segmented-control track, inputs, empty checkboxes */
+  --sb-ink: #121212; /* black contrast tiles, primary dark buttons */
+  --sb-ink-2: #2a2a2a; /* raised elements on black tiles */
+  --sb-line: rgba(18, 18, 18, 0.06); /* hairlines inside lists */
+
+  /* Text */
+  --sb-text: #141414;
+  --sb-text-2: #8a8a8a; /* secondary */
+  --sb-text-3: #c2c2c2; /* disabled, inactive days */
+  --sb-text-on-ink: #ffffff;
+  --sb-text-on-accent: #ffffff;
+
+  /* Accent: warm orange (reference used green #4CC94C → #A8E063) */
+  --sb-accent: #ff7a1a;
+  --sb-accent-2: #ffa34d; /* lighter end of the gradient */
+  --sb-accent-grad: linear-gradient(90deg, #ff7a1a 0%, #ffa34d 100%);
+  --sb-accent-soft: #fff1e6; /* selected row background */
+  --sb-accent-soft-grad: linear-gradient(90deg, #fff1e6 0%, #ffffff 100%);
+  --sb-accent-ring: rgba(255, 122, 26, 0.22); /* focus/press halo */
+
+  /* People dots (avatars) */
+  --sb-dot-red: #ef4444;
+  --sb-dot-pink: #ec4899;
+  --sb-dot-amber: #f59e0b;
+  --sb-dot-green: #22c55e;
+  --sb-dot-violet: #8b5cf6;
+  --sb-dot-ink: #121212;
+
+  /* Status */
+  --sb-success: var(--sb-accent); /* ticks and "done" use the accent, not a separate green */
+  --sb-danger: #ef4444;
+
+  /* Radii */
+  --sb-r-tray: 28px;
+  --sb-r-card: 20px;
+  --sb-r-control: 14px; /* rows, inputs, small buttons */
+  --sb-r-pill: 999px; /* chips, toggles, primary buttons, segmented pill */
+
+  /* Shadows: soft, wide, low — never a hard edge */
+  --sb-shadow-card: 0 1px 2px rgba(18, 18, 18, 0.04), 0 8px 24px rgba(18, 18, 18, 0.06);
+  --sb-shadow-float: 0 2px 4px rgba(18, 18, 18, 0.05), 0 16px 40px rgba(18, 18, 18, 0.10); /* toasts, dropdowns */
+  --sb-shadow-pill: 0 1px 2px rgba(18, 18, 18, 0.08), 0 4px 10px rgba(18, 18, 18, 0.06); /* segmented pill, toggle knob */
+  --sb-shadow-accent: 0 6px 16px rgba(255, 122, 26, 0.30); /* primary orange button, selected chip */
+
+  /* Type */
+  --sb-font: 'Inter', 'SF Pro Display', -apple-system, system-ui, sans-serif;
+  --sb-fs-hero: 44px; /* big money / counters, weight 700, tabular */
+  --sb-fs-title: 16px; /* card titles, weight 600 */
+  --sb-fs-body: 14px; /* rows, weight 500 */
+  --sb-fs-small: 12px; /* secondary lines, weight 500, --sb-text-2 */
+  --sb-fs-micro: 11px; /* calendar weekdays, captions */
+  --sb-tracking-hero: -0.03em;
+  --sb-tracking-title: -0.01em;
+
+  /* Spacing: 4px grid */
+  --sb-gap-grid: 16px; /* between trays in a bento grid */
+  --sb-pad-tray: 10px; /* tray around its card */
+  --sb-pad-card: 18px; /* inside a card */
+  --sb-row-h: 44px; /* list rows, radio rows, inputs */
+}
+
+/* Black tiles flip the palette */
+.sb-ink-tile {
+  background: var(--sb-ink);
+  color: var(--sb-text-on-ink);
+  border-radius: var(--sb-r-card);
+}
+
+/* Numbers that roll must not jitter */
+.sb-num {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--sb-tracking-hero);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --sb-motion: 0;
+  }
+}
