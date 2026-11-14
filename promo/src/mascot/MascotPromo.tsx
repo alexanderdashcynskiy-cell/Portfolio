@@ -6,11 +6,11 @@ import { Phone } from '../deck/devices';
 import { MiniApp, ORDER } from '../oneorder/OneOrder';
 
 /*
- * The 20-second mascot promo: a halftone baker boy walks the viewer from «опять звонят?» to
+ * The 20-second mascot promo: a baker boy walks the viewer from «опять звонят?» to
  * «вы печёте, мы ведём заказы». Three colours from the bakery's own palette — cream, dark
  * brown ink and orange — big kinetic type with one italic accent word per line, and the
  * product shown second: cards, the Mini App on a phone, a live bento grid, a stamp.
- * The mascot clips are printed as halftone by footage/halftone.py and blended in.
+ * The mascot clips are generated footage, cut out of their backdrop by footage/cutout_mascot.py.
  */
 
 export const MASCOT_FRAMES = 630; // 21 s
@@ -36,11 +36,10 @@ const useSpring = (at: number, stiffness = 200, damping = 22) => {
 /* ───────────── The mascot ───────────── */
 
 /**
- * A halftone clip of the boy. `x` is his centre, `bottom` where his chest is cut off, `h` his
- * height. No transforms here or on any parent up to the scene: the clip is blended into the
- * scene's background (multiply on light, screen on dark), and a transform would isolate it.
+ * A clip of the boy in full colour, cut out of its backdrop (footage/cutout_mascot.py).
+ * `x` is his centre, `bottom` where his chest is cut off, `h` his height.
  */
-const Mascot: React.FC<{ clip: string; from: number; x: number; bottom?: number; h: number; dark?: boolean; at?: number; rate?: number }> = ({ clip, from, x, bottom = 0, h, dark, at = 0, rate = 1 }) => {
+const Mascot: React.FC<{ clip: string; from: number; x: number; bottom?: number; h: number; at?: number; rate?: number }> = ({ clip, from, x, bottom = 0, h, at = 0, rate = 1 }) => {
   const frame = useCurrentFrame();
   const inP = useSpring(at, 160, 20);
   const bob = Math.sin(frame / 9) * 5;
@@ -48,13 +47,7 @@ const Mascot: React.FC<{ clip: string; from: number; x: number; bottom?: number;
   const vw = (h * 16) / 9;
   return (
     <div style={{ position: 'absolute', left: x - w / 2, bottom: bottom - (1 - inP) * h * 0.5 + bob, width: w, height: h, overflow: 'hidden' }}>
-      <OffthreadVideo
-        src={staticFile(`mascot/${clip}-${dark ? 'light' : 'ink'}.mp4`)}
-        startFrom={Math.round(from * 30)}
-        playbackRate={rate}
-        muted
-        style={{ position: 'absolute', left: -(vw - w) / 2 - h * 0.012, top: 0, width: vw, height: h, mixBlendMode: dark ? 'screen' : 'multiply', filter: dark ? 'contrast(1.1)' : 'brightness(1.05)' }}
-      />
+      <OffthreadVideo src={staticFile(`mascot/${clip}.webm`)} startFrom={Math.round(from * 30)} playbackRate={rate} muted transparent style={{ position: 'absolute', left: -(vw - w) / 2 - h * 0.012, top: 0, width: vw, height: h }} />
     </div>
   );
 };
@@ -159,7 +152,7 @@ const Question: React.FC = () => {
                 <span>// выпечка</span>
                 <span>{pr.n}</span>
               </div>
-              <Img src={staticFile(`img/${pr.img}.jpg`)} style={{ width: '100%', height: 230, objectFit: 'cover', borderRadius: 18, marginTop: 14, filter: 'grayscale(1) contrast(1.15) sepia(0.35)' }} />
+              <Img src={staticFile(`img/${pr.img}.jpg`)} style={{ width: '100%', height: 230, objectFit: 'cover', borderRadius: 18, marginTop: 14 }} />
               <div style={{ fontFamily: SANS, fontWeight: 700, fontSize: 36, letterSpacing: '-0.03em', color: INK, marginTop: 18 }}>{pr.name}</div>
               <div style={{ fontFamily: MONO, fontSize: 22, color: ORANGE, marginTop: 4 }}>{pr.price} руб</div>
             </div>
@@ -330,7 +323,7 @@ const Stamp: React.FC = () => {
 const YouBake: React.FC = () => (
   <AbsoluteFill style={{ background: INK }}>
     <Hud label="05 — итог" color={CREAM} />
-    <Mascot clip="wave" from={5.4} x={1420} h={900} dark at={0} />
+    <Mascot clip="wave" from={5.4} x={1420} h={900} at={0} />
     <div style={{ position: 'absolute', left: 120, top: 300 }}>
       <Line words={['Вы', { a: 'печёте.' }]} at={4} size={150} color={CREAM} accent={CREAM} />
       <div style={{ marginTop: 26 }}>
