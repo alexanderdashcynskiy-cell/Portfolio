@@ -42,7 +42,7 @@ const said = (v: number) => {
   const c = T.cues.find(([, a, b]) => v >= a && v <= b) ?? T.cues[0];
   return f30(c[0] + v - c[1]);
 };
-const STAMP = said(36.2) - 4; // lands on «само»
+const STAMP = said(34.9) - 4; // lands on «автоматически»
 
 const ease = (f: number, a: number, b: number) => easeInOut(interpolate(f, [a, b], [0, 1], clamp));
 const useSpring = (at: number, stiffness = 200, damping = 22) => {
@@ -131,9 +131,9 @@ const Pain: React.FC = () => (
     <VeoClip clip="pain" src="mascot/pain2.mp4" start={S1} style={{ position: 'absolute', left: 560, top: 216, width: 1536, height: 864, maskImage: 'linear-gradient(to right, transparent 0, #000 14%), linear-gradient(to bottom, transparent 0, #000 16%)', maskComposite: 'intersect', WebkitMaskImage: 'linear-gradient(to right, transparent 0, #000 14%), linear-gradient(to bottom, transparent 0, #000 16%)', WebkitMaskComposite: 'source-in' }} />
     <div style={{ position: 'absolute', left: 120, top: 300 }}>
       <div style={{ fontFamily: MONO, fontSize: 22, color: INK, opacity: 0.55, marginBottom: 22 }}>// пекарям</div>
-      <Line words={['Опять', 'звонят']} at={said(0.36) - S1} size={84} />
+      <Line words={['Опять', 'звонят']} at={said(0.31) - S1} size={84} />
       <div style={{ marginLeft: 30 }}>
-        <Line words={[{ a: 'за заказом?' }]} at={said(0.9) - S1} size={84} underline />
+        <Line words={[{ a: 'за заказом?' }]} at={said(0.85) - S1} size={84} underline />
       </div>
     </div>
   </AbsoluteFill>
@@ -150,15 +150,15 @@ const Question: React.FC = () => {
   const frame = useCurrentFrame();
   const open = ease(frame, 0, 16);
   // He points right on «приходить сами»: the cards fly in there.
-  const cardsAt = said(10.7) - S2;
+  const cardsAt = said(10.6) - S2;
   return (
     <AbsoluteFill style={{ background: CREAM }}>
       <AbsoluteFill style={{ background: CREAM, clipPath: `circle(${open * 2300}px at 400px 620px)` }}>
         <VeoClip clip="idea" src="mascot/idea2.mp4" start={S2} style={{ position: 'absolute', inset: 0, width: 1920, height: 1080 }} />
         <Hud label="02 — а если" color={INK} />
         <div style={{ position: 'absolute', left: 1180, top: 120 }}>
-          <Line words={['А', 'если', 'заказы']} at={said(9.4) - S2} size={66} color={INK} accent={ORANGE} />
-          <Line words={['приходят', { a: 'без звонков?' }]} at={said(10.4) - S2} size={66} color={INK} accent={ORANGE} underline />
+          <Line words={['А', 'если', 'заказы']} at={said(9.3) - S2} size={66} color={INK} accent={ORANGE} />
+          <Line words={['приходят', { a: 'без звонков?' }]} at={said(10.2) - S2} size={66} color={INK} accent={ORANGE} underline />
         </div>
         {PRODUCTS.map((pr, i) => {
           const p = spring({ frame: frame - cardsAt - i * 7, fps: 30, config: { stiffness: 150, damping: 17 } });
@@ -204,8 +204,8 @@ const Meet: React.FC = () => (
     <Hud label="03 — знакомьтесь" color={INK} />
     <VeoClip clip="meet" src="mascot/meet3.webm" start={S3} transparent style={{ position: 'absolute', left: 77, top: 86, width: 1766, height: 994 }} />
     {/* Each card lands on its name in the voice. */}
-    <Offer at={said(13.1) - S3} x={70} tag="ДЛЯ КЛИЕНТОВ" name="Telegram Mini App" lines={['меню и корзина в Telegram', 'заказ за минуту', 'ничего не скачивать']} />
-    <Offer at={said(14.6) - S3} x={1380} tag="ДЛЯ ПЕКАРНИ" name="CRM" lines={['все заказы в одном окне', 'склад и выручка', 'отзывы и сверка кассы']} dark />
+    <Offer at={said(12.96) - S3} x={70} tag="ДЛЯ КЛИЕНТОВ" name="Telegram Mini App" lines={['меню и корзина в Telegram', 'заказ за минуту', 'ничего не скачивать']} />
+    <Offer at={said(14.43) - S3} x={1380} tag="ДЛЯ ПЕКАРНИ" name="CRM" lines={['все заказы в одном окне', 'склад и выручка', 'отзывы и сверка кассы']} dark />
   </AbsoluteFill>
 );
 
@@ -248,7 +248,7 @@ const Store: React.FC = () => (
 
 const Crm: React.FC = () => {
   const frame = useCurrentFrame();
-  const CLICK = said(25.5) - S5; // «одно нажатие»
+  const CLICK = said(24.7) - S5; // «одно нажатие»
   return (
     <AbsoluteFill style={{ background: CREAM }}>
       <Hud label="05 — crm" color={INK} />
@@ -452,7 +452,7 @@ const YouBake: React.FC = () => (
     <div style={{ position: 'absolute', left: 120, top: 330 }}>
       <Line words={['Вы', { a: 'печёте.' }]} at={10} size={140} color={CREAM} accent={CREAM} />
       <div style={{ marginTop: 26 }}>
-        <Line words={['Мы', 'ведём', { a: 'заказы.' }]} at={said(38.02) - S8} size={92} color="rgba(251,246,238,0.65)" accent="#F09A5B" />
+        <Line words={['Мы', 'ведём', { a: 'заказы.' }]} at={said(36.98) - S8} size={92} color="rgba(251,246,238,0.65)" accent="#F09A5B" />
       </div>
     </div>
   </AbsoluteFill>
@@ -513,7 +513,7 @@ export const MascotPromo: React.FC = () => {
       {/* The voice, phrase by phrase, on its scenes */}
       {T.cues.map(([at, a, b], i) => (
         <Sequence key={`v${i}`} from={f30(at)} durationInFrames={f30(b - a) + 3} layout="none">
-          <Audio src={staticFile('voice-mascot2.mp3')} startFrom={f30(a)} endAt={f30(b) + 3} volume={1.15} />
+          <Audio src={staticFile('voice-mascot3.mp3')} startFrom={f30(a)} endAt={f30(b) + 3} volume={1.15} />
         </Sequence>
       ))}
       <Audio src={staticFile('music-deck.mp3')} volume={(f) => (speaking(f) ? 0.09 : 0.2) * interpolate(f, [0, 20], [0, 1], clamp) * interpolate(f, [MASCOT_FRAMES - 30, MASCOT_FRAMES], [1, 0], clamp)} />
@@ -525,11 +525,11 @@ export const MascotPromo: React.FC = () => {
       ))}
       <Sfx at={S2} name="whoosh" volume={0.5} />
       {[0, 7, 14].map((f) => (
-        <Sfx key={f} at={said(10.7) + f} name="pop" volume={0.45} />
+        <Sfx key={f} at={said(10.6) + f} name="pop" volume={0.45} />
       ))}
       <Sfx at={S3} name="whoosh" volume={0.3} />
-      <Sfx at={said(13.1)} name="pop" volume={0.5} />
-      <Sfx at={said(14.6)} name="pop" volume={0.5} />
+      <Sfx at={said(12.96)} name="pop" volume={0.5} />
+      <Sfx at={said(14.43)} name="pop" volume={0.5} />
       <Sfx at={S4} name="whoosh" volume={0.3} />
       {[36, 48, 62, 102, 176].map((f) => (
         <Sfx key={f} at={S4 + f} name="tap" volume={0.55} />

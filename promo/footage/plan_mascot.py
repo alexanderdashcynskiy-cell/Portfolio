@@ -28,15 +28,15 @@ SHOTS = {
     'pain': {
         'rate': 1.35,
         'start': 1.0,  # clip time at the scene's first frame
-        'chunks': [[0.36, 1.14, 3.07, 3.80], [1.81, 3.20, 4.08, 5.28], [4.04, 6.11, 7.95, 9.52]],
+        'chunks': [[0.31, 1.10, 3.07, 3.80], [1.74, 3.22, 4.08, 5.28], [3.94, 5.92, 7.95, 9.52]],
     },
-    'idea': {'rate': 1.9, 'start': 0.1, 'chunks': [[8.10, 8.76, 4.68, 5.18], [9.19, 11.50, 5.58, 7.80]]},
+    'idea': {'rate': 1.9, 'start': 0.1, 'chunks': [[8.10, 8.74, 4.68, 5.18], [9.17, 11.48, 5.58, 7.80]]},
     'meet': {
         'rate': 1.35,
         'start': 0.3,
-        'chunks': [[11.84, 12.55, 1.17, 2.00], [13.10, 14.09, 2.25, 3.75], [14.60, 15.47, 4.29, 5.39], [15.82, 16.56, 5.63, 6.59]],
+        'chunks': [[11.82, 12.66, 1.17, 2.00], [12.96, 14.12, 2.25, 3.75], [14.43, 15.21, 4.29, 5.39], [15.47, 16.31, 5.63, 6.59]],
     },
-    'finale': {'rate': 1.35, 'start': 0.8, 'chunks': [[36.86, 37.65, 1.30, 2.04], [38.02, 39.16, 3.35, 4.39]]},
+    'finale': {'rate': 1.35, 'start': 0.8, 'chunks': [[35.87, 36.63, 1.30, 2.04], [36.98, 38.15, 3.35, 4.39]]},
 }
 
 
@@ -99,7 +99,7 @@ s2 = round(t + (10.0 - ct) / rate * 0.8, 2)
 # Scene 2 — the idea; the voice's sigh plays while he wipes his face.
 a, cues, t, ct, rate = place('idea', s2)
 timeline['clips']['idea'] = {'anchors': a, 'rate': rate}
-timeline['cues'] += [[round(s2 + 1.6, 3), 7.22, 7.56]] + cues
+timeline['cues'] += [[round(s2 + 1.6, 3), 7.25, 7.52]] + cues
 s3 = round(t + 0.45, 2)
 
 # Scene 3 — «Знакомьтесь».
@@ -109,7 +109,7 @@ timeline['cues'] += cues
 s4 = round(t + 0.35, 2)
 
 # Scenes 4–7 are voice over product screens: each phrase with a short breath around it.
-over = [[16.85, 22.97], [23.15, 28.62], [28.75, 33.05], [33.20, 36.62]]
+over = [[16.55, 22.25], [22.46, 27.60], [27.80, 31.70], [31.87, 35.53]]
 starts = []
 t = s4
 for v0, v1 in over:
