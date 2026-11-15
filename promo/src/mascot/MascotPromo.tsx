@@ -3,29 +3,52 @@ import { AbsoluteFill, Audio, Freeze, Img, interpolate, OffthreadVideo, Sequence
 import { C, MONO, SANS, SERIF } from '../ui';
 import { clamp, easeInOut, Sfx } from '../kit';
 import { Phone } from '../deck/devices';
+import { AcceptArt, GREETING, ISSUED, RATED, READY, TgChat } from '../deck/arts';
 import { MiniApp, ORDER } from '../oneorder/OneOrder';
-import { syncedFrames, VOICE, voiceLevel } from './lipsync';
+import warp from './warp.json';
 
 /*
- * The 20-second mascot promo: a baker boy walks the viewer from «опять звонят?» to
- * «вы печёте, мы ведём заказы». Three colours from the bakery's own palette — cream, dark
- * brown ink and orange — big kinetic type with one italic accent word per line, and the
- * product shown second: cards, the Mini App on a phone, a live bento grid, a stamp.
- * The mascot clips are generated footage, cut out of their backdrop by footage/cutout_mascot.py.
+ * The mascot promo, 43 seconds: a baker boy walks a bakery owner from «опять звонят?» to
+ * «вы печёте, мы ведём заказы», and in between names the product — a Telegram Mini App for
+ * customers and a CRM for the bakery — and shows what each does. Three colours from the
+ * bakery's palette (cream, dark brown ink, orange), kinetic type with one italic accent word.
+ *
+ * The boy's four talking shots are Veo clips of him saying the same words as the voice-over
+ * (ElevenLabs). Their own sound is dropped; each is re-timed so his mouth follows the voice:
+ * footage/align_veo.py maps every moment of the voice to the moment of the clip where he says
+ * the same thing (src/mascot/warp.json).
  */
 
-export const MASCOT_FRAMES = 690; // 23 s, cut to the voice
+export const MASCOT_FRAMES = 1290; // 43 s
 const INK = C.ink;
 const CREAM = C.cream;
 const ORANGE = C.orange;
+const PEACH = '#DFB47C'; // the idea clip's own backdrop
 
-const S1 = 0; // the pain
-const S2 = 125; // the question, on orange
-const S3 = 235; // the Mini App
-const S4 = 355; // the live grid, then the stamp
-const STAMP = S4 + 130; // lands on «готово»
-const S5 = 530; // you bake
-const S6 = 625; // sign-off
+/** Each phrase of public/voice-mascot40.mp3: where it plays in the film and its span in the file (s). */
+const P = {
+  pain: { at: 1.0, a: 0.25, b: 3.4 }, // Опять звонят? У меня руки в тесте!
+  idea: { at: 5.6, a: 4.18, b: 6.6 }, // А что, если заказы будут приходить сами?
+  meet: { at: 9.4, a: 6.9, b: 11.82 }, // Знакомьтесь: Telegram Mini App и CRM для пекарни!
+  store: { at: 15.2, a: 12.1, b: 18.35 }, // Клиент заказывает прямо в Телеграме… Выбрал, указал время — готово.
+  crm: { at: 22.0, a: 18.5, b: 23.95 }, // А у вас заказ сразу в CRM. Одно нажатие — и клиент получил подтверждение и чек.
+  ready: { at: 28.0, a: 24.15, b: 28.55 }, // Заказ готов — бот сам напишет клиенту. А потом попросит оценку.
+  sums: { at: 32.8, a: 28.65, b: 32.05 }, // Склад, выручка, сверка кассы — всё считается само.
+  finale: { at: 36.9, a: 32.25, b: 34.65 }, // Вы печёте. Мы ведём заказы.
+};
+type Phrase = (typeof P)[keyof typeof P];
+
+// Scene cuts, in frames.
+const S1 = 0; // pain
+const S2 = 138; // the idea
+const S3 = 270; // «Знакомьтесь»: Mini App + CRM
+const S4 = 450; // the Mini App
+const S5 = 654; // the CRM
+const S6 = 834; // the bot: ready, rating
+const S7 = 978; // everything counted
+const STAMP = 1072; // lands on «само»
+const S8 = 1098; // you bake
+const S9 = 1194; // sign-off
 
 const ease = (f: number, a: number, b: number) => easeInOut(interpolate(f, [a, b], [0, 1], clamp));
 const useSpring = (at: number, stiffness = 200, damping = 22) => {
@@ -34,32 +57,42 @@ const useSpring = (at: number, stiffness = 200, damping = 22) => {
   return spring({ frame: frame - at, fps, config: { stiffness, damping } });
 };
 
-/* ───────────── The mascot ───────────── */
+/* ───────────── The boy, re-timed to the voice ───────────── */
 
 /**
- * A clip of the boy in full colour, cut out of its backdrop (footage/cutout_mascot.py).
- * `x` is his centre, `bottom` where his chest is cut off, `h` his height. With `speaks` (the
- * scene's first frame in the film) his mouth follows the voice.
+ * Where in the clip to be on a frame of the film (seconds). Inside the phrase it follows the
+ * warp; after it the clip runs on at its own speed. Before it, the clip runs at its own speed
+ * too, or — with `pre` — eases from `pre` at the scene's start, to fit a longer lead-in.
  */
-const Mascot: React.FC<{ clip: string; from: number; x: number; bottom?: number; h: number; at?: number; rate?: number; speaks?: number; len?: number }> = ({ clip, from, x, bottom = 0, h, at = 0, rate = 1, speaks, len = 200 }) => {
+const clipTime = (clip: string, phrase: Phrase, frame: number, sceneStart: number, pre?: number) => {
+  const w = (warp as Record<string, number[][]>)[clip];
+  const vt = phrase.a + frame / 30 - phrase.at;
+  const [v0, c0] = w[0];
+  const [vn, cn] = w[w.length - 1];
+  let t: number;
+  if (vt <= v0) {
+    const vs = phrase.a + sceneStart / 30 - phrase.at;
+    t = pre === undefined ? c0 + (vt - v0) : pre + ((c0 - pre) * Math.max(0, vt - vs)) / (v0 - vs);
+  } else if (vt >= vn) {
+    t = cn + (vt - vn);
+  } else {
+    let i = 1;
+    while (w[i][0] < vt) i++;
+    const [va, ca] = w[i - 1];
+    const [vb, cb] = w[i];
+    t = ca + ((cb - ca) * (vt - va)) / (vb - va);
+  }
+  return Math.max(0, Math.min(9.9, t));
+};
+
+/** A Veo clip shown frame by frame at the moment `clipTime` picks. `start` is the scene's first frame. */
+const VeoClip: React.FC<{ clip: string; src: string; phrase: Phrase; start: number; pre?: number; transparent?: boolean; style: React.CSSProperties }> = ({ clip, src, phrase, start, pre, transparent, style }) => {
   const frame = useCurrentFrame();
-  const inP = useSpring(at, 160, 20);
-  // A nod on every loud syllable, on top of a slow idle sway.
-  const bob = Math.sin(frame / 9) * 5 - (speaks === undefined ? 0 : voiceLevel(speaks + frame) * h * 0.012);
-  const w = h * 0.86;
-  const vw = (h * 16) / 9;
-  const style: React.CSSProperties = { position: 'absolute', left: -(vw - w) / 2 - h * 0.012, top: 0, width: vw, height: h };
+  const t = clipTime(clip, phrase, start + frame, start, pre);
   return (
-    <div style={{ position: 'absolute', left: x - w / 2, bottom: bottom - (1 - inP) * h * 0.5 + bob, width: w, height: h, overflow: 'hidden' }}>
-      {speaks === undefined ? (
-        <OffthreadVideo src={staticFile(`mascot/${clip}.webm`)} startFrom={Math.round(from * 30)} playbackRate={rate} muted transparent style={style} />
-      ) : (
-        // Lip sync: every frame shows the source frame picked for it (see lipsync.ts).
-        <Freeze frame={0}>
-          <OffthreadVideo src={staticFile(`mascot/${clip}.webm`)} startFrom={Math.round((syncedFrames(clip, from, speaks, len)[Math.min(len - 1, Math.max(0, frame))] / 24) * 30)} muted transparent style={style} />
-        </Freeze>
-      )}
-    </div>
+    <Freeze frame={0}>
+      <OffthreadVideo src={staticFile(src)} startFrom={Math.round(t * 30)} muted transparent={transparent} style={style} />
+    </Freeze>
   );
 };
 
@@ -102,25 +135,24 @@ const Hud: React.FC<{ label: string; color: string }> = ({ label, color }) => {
   );
 };
 
-/* ───────────── Scene 1: the pain ───────────── */
+/* ───────────── 01: the pain ───────────── */
 
 const Pain: React.FC = () => (
   <AbsoluteFill style={{ background: CREAM }}>
     <Hud label="01 — боль" color={INK} />
-    {/*
-      The generated shot, whole: phones start ringing around the boy, he panics and swats them
-      away. Its studio backdrop is multiplied into the cream, so the plate has no edges.
-    */}
-    <OffthreadVideo src={staticFile('mascot/phones.mp4')} startFrom={45} playbackRate={1.35} muted style={{ position: 'absolute', left: 384, top: 216, width: 1536, height: 864, mixBlendMode: 'multiply', filter: 'brightness(1.045)', maskImage: 'linear-gradient(to right, transparent 0, #000 7%), linear-gradient(to bottom, transparent 0, #000 9%)', maskComposite: 'intersect', WebkitMaskImage: 'linear-gradient(to right, transparent 0, #000 7%), linear-gradient(to bottom, transparent 0, #000 9%)', WebkitMaskComposite: 'source-in' }} />
-    <div style={{ position: 'absolute', left: 120, top: 84, display: 'flex', alignItems: 'baseline', gap: 34 }}>
-      <Line words={['Опять', 'звонят']} at={8} size={92} />
-      <Line words={[{ a: 'за заказом?' }]} at={20} size={92} underline />
+    {/* Kneading, then phones ring all around; on «руки в тесте» he shows his doughy hands. */}
+    <VeoClip clip="pain" src="mascot/pain.mp4" phrase={P.pain} start={S1} style={{ position: 'absolute', left: 560, top: 216, width: 1536, height: 864, mixBlendMode: 'multiply', filter: 'brightness(1.06)', maskImage: 'linear-gradient(to right, transparent 0, #000 7%), linear-gradient(to bottom, transparent 0, #000 9%)', maskComposite: 'intersect', WebkitMaskImage: 'linear-gradient(to right, transparent 0, #000 7%), linear-gradient(to bottom, transparent 0, #000 9%)', WebkitMaskComposite: 'source-in' }} />
+    <div style={{ position: 'absolute', left: 120, top: 300 }}>
+      <div style={{ fontFamily: MONO, fontSize: 22, color: INK, opacity: 0.55, marginBottom: 22 }}>// пекарям</div>
+      <Line words={['Опять', 'звонят']} at={30} size={84} />
+      <div style={{ marginLeft: 30 }}>
+        <Line words={[{ a: 'за заказом?' }]} at={42} size={84} underline />
+      </div>
     </div>
-    <div style={{ position: 'absolute', left: 124, top: 236, fontFamily: MONO, fontSize: 22, color: INK, opacity: 0.55 }}>// пекарям</div>
   </AbsoluteFill>
 );
 
-/* ───────────── Scene 2: the question, on orange ───────────── */
+/* ───────────── 02: the idea ───────────── */
 
 const PRODUCTS = [
   { img: 'croissant', name: 'Круассан', price: '3.50', n: '01' },
@@ -130,28 +162,29 @@ const PRODUCTS = [
 const Question: React.FC = () => {
   const frame = useCurrentFrame();
   const open = ease(frame, 0, 16);
+  // He points right on «приходить сами» (≈ film 7.7 s): the cards fly in there.
+  const cardsAt = 90;
   return (
     <AbsoluteFill style={{ background: CREAM }}>
-      {/* The generated shot on its own orange: he thinks, gets the idea, and points at the cards. It opens as a circle from where he stands. */}
-      <AbsoluteFill style={{ clipPath: `circle(${open * 2300}px at 500px 620px)` }}>
-        <OffthreadVideo src={staticFile('mascot/idea.mp4')} startFrom={42} playbackRate={1.5} muted style={{ position: 'absolute', inset: 0, width: 1920, height: 1080 }} />
+      <AbsoluteFill style={{ background: PEACH, clipPath: `circle(${open * 2300}px at 640px 620px)` }}>
+        <VeoClip clip="idea" src="mascot/idea-ru.mp4" phrase={P.idea} start={S2} pre={1.0} style={{ position: 'absolute', left: -60, top: 194, width: 1574, height: 886, maskImage: 'linear-gradient(to bottom, transparent 0, #000 10%), linear-gradient(to left, transparent 0, #000 8%)', maskComposite: 'intersect', WebkitMaskImage: 'linear-gradient(to bottom, transparent 0, #000 10%), linear-gradient(to left, transparent 0, #000 8%)', WebkitMaskComposite: 'source-in' }} />
         <Hud label="02 — а если" color={INK} />
-        <div style={{ position: 'absolute', left: 980, top: 100 }}>
-          <Line words={['А', 'если', 'заказы']} at={10} size={78} color={INK} accent="#fff" />
-          <Line words={['приходят', { a: 'сами?' }]} at={22} size={78} color={INK} accent="#fff" underline />
+        <div style={{ position: 'absolute', left: 1180, top: 120 }}>
+          <Line words={['А', 'если', 'заказы']} at={10} size={66} color={INK} accent={ORANGE} />
+          <Line words={['приходят', { a: 'сами?' }]} at={22} size={66} color={INK} accent={ORANGE} underline />
         </div>
         {PRODUCTS.map((pr, i) => {
-          const p = spring({ frame: frame - 62 - i * 8, fps: 30, config: { stiffness: 150, damping: 17 } });
+          const p = spring({ frame: frame - cardsAt - i * 7, fps: 30, config: { stiffness: 150, damping: 17 } });
           const float = Math.sin((frame + i * 20) / 16) * 6;
           return (
-            <div key={i} style={{ position: 'absolute', left: 980 + i * 300, top: 340 + float, width: 276, height: 384, borderRadius: 28, background: CREAM, padding: 20, boxShadow: '0 30px 60px rgba(45,21,5,0.28)', opacity: Math.min(1, p * 1.5), transform: `translate(${(1 - p) * -(300 + i * 300)}px, ${(1 - p) * 260}px) scale(${0.3 + p * 0.7}) rotate(${(1 - p) * -18 + (i - 1) * 2}deg)` }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: MONO, fontSize: 16, color: INK, opacity: 0.55 }}>
+            <div key={i} style={{ position: 'absolute', left: 1180 + i * 228, top: 420 + float, width: 212, height: 300, borderRadius: 24, background: CREAM, padding: 14, boxShadow: '0 26px 50px rgba(45,21,5,0.28)', opacity: Math.min(1, p * 1.5), transform: `translate(${(1 - p) * -(160 + i * 228)}px, ${(1 - p) * 200}px) scale(${0.3 + p * 0.7}) rotate(${(1 - p) * -18 + (i - 1) * 2}deg)` }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: MONO, fontSize: 13, color: INK, opacity: 0.55 }}>
                 <span>// выпечка</span>
                 <span>{pr.n}</span>
               </div>
-              <Img src={staticFile(`img/${pr.img}.jpg`)} style={{ width: '100%', height: 196, objectFit: 'cover', borderRadius: 16, marginTop: 12 }} />
-              <div style={{ fontFamily: SANS, fontWeight: 700, fontSize: 32, letterSpacing: '-0.03em', color: INK, marginTop: 16 }}>{pr.name}</div>
-              <div style={{ fontFamily: MONO, fontSize: 21, color: ORANGE, marginTop: 4 }}>{pr.price} руб</div>
+              <Img src={staticFile(`img/${pr.img}.jpg`)} style={{ width: '100%', height: 150, objectFit: 'cover', borderRadius: 14, marginTop: 10 }} />
+              <div style={{ fontFamily: SANS, fontWeight: 700, fontSize: 26, letterSpacing: '-0.03em', color: INK, marginTop: 12 }}>{pr.name}</div>
+              <div style={{ fontFamily: MONO, fontSize: 17, color: ORANGE, marginTop: 2 }}>{pr.price} руб</div>
             </div>
           );
         })}
@@ -160,28 +193,123 @@ const Question: React.FC = () => {
   );
 };
 
-/* ───────────── Scene 3: the Mini App ───────────── */
+/* ───────────── 03: «Знакомьтесь» — what the product is ───────────── */
+
+/** A card the boy points at: who it is for, what it is, what it does. */
+const Offer: React.FC<{ at: number; x: number; tag: string; name: string; lines: string[]; dark?: boolean }> = ({ at, x, tag, name, lines, dark }) => {
+  const p = useSpring(at, 170, 18);
+  return (
+    <div style={{ position: 'absolute', left: x, top: 120, width: 470, padding: '26px 30px 30px', borderRadius: 32, background: dark ? INK : '#fff', color: dark ? CREAM : INK, boxShadow: '0 30px 60px rgba(45,21,5,0.18)', fontFamily: SANS, opacity: Math.min(1, p * 1.4), transform: `translateY(${(1 - p) * 40}px) scale(${0.85 + 0.15 * p})`, filter: p < 0.98 ? `blur(${(1 - p) * 10}px)` : undefined }}>
+      <div style={{ fontFamily: MONO, fontSize: 18, letterSpacing: '0.12em', color: ORANGE }}>{tag}</div>
+      <div style={{ fontWeight: 800, fontSize: 50, letterSpacing: '-0.04em', lineHeight: 1.05, marginTop: 10 }}>{name}</div>
+      {lines.map((l, i) => (
+        <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'baseline', fontSize: 24, fontWeight: 500, marginTop: i ? 8 : 18, opacity: 0.8 }}>
+          <span style={{ color: ORANGE, fontWeight: 800 }}>✓</span>
+          {l}
+        </div>
+      ))}
+    </div>
+  );
+};
+
+const Meet: React.FC = () => (
+  <AbsoluteFill style={{ background: CREAM }}>
+    <Hud label="03 — знакомьтесь" color={INK} />
+    <VeoClip clip="meet" src="mascot/meet.webm" phrase={P.meet} start={S3} transparent style={{ position: 'absolute', left: 77, top: 86, width: 1766, height: 994 }} />
+    {/* «Telegram Mini App» — he points left; «и CRM» — right (≈ film 10.7 s and 12.3 s). */}
+    <Offer at={50} x={70} tag="ДЛЯ КЛИЕНТОВ" name="Telegram Mini App" lines={['меню и корзина в Telegram', 'заказ за минуту', 'ничего не скачивать']} />
+    <Offer at={98} x={1380} tag="ДЛЯ ПЕКАРНИ" name="CRM" lines={['все заказы в одном окне', 'склад и выручка', 'отзывы и сверка кассы']} dark />
+  </AbsoluteFill>
+);
+
+/* ───────────── 04: the Mini App ───────────── */
+
+const Step: React.FC<{ n: number; at: number; label: string }> = ({ n, at, label }) => {
+  const p = useSpring(at, 220, 18);
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 18, opacity: Math.min(1, p * 1.4), transform: `translateX(${(1 - p) * -30}px)` }}>
+      <div style={{ width: 52, height: 52, borderRadius: 26, background: p > 0.5 ? ORANGE : 'rgba(45,21,5,0.08)', color: '#fff', fontFamily: SANS, fontWeight: 800, fontSize: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{n}</div>
+      <div style={{ fontFamily: SANS, fontWeight: 700, fontSize: 36, letterSpacing: '-0.02em', color: INK }}>{label}</div>
+    </div>
+  );
+};
 
 const Store: React.FC = () => (
   <AbsoluteFill style={{ background: CREAM }}>
-    <Hud label="03 — mini app" color={INK} />
-    <div style={{ position: 'absolute', left: 120, top: 190, width: 1060 }}>
-      <Line words={['Клиент', 'выбрал', 'в', 'Telegram', '—']} at={6} size={62} />
-      <div style={{ marginTop: 14 }}>
-        <Line words={['заказ', 'уже']} at={26} size={124} />
-        <div style={{ marginLeft: 60 }}>
-          <Line words={[{ a: 'у вас.' }]} at={36} size={124} underline />
-        </div>
+    <Hud label="04 — telegram mini app" color={INK} />
+    <div style={{ position: 'absolute', left: 120, top: 190, width: 900 }}>
+      <Line words={['Клиент', 'заказывает']} at={6} size={74} />
+      <Line words={['прямо', { a: 'в Telegram.' }]} at={16} size={74} underline />
+      <div style={{ fontFamily: SANS, fontWeight: 500, fontSize: 32, color: INK, opacity: 0.6, marginTop: 30 }}>Ничего не нужно скачивать.</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 22, marginTop: 56 }}>
+        <Step n={1} at={30} label="Выбрал выпечку" />
+        <Step n={2} at={112} label="Указал время" />
+        <Step n={3} at={170} label="Заказ отправлен ✓" />
       </div>
     </div>
-    <Mascot clip="talk" from={0.6} x={800} h={560} at={4} speaks={S3} len={S4 - S3} />
     <Phone>
-      <Sequence from={-ORDER + 10} layout="none">
+      <Sequence from={-ORDER + 30} layout="none">
         <MiniApp />
       </Sequence>
     </Phone>
   </AbsoluteFill>
 );
+
+/* ───────────── 05: the CRM ───────────── */
+
+const Crm: React.FC = () => {
+  const frame = useCurrentFrame();
+  return (
+    <AbsoluteFill style={{ background: CREAM }}>
+      <Hud label="05 — crm" color={INK} />
+      {/* The deck's «Принять» shot: the laptop holds until the click lands on «одно нажатие». */}
+      {frame < 50 ? (
+        <Freeze frame={0}>
+          <AcceptArt />
+        </Freeze>
+      ) : (
+        <Sequence from={50} layout="none">
+          <AcceptArt />
+        </Sequence>
+      )}
+      <div style={{ position: 'absolute', left: 120, top: 260, width: 680 }}>
+        <Line words={['Заказ —']} at={6} size={74} />
+        <Line words={['сразу', { a: 'в CRM.' }]} at={14} size={74} underline />
+        <div style={{ fontFamily: SANS, fontWeight: 500, fontSize: 32, lineHeight: 1.35, color: INK, opacity: ease(frame, 80, 96) * 0.65, marginTop: 34 }}>
+          Одно нажатие «Принять» — и клиент
+          <br />
+          получил подтверждение и чек.
+        </div>
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+/* ───────────── 06: the bot writes ───────────── */
+
+const BOT = [
+  { lines: GREETING, time: '14:02', at: -99, goneAt: 6 },
+  { lines: READY, time: '14:21', at: 10, goneAt: 84 },
+  { lines: ISSUED, time: '14:33', at: 88, goneAt: 124, keyboard: ['⭐ 1', '⭐ 2', '⭐ 3', '⭐ 4', '⭐ 5'], pressed: { key: 4, at: 116 } },
+  { lines: RATED, time: '14:33', at: 126 },
+];
+
+const Bot: React.FC = () => {
+  const frame = useCurrentFrame();
+  return (
+    <AbsoluteFill style={{ background: CREAM }}>
+      <Hud label="06 — бот" color={INK} />
+      <div style={{ position: 'absolute', left: 120, top: 260, width: 800 }}>
+        <Line words={['Заказ', 'готов —']} at={4} size={74} />
+        <Line words={['бот', { a: 'напишет сам.' }]} at={14} size={74} underline />
+        <div style={{ fontFamily: SANS, fontWeight: 500, fontSize: 32, color: INK, opacity: ease(frame, 86, 100) * 0.65, marginTop: 34 }}>А после выдачи попросит оценку и отзыв.</div>
+      </div>
+      <Phone>
+        <TgChat messages={BOT} />
+      </Phone>
+    </AbsoluteFill>
+  );
+};
 
 /* ───────────── Scene 4: the live grid ───────────── */
 
@@ -214,7 +342,7 @@ const Grid: React.FC = () => {
   const X = [70, 530, 990, 1450];
   return (
     <AbsoluteFill style={{ background: CREAM }}>
-      <Hud label="04 — всё учтено" color={INK} />
+      <Hud label="07 — всё учтено" color={INK} />
       <Tile i={0} x={X[0]} y={110} w={440} h={900} label="заказ">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <span style={{ padding: '5px 14px', borderRadius: 12, background: '#FFE9D6', color: ORANGE, fontWeight: 800, fontSize: 26 }}># 1244</span>
@@ -239,8 +367,10 @@ const Grid: React.FC = () => {
         </div>
       </Tile>
 
-      <Tile i={1} x={X[1]} y={110} w={440} h={440} label="пекарь">
-        <Mascot clip="talk" from={2.2} x={196} bottom={-24} h={372} speaks={S4} len={S5 - S4} />
+      <Tile i={1} x={X[1]} y={110} w={440} h={440} label="заказов сегодня">
+        <div style={{ fontWeight: 800, fontSize: 150, letterSpacing: '-0.06em', lineHeight: 1, fontVariantNumeric: 'tabular-nums', marginTop: 10 }}>{frame < 40 ? 22 : 23}</div>
+        <div style={{ fontFamily: MONO, fontSize: 19, color: ORANGE, marginTop: 10, opacity: at(40, 50) }}>+1 · Mini App, без звонка</div>
+        <div style={{ position: 'absolute', left: 24, right: 24, bottom: 30, fontSize: 22, fontWeight: 600, opacity: 0.55 }}>0 пропущенных звонков</div>
       </Tile>
 
       <Tile i={2} x={X[2]} y={110} w={440} h={440} label="выручка сегодня">
@@ -315,112 +445,117 @@ const Stamp: React.FC = () => {
   );
 };
 
-/* ───────────── Scene 5: you bake ───────────── */
+/* ───────────── 08: you bake ───────────── */
 
 const YouBake: React.FC = () => (
   <AbsoluteFill style={{ background: INK }}>
-    <Hud label="05 — итог" color={CREAM} />
-    <Mascot clip="talk" from={6.6} x={1420} h={900} at={0} speaks={S5} len={S6 - S5} />
-    <div style={{ position: 'absolute', left: 120, top: 300 }}>
-      <Line words={['Вы', { a: 'печёте.' }]} at={8} size={150} color={CREAM} accent={CREAM} />
+    <Hud label="08 — итог" color={CREAM} />
+    <VeoClip clip="finale" src="mascot/finale.webm" phrase={P.finale} start={S8} transparent style={{ position: 'absolute', left: 560, top: 86, width: 1766, height: 994 }} />
+    <div style={{ position: 'absolute', left: 120, top: 330 }}>
+      <Line words={['Вы', { a: 'печёте.' }]} at={10} size={140} color={CREAM} accent={CREAM} />
       <div style={{ marginTop: 26 }}>
-        <Line words={['Мы', 'ведём', { a: 'заказы.' }]} at={44} size={96} color="rgba(251,246,238,0.6)" accent="#F09A5B" />
+        <Line words={['Мы', 'ведём', { a: 'заказы.' }]} at={44} size={92} color="rgba(251,246,238,0.65)" accent="#F09A5B" />
       </div>
     </div>
   </AbsoluteFill>
 );
 
-/* ───────────── Scene 6: sign-off ───────────── */
+/* ───────────── 09: sign-off ───────────── */
 
 const SignOff: React.FC = () => {
   const frame = useCurrentFrame();
-  const btn = useSpring(26, 200, 18);
+  const btn = useSpring(20, 200, 18);
   return (
     <AbsoluteFill style={{ background: CREAM }}>
-      <Mascot clip="joy" from={2.5} x={960} bottom={520} h={420} at={0} />
-      {/* The wordmark covers the boy's chest: he peeks over it */}
+      {/* The same shot runs on: he winks over the wordmark. */}
+      <div style={{ position: 'absolute', left: 960 - 270, top: 40, width: 540, height: 460, overflow: 'hidden' }}>
+        <VeoClip clip="finale" src="mascot/finale.webm" phrase={P.finale} start={S9} transparent style={{ position: 'absolute', left: -(889 - 540) / 2, top: 0, width: 889, height: 500 }} />
+      </div>
       <div style={{ position: 'absolute', left: 0, right: 0, top: 500, height: 600, background: CREAM }} />
-      <div style={{ position: 'absolute', left: 0, right: 0, top: 500, textAlign: 'center' }}>
-        <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 190, lineHeight: 1, letterSpacing: '-0.03em', color: INK }}>Пекарня</div>
-        <div style={{ fontFamily: SANS, fontWeight: 500, fontSize: 36, color: INK, marginTop: 26, opacity: ease(frame, 12, 26) }}>
-          Mini App + CRM, которые ведут заказы <span style={{ fontFamily: SERIF, fontStyle: 'italic', color: ORANGE, fontSize: 44 }}>за вас.</span>
-        </div>
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 22, marginTop: 44, opacity: btn, transform: `scale(${0.9 + 0.1 * btn})` }}>
-          <span style={{ padding: '18px 40px', borderRadius: 999, background: ORANGE, color: '#fff', fontFamily: SANS, fontWeight: 700, fontSize: 30, boxShadow: '0 12px 28px rgba(208,105,42,0.35)' }}>Показать на вашей пекарне</span>
+      <div style={{ position: 'absolute', left: 0, right: 0, top: 528, textAlign: 'center' }}>
+        <div style={{ fontFamily: MONO, fontSize: 24, letterSpacing: '0.14em', color: ORANGE }}>TELEGRAM MINI APP + CRM</div>
+        <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 130, lineHeight: 1.05, letterSpacing: '-0.03em', color: INK, marginTop: 4 }}>для пекарни</div>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 22, marginTop: 34, opacity: btn, transform: `scale(${0.9 + 0.1 * btn})` }}>
+          <span style={{ padding: '18px 40px', borderRadius: 999, background: ORANGE, color: '#fff', fontFamily: SANS, fontWeight: 700, fontSize: 30, boxShadow: '0 12px 28px rgba(208,105,42,0.35)' }}>Покажу на вашей пекарне</span>
           <span style={{ fontFamily: MONO, fontSize: 24, color: INK, opacity: 0.6 }}>15 минут</span>
         </div>
-        <div style={{ marginTop: 34, fontFamily: SANS, fontSize: 28, fontWeight: 600, color: INK, opacity: ease(frame, 34, 46) }}>
+        <div style={{ marginTop: 30, fontFamily: SANS, fontSize: 28, fontWeight: 600, color: INK, opacity: ease(frame, 28, 40) }}>
           Александр · Telegram <span style={{ fontFamily: MONO, color: ORANGE }}>+375 33 360-49-02</span> · <span style={{ fontFamily: MONO, color: ORANGE }}>alexanderdashcynskiy@gmail.com</span>
         </div>
       </div>
-      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 54, textAlign: 'center', fontFamily: MONO, fontSize: 19, color: INK, opacity: 0.45 }}>Alexander Dashcynskiy · дизайн и разработка</div>
+      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 44, textAlign: 'center', fontFamily: MONO, fontSize: 19, color: INK, opacity: 0.45 }}>Alexander Dashcynskiy · дизайн и разработка</div>
     </AbsoluteFill>
   );
 };
 
 /* ───────────── The promo ───────────── */
 
-const speaking = (f: number) => VOICE.some(([at, a, b]) => f >= at - 6 && f <= at + (b - a) * 30 + 6);
+const PHRASES = Object.values(P);
+const speaking = (f: number) => PHRASES.some(({ at, a, b }) => f >= at * 30 - 6 && f <= (at + b - a) * 30 + 6);
 
 export const MascotPromo: React.FC = () => {
   const frame = useCurrentFrame();
   const fadeOut = interpolate(frame, [MASCOT_FRAMES - 14, MASCOT_FRAMES], [1, 0], clamp);
+  const scene = (from: number, to: number, el: React.ReactNode) => (
+    <Sequence from={from} durationInFrames={to - from}>
+      {el}
+    </Sequence>
+  );
   return (
     <AbsoluteFill style={{ background: CREAM }}>
       <AbsoluteFill style={{ opacity: fadeOut }}>
-        <Sequence from={S1} durationInFrames={S2 - S1}>
-          <Pain />
-        </Sequence>
-        <Sequence from={S2} durationInFrames={S3 - S2}>
-          <Question />
-        </Sequence>
-        <Sequence from={S3} durationInFrames={S4 - S3}>
-          <Store />
-        </Sequence>
-        <Sequence from={S4} durationInFrames={S5 - S4}>
-          <Grid />
-        </Sequence>
-        <Sequence from={STAMP} durationInFrames={S5 - STAMP}>
-          <Stamp />
-        </Sequence>
-        <Sequence from={S5} durationInFrames={S6 - S5}>
-          <YouBake />
-        </Sequence>
-        <Sequence from={S6}>
-          <SignOff />
-        </Sequence>
+        {scene(S1, S2, <Pain />)}
+        {scene(S2, S3, <Question />)}
+        {scene(S3, S4, <Meet />)}
+        {scene(S4, S5, <Store />)}
+        {scene(S5, S6, <Crm />)}
+        {scene(S6, S7, <Bot />)}
+        {scene(S7, S8, <Grid />)}
+        {scene(STAMP, S8, <Stamp />)}
+        {scene(S8, S9, <YouBake />)}
+        {scene(S9, MASCOT_FRAMES, <SignOff />)}
       </AbsoluteFill>
 
-      {/* Sound: the calls, then only the product's small sounds over a quiet bed */}
-      <Audio src={staticFile('music-deck.mp3')} volume={(f) => (speaking(f) ? 0.1 : 0.22) * interpolate(f, [0, 20], [0, 1], clamp) * interpolate(f, [MASCOT_FRAMES - 30, MASCOT_FRAMES], [1, 0], clamp)} />
-      {VOICE.map(([at, a, b], i) => (
-        <Sequence key={`v${i}`} from={at} durationInFrames={Math.round((b - a) * 30) + 3} layout="none">
-          <Audio src={staticFile('voice-mascot.mp3')} startFrom={Math.round(a * 30)} endAt={Math.round(b * 30) + 3} volume={1.15} />
+      {/* The voice, phrase by phrase, on its scenes */}
+      {PHRASES.map(({ at, a, b }, i) => (
+        <Sequence key={`v${i}`} from={Math.round(at * 30)} durationInFrames={Math.round((b - a) * 30) + 3} layout="none">
+          <Audio src={staticFile('voice-mascot40.mp3')} startFrom={Math.round(a * 30)} endAt={Math.round(b * 30) + 3} volume={1.15} />
         </Sequence>
       ))}
-      {[0, 1].map((i) => (
-        <Sequence key={i} from={30 + i * 20} durationInFrames={S2 - 30 - i * 20} layout="none">
-          <Audio src={staticFile(`sfx/ring${i + 1}.wav`)} loop volume={(f) => (speaking(f + 30 + i * 20) ? 0.07 : 0.16) * interpolate(f + 30 + i * 20, [S2 - 24, S2 - 2], [1, 0], clamp)} />
+      <Audio src={staticFile('music-deck.mp3')} volume={(f) => (speaking(f) ? 0.09 : 0.2) * interpolate(f, [0, 20], [0, 1], clamp) * interpolate(f, [MASCOT_FRAMES - 30, MASCOT_FRAMES], [1, 0], clamp)} />
+      {/* The phones in scene 1 */}
+      {[0, 1, 2].map((i) => (
+        <Sequence key={i} from={10 + i * 18} durationInFrames={S2 - 10 - i * 18} layout="none">
+          <Audio src={staticFile(`sfx/ring${i + 1}.wav`)} loop volume={(f) => (speaking(f + 10 + i * 18) ? 0.07 : 0.16) * interpolate(f + 10 + i * 18, [S2 - 24, S2 - 2], [1, 0], clamp)} />
         </Sequence>
       ))}
       <Sfx at={S2} name="whoosh" volume={0.5} />
-      {[62, 70, 78].map((f) => (
+      {[90, 97, 104].map((f) => (
         <Sfx key={f} at={S2 + f} name="pop" volume={0.45} />
       ))}
       <Sfx at={S3} name="whoosh" volume={0.3} />
-      {[18, 56, 68].map((f) => (
-        <Sfx key={f} at={S3 + f} name="tap" volume={0.6} />
+      <Sfx at={S3 + 50} name="pop" volume={0.5} />
+      <Sfx at={S3 + 98} name="pop" volume={0.5} />
+      <Sfx at={S4} name="whoosh" volume={0.3} />
+      {[26, 38, 52, 92, 166].map((f) => (
+        <Sfx key={f} at={S4 + f} name="tap" volume={0.55} />
       ))}
-      <Sfx at={S4 + 30} name="tap" volume={0.8} />
-      <Sfx at={S4 + 52} name="chime" volume={0.45} />
-      <Sfx at={S4 + 54} name="ding" volume={0.4} />
+      <Sfx at={S4 + 172} name="chime" volume={0.4} />
+      <Sfx at={S5} name="whoosh" volume={0.3} />
+      <Sfx at={S6} name="whoosh" volume={0.3} />
+      <Sfx at={S6 + 10} name="ding" volume={0.5} />
+      <Sfx at={S6 + 88} name="ding" volume={0.45} />
+      <Sfx at={S6 + 116} name="tap" volume={0.6} />
+      <Sfx at={S7} name="whoosh" volume={0.3} />
+      <Sfx at={S7 + 30} name="tap" volume={0.6} />
+      <Sfx at={S7 + 52} name="chime" volume={0.4} />
       {[60, 80, 90].map((f) => (
-        <Sfx key={f} at={S4 + f} name="tick" volume={0.5} />
+        <Sfx key={f} at={S7 + f} name="tick" volume={0.45} />
       ))}
       <Sfx at={STAMP} name="whoosh" volume={0.7} />
       <Sfx at={STAMP + 8} name="hit" volume={0.7} />
-      <Sfx at={S5} name="whoosh" volume={0.3} />
-      <Sfx at={S6 + 26} name="pop" volume={0.5} />
+      <Sfx at={S8} name="whoosh" volume={0.3} />
+      <Sfx at={S9 + 20} name="pop" volume={0.5} />
     </AbsoluteFill>
   );
 };
