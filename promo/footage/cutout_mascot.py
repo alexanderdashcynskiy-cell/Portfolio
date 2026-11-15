@@ -1,6 +1,7 @@
 """Cuts the mascot out of its studio backdrop: a VP9 clip with an alpha channel, in full colour.
 The matte is everything the near-white backdrop does not reach from the frame's edges, so the
-cream hat survives; it is pulled in a pixel and feathered so no white fringe is left.
+cream hat survives; only the largest island is kept, so burned-in subtitles vanish; it is
+pulled in a pixel and feathered so no white fringe is left.
 usage: python3 cutout_mascot.py in.mp4 out.webm"""
 import subprocess
 import sys
@@ -27,6 +28,11 @@ while True:
         if backdrop[seed[1], seed[0]]:
             cv2.floodFill(backdrop, flood, seed, 128)
     matte = (backdrop != 128).astype(np.uint8) * 255
+    # Keep only the character: anything else on the backdrop (a generator's burned-in
+    # subtitle, a speck) is a separate island and is dropped.
+    islands, lab, stats, _ = cv2.connectedComponentsWithStats(matte)
+    if islands > 2:
+        matte = np.where(lab == 1 + int(np.argmax(stats[1:, cv2.CC_STAT_AREA])), 255, 0).astype(np.uint8)
     matte = cv2.erode(matte, np.ones((3, 3), np.uint8))
     matte = cv2.GaussianBlur(matte, (0, 0), 1.1)
     enc.stdin.write(np.dstack([f, matte]).tobytes())
