@@ -1,6 +1,6 @@
 import React from 'react';
 import { AbsoluteFill, Audio, Freeze, Img, interpolate, OffthreadVideo, Sequence, spring, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
-import { C, MONO, SANS, SERIF } from '../ui';
+import { C, MONO, SANS, SERIF, TapStyle } from '../ui';
 import { clamp, easeInOut, Sfx } from '../kit';
 import { Phone } from '../deck/devices';
 import { AcceptArt, GREETING, ISSUED, RATED, READY, TgChat } from '../deck/arts';
@@ -228,14 +228,16 @@ const Store: React.FC = () => (
       <div style={{ fontFamily: SANS, fontWeight: 500, fontSize: 32, color: INK, opacity: 0.6, marginTop: 30 }}>Ничего не нужно скачивать.</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 22, marginTop: 56 }}>
         <Step n={1} at={30} label="Выбрал выпечку" />
-        <Step n={2} at={112} label="Указал время" />
-        <Step n={3} at={170} label="Заказ отправлен ✓" />
+        <Step n={2} at={124} label="Указал время" />
+        <Step n={3} at={182} label="Заказ отправлен ✓" />
       </div>
     </div>
     <Phone>
-      <Sequence from={-ORDER + 30} layout="none">
-        <MiniApp />
-      </Sequence>
+      <TapStyle.Provider value="touch">
+        <Sequence from={-ORDER - 10} layout="none">
+          <MiniApp />
+        </Sequence>
+      </TapStyle.Provider>
     </Phone>
   </AbsoluteFill>
 );
@@ -522,10 +524,10 @@ export const MascotPromo: React.FC = () => {
       <Sfx at={said(13.1)} name="pop" volume={0.5} />
       <Sfx at={said(14.6)} name="pop" volume={0.5} />
       <Sfx at={S4} name="whoosh" volume={0.3} />
-      {[26, 38, 52, 92, 166].map((f) => (
+      {[36, 48, 62, 102, 176].map((f) => (
         <Sfx key={f} at={S4 + f} name="tap" volume={0.55} />
       ))}
-      <Sfx at={S4 + 172} name="chime" volume={0.4} />
+      <Sfx at={S4 + 182} name="chime" volume={0.4} />
       <Sfx at={S5} name="whoosh" volume={0.3} />
       <Sfx at={S6} name="whoosh" volume={0.3} />
       <Sfx at={S6 + 10} name="ding" volume={0.5} />

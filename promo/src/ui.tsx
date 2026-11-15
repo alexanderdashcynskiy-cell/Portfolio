@@ -192,8 +192,52 @@ export const Phone: React.FC<{ children: React.ReactNode; style?: React.CSSPrope
   </div>
 );
 
+/**
+ * How taps are drawn: 'ring' — the original bold fingertip with an orange ripple; 'touch' — a
+ * quiet frosted touch point, as in an iOS screen recording. Set with <TapStyle.Provider>.
+ */
+export const TapStyle = React.createContext<'ring' | 'touch'>('ring');
+
+/** A frosted touch point: fades in, presses, a soft glow spreads, it lifts away. */
+const Touch: React.FC<{ x: number; y: number; at: number }> = ({ x, y, at }) => {
+  const frame = useCurrentFrame();
+  const t = frame - at;
+  if (t < -6 || t > 20) return null;
+  const ramp = (a: number, b: number, from: number, to: number) => interpolate(t, [a, b], [from, to], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+  const inP = ramp(-6, 0, 0, 1);
+  const press = t < 0 ? 1.12 - 0.12 * inP : t < 4 ? 0.86 : ramp(4, 9, 0.86, 1);
+  const glow = ramp(0, 14, 0, 1);
+  const out = ramp(12, 20, 1, 0);
+  const D = 46;
+  return (
+    <div style={{ position: 'absolute', left: x, top: y, pointerEvents: 'none', opacity: Math.min(inP, out) }}>
+      {t >= 0 && <div style={{ position: 'absolute', left: -D, top: -D, width: D * 2, height: D * 2, borderRadius: '50%', background: 'radial-gradient(closest-side, rgba(90,90,95,0.28), rgba(90,90,95,0))', transform: `scale(${0.5 + glow * 0.7})`, opacity: 1 - glow }} />}
+      <div
+        style={{
+          position: 'absolute',
+          left: -D / 2,
+          top: -D / 2,
+          width: D,
+          height: D,
+          borderRadius: '50%',
+          background: 'radial-gradient(circle at 40% 35%, rgba(110,110,115,0.42), rgba(60,60,65,0.38))',
+          border: '2px solid rgba(255,255,255,0.95)',
+          boxShadow: '0 4px 14px rgba(0,0,0,0.22), 0 0 0 1px rgba(0,0,0,0.06)',
+          backdropFilter: 'blur(3px)',
+          transform: `scale(${press})`,
+        }}
+      />
+    </div>
+  );
+};
+
 /** A fingertip: lands, presses, ripples. Coordinates are in the parent's space. */
-export const Tap: React.FC<{ x: number; y: number; at: number }> = ({ x, y, at }) => {
+export const Tap: React.FC<{ x: number; y: number; at: number }> = (props) => {
+  const style = React.useContext(TapStyle);
+  return style === 'touch' ? <Touch {...props} /> : <Ring {...props} />;
+};
+
+const Ring: React.FC<{ x: number; y: number; at: number }> = ({ x, y, at }) => {
   const frame = useCurrentFrame();
   const t = frame - at;
   if (t < -10 || t > 26) return null;
