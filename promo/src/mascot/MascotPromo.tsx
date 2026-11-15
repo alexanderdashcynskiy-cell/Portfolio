@@ -123,10 +123,12 @@ const Hud: React.FC<{ label: string; color: string }> = ({ label, color }) => {
 /* ───────────── 01: the pain ───────────── */
 
 const Pain: React.FC = () => (
-  <AbsoluteFill style={{ background: CREAM }}>
+  // The clip's own backdrop: a warm beige, lighter in the middle (sampled from its edges and
+  // centre), continued over the whole frame so the shot has no visible edge.
+  <AbsoluteFill style={{ background: 'radial-gradient(ellipse 1050px 640px at 1328px 600px, #F5EBD5 0%, #EBDDC4 62%, #DDCBB0 100%)' }}>
     <Hud label="01 — боль" color={INK} />
     {/* Kneading, then phones ring all around; on «руки в тесте» he shows his doughy hands. */}
-    <VeoClip clip="pain" src="mascot/pain2.mp4" start={S1} style={{ position: 'absolute', left: 560, top: 216, width: 1536, height: 864, mixBlendMode: 'multiply', filter: 'brightness(1.06)', maskImage: 'linear-gradient(to right, transparent 0, #000 7%), linear-gradient(to bottom, transparent 0, #000 9%)', maskComposite: 'intersect', WebkitMaskImage: 'linear-gradient(to right, transparent 0, #000 7%), linear-gradient(to bottom, transparent 0, #000 9%)', WebkitMaskComposite: 'source-in' }} />
+    <VeoClip clip="pain" src="mascot/pain2.mp4" start={S1} style={{ position: 'absolute', left: 560, top: 216, width: 1536, height: 864, maskImage: 'linear-gradient(to right, transparent 0, #000 14%), linear-gradient(to bottom, transparent 0, #000 16%)', maskComposite: 'intersect', WebkitMaskImage: 'linear-gradient(to right, transparent 0, #000 14%), linear-gradient(to bottom, transparent 0, #000 16%)', WebkitMaskComposite: 'source-in' }} />
     <div style={{ position: 'absolute', left: 120, top: 300 }}>
       <div style={{ fontFamily: MONO, fontSize: 22, color: INK, opacity: 0.55, marginBottom: 22 }}>// пекарям</div>
       <Line words={['Опять', 'звонят']} at={said(0.36) - S1} size={84} />
