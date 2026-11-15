@@ -4,7 +4,7 @@ import { C, MONO, SANS, SERIF } from '../ui';
 import { clamp, easeInOut, Sfx } from '../kit';
 import { Phone } from '../deck/devices';
 import { MiniApp, ORDER } from '../oneorder/OneOrder';
-import { flapFrame, syncedFrames, VOICE, voiceLevel } from './lipsync';
+import { syncedFrames, VOICE, voiceLevel } from './lipsync';
 
 /*
  * The 20-second mascot promo: a baker boy walks the viewer from «опять звонят?» to
@@ -41,7 +41,7 @@ const useSpring = (at: number, stiffness = 200, damping = 22) => {
  * `x` is his centre, `bottom` where his chest is cut off, `h` his height. With `speaks` (the
  * scene's first frame in the film) his mouth follows the voice.
  */
-const Mascot: React.FC<{ clip: string; from: number; x: number; bottom?: number; h: number; at?: number; rate?: number; speaks?: number; flap?: boolean }> = ({ clip, from, x, bottom = 0, h, at = 0, rate = 1, speaks, flap }) => {
+const Mascot: React.FC<{ clip: string; from: number; x: number; bottom?: number; h: number; at?: number; rate?: number; speaks?: number; len?: number }> = ({ clip, from, x, bottom = 0, h, at = 0, rate = 1, speaks, len = 200 }) => {
   const frame = useCurrentFrame();
   const inP = useSpring(at, 160, 20);
   // A nod on every loud syllable, on top of a slow idle sway.
@@ -51,42 +51,15 @@ const Mascot: React.FC<{ clip: string; from: number; x: number; bottom?: number;
   const style: React.CSSProperties = { position: 'absolute', left: -(vw - w) / 2 - h * 0.012, top: 0, width: vw, height: h };
   return (
     <div style={{ position: 'absolute', left: x - w / 2, bottom: bottom - (1 - inP) * h * 0.5 + bob, width: w, height: h, overflow: 'hidden' }}>
-      {speaks !== undefined && flap ? (
-        <Flap clip={clip} from={from} speaks={speaks} h={h} style={style} />
-      ) : speaks === undefined ? (
+      {speaks === undefined ? (
         <OffthreadVideo src={staticFile(`mascot/${clip}.webm`)} startFrom={Math.round(from * 30)} playbackRate={rate} muted transparent style={style} />
       ) : (
         // Lip sync: every frame shows the source frame picked for it (see lipsync.ts).
         <Freeze frame={0}>
-          <OffthreadVideo src={staticFile(`mascot/${clip}.webm`)} startFrom={Math.round((syncedFrames(clip, from, speaks, 400)[Math.min(399, Math.max(0, frame))] / 24) * 30)} muted transparent style={style} />
+          <OffthreadVideo src={staticFile(`mascot/${clip}.webm`)} startFrom={Math.round((syncedFrames(clip, from, speaks, len)[Math.min(len - 1, Math.max(0, frame))] / 24) * 30)} muted transparent style={style} />
         </Freeze>
       )}
     </div>
-  );
-};
-
-/**
- * The sighing clip, with the mouth moved by the voice: the patch around the mouth is drawn a
- * second time, feathered, and stretched down from the upper lip as the voice gets louder.
- */
-const Flap: React.FC<{ clip: string; from: number; speaks: number; h: number; style: React.CSSProperties }> = ({ clip, from, speaks, h, style }) => {
-  const frame = useCurrentFrame();
-  const { src, x, y } = flapFrame(clip, from, Math.max(0, frame));
-  const sc = h / 720;
-  const level = voiceLevel(speaks + frame);
-  const px = x * sc;
-  const py = y * sc;
-  const rx = 66 * sc;
-  const ry = 36 * sc;
-  const start = Math.round((src / 24) * 30);
-  const mask = `radial-gradient(ellipse ${rx}px ${ry}px at ${px}px ${py + ry * 0.2}px, #000 40%, transparent 100%)`;
-  return (
-    <Freeze frame={0}>
-      <OffthreadVideo src={staticFile(`mascot/${clip}.webm`)} startFrom={start} muted transparent style={style} />
-      <div style={{ ...style, maskImage: mask, WebkitMaskImage: mask, transformOrigin: `${px}px ${py - ry * 0.35}px`, transform: `scaleY(${1 + level * 0.5})` }}>
-        <OffthreadVideo src={staticFile(`mascot/${clip}.webm`)} startFrom={start} muted transparent style={{ position: 'absolute', left: 0, top: 0, width: '100%', height: '100%' }} />
-      </div>
-    </Freeze>
   );
 };
 
@@ -131,34 +104,21 @@ const Hud: React.FC<{ label: string; color: string }> = ({ label, color }) => {
 
 /* ───────────── Scene 1: the pain ───────────── */
 
-const CALLS = ['Можно заказать?', 'А на сколько?', 'Ну что, готово?', 'А медовик есть?'];
-const Pain: React.FC = () => {
-  const frame = useCurrentFrame();
-  return (
-    <AbsoluteFill style={{ background: CREAM }}>
-      <Hud label="01 — боль" color={INK} />
-      <Mascot clip="tired" from={0.4} x={1330} h={1010} at={0} speaks={S1} flap />
-      <div style={{ position: 'absolute', left: 120, top: 210, width: 860 }}>
-        <div style={{ fontFamily: MONO, fontSize: 22, color: INK, opacity: 0.55, marginBottom: 26 }}>// пекарям</div>
-        <Line words={['Опять', 'звонят']} at={8} size={112} />
-        <div style={{ marginTop: 10, marginLeft: 50 }}>
-          <Line words={[{ a: 'за заказом?' }]} at={22} size={112} underline />
-        </div>
-      </div>
-      {/* The calls pile up as speech bubbles */}
-      {CALLS.map((q, i) => {
-        const p = spring({ frame: frame - 34 - i * 14, fps: 30, config: { stiffness: 240, damping: 18 } });
-        const shake = Math.sin((frame + i * 7) / 2.2) * 2.5 * (frame % 34 < 16 ? 1 : 0);
-        return (
-          <div key={i} style={{ position: 'absolute', left: 120 + i * 185, top: 700 + (i % 2) * 92, padding: '16px 26px', borderRadius: 999, border: `2.5px solid ${INK}`, background: CREAM, fontFamily: MONO, fontSize: 26, color: INK, opacity: p, transform: `scale(${0.7 + p * 0.3}) translateX(${shake}px)`, transformOrigin: '0 50%', whiteSpace: 'nowrap' }}>
-            <span style={{ color: ORANGE, marginRight: 12 }}>✆</span>
-            {q}
-          </div>
-        );
-      })}
-    </AbsoluteFill>
-  );
-};
+const Pain: React.FC = () => (
+  <AbsoluteFill style={{ background: CREAM }}>
+    <Hud label="01 — боль" color={INK} />
+    {/*
+      The generated shot, whole: phones start ringing around the boy, he panics and swats them
+      away. Its studio backdrop is multiplied into the cream, so the plate has no edges.
+    */}
+    <OffthreadVideo src={staticFile('mascot/phones.mp4')} startFrom={45} playbackRate={1.35} muted style={{ position: 'absolute', left: 384, top: 216, width: 1536, height: 864, mixBlendMode: 'multiply', filter: 'brightness(1.045)', maskImage: 'linear-gradient(to right, transparent 0, #000 7%), linear-gradient(to bottom, transparent 0, #000 9%)', maskComposite: 'intersect', WebkitMaskImage: 'linear-gradient(to right, transparent 0, #000 7%), linear-gradient(to bottom, transparent 0, #000 9%)', WebkitMaskComposite: 'source-in' }} />
+    <div style={{ position: 'absolute', left: 120, top: 84, display: 'flex', alignItems: 'baseline', gap: 34 }}>
+      <Line words={['Опять', 'звонят']} at={8} size={92} />
+      <Line words={[{ a: 'за заказом?' }]} at={20} size={92} underline />
+    </div>
+    <div style={{ position: 'absolute', left: 124, top: 236, fontFamily: MONO, fontSize: 22, color: INK, opacity: 0.55 }}>// пекарям</div>
+  </AbsoluteFill>
+);
 
 /* ───────────── Scene 2: the question, on orange ───────────── */
 
@@ -169,30 +129,29 @@ const PRODUCTS = [
 ];
 const Question: React.FC = () => {
   const frame = useCurrentFrame();
-  const wipe = ease(frame, 0, 14);
+  const open = ease(frame, 0, 16);
   return (
     <AbsoluteFill style={{ background: CREAM }}>
-      {/* The orange floods in from where the boy stands */}
-      <div style={{ position: 'absolute', left: 430 - 2600 * wipe, top: 900 - 2600 * wipe, width: 5200 * wipe, height: 5200 * wipe, borderRadius: '50%', background: ORANGE }} />
-      <AbsoluteFill style={{ background: wipe >= 1 ? ORANGE : undefined }}>
-        <Hud label="02 — а если" color={CREAM} />
-        <Mascot clip="talk" from={4.3} x={430} h={860} at={0} speaks={S2} />
-        <div style={{ position: 'absolute', left: 800, top: 130 }}>
-          <Line words={['А', 'если', 'заказы']} at={10} size={84} color={CREAM} accent={INK} />
-          <Line words={['приходят', { a: 'сами?' }]} at={22} size={84} color={CREAM} accent={INK} underline />
+      {/* The generated shot on its own orange: he thinks, gets the idea, and points at the cards. It opens as a circle from where he stands. */}
+      <AbsoluteFill style={{ clipPath: `circle(${open * 2300}px at 500px 620px)` }}>
+        <OffthreadVideo src={staticFile('mascot/idea.mp4')} startFrom={42} playbackRate={1.5} muted style={{ position: 'absolute', inset: 0, width: 1920, height: 1080 }} />
+        <Hud label="02 — а если" color={INK} />
+        <div style={{ position: 'absolute', left: 980, top: 100 }}>
+          <Line words={['А', 'если', 'заказы']} at={10} size={78} color={INK} accent="#fff" />
+          <Line words={['приходят', { a: 'сами?' }]} at={22} size={78} color={INK} accent="#fff" underline />
         </div>
         {PRODUCTS.map((pr, i) => {
-          const p = spring({ frame: frame - 30 - i * 9, fps: 30, config: { stiffness: 150, damping: 17 } });
-          const float = Math.sin((frame + i * 20) / 16) * 7;
+          const p = spring({ frame: frame - 62 - i * 8, fps: 30, config: { stiffness: 150, damping: 17 } });
+          const float = Math.sin((frame + i * 20) / 16) * 6;
           return (
-            <div key={i} style={{ position: 'absolute', left: 800 + i * 340, top: 420 + float, width: 310, height: 440, borderRadius: 30, background: CREAM, padding: 22, boxShadow: '0 30px 60px rgba(45,21,5,0.28)', opacity: Math.min(1, p * 1.5), transform: `translate(${(1 - p) * -(360 + i * 340)}px, ${(1 - p) * 200}px) scale(${0.3 + p * 0.7}) rotate(${(1 - p) * -18 + (i - 1) * 2}deg)` }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: MONO, fontSize: 17, color: INK, opacity: 0.55 }}>
+            <div key={i} style={{ position: 'absolute', left: 980 + i * 300, top: 340 + float, width: 276, height: 384, borderRadius: 28, background: CREAM, padding: 20, boxShadow: '0 30px 60px rgba(45,21,5,0.28)', opacity: Math.min(1, p * 1.5), transform: `translate(${(1 - p) * -(300 + i * 300)}px, ${(1 - p) * 260}px) scale(${0.3 + p * 0.7}) rotate(${(1 - p) * -18 + (i - 1) * 2}deg)` }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: MONO, fontSize: 16, color: INK, opacity: 0.55 }}>
                 <span>// выпечка</span>
                 <span>{pr.n}</span>
               </div>
-              <Img src={staticFile(`img/${pr.img}.jpg`)} style={{ width: '100%', height: 230, objectFit: 'cover', borderRadius: 18, marginTop: 14 }} />
-              <div style={{ fontFamily: SANS, fontWeight: 700, fontSize: 36, letterSpacing: '-0.03em', color: INK, marginTop: 18 }}>{pr.name}</div>
-              <div style={{ fontFamily: MONO, fontSize: 22, color: ORANGE, marginTop: 4 }}>{pr.price} руб</div>
+              <Img src={staticFile(`img/${pr.img}.jpg`)} style={{ width: '100%', height: 196, objectFit: 'cover', borderRadius: 16, marginTop: 12 }} />
+              <div style={{ fontFamily: SANS, fontWeight: 700, fontSize: 32, letterSpacing: '-0.03em', color: INK, marginTop: 16 }}>{pr.name}</div>
+              <div style={{ fontFamily: MONO, fontSize: 21, color: ORANGE, marginTop: 4 }}>{pr.price} руб</div>
             </div>
           );
         })}
@@ -215,7 +174,7 @@ const Store: React.FC = () => (
         </div>
       </div>
     </div>
-    <Mascot clip="talk" from={0.6} x={800} h={560} at={4} speaks={S3} />
+    <Mascot clip="talk" from={0.6} x={800} h={560} at={4} speaks={S3} len={S4 - S3} />
     <Phone>
       <Sequence from={-ORDER + 10} layout="none">
         <MiniApp />
@@ -281,7 +240,7 @@ const Grid: React.FC = () => {
       </Tile>
 
       <Tile i={1} x={X[1]} y={110} w={440} h={440} label="пекарь">
-        <Mascot clip="talk" from={2.2} x={196} bottom={-24} h={372} speaks={S4} />
+        <Mascot clip="talk" from={2.2} x={196} bottom={-24} h={372} speaks={S4} len={S5 - S4} />
       </Tile>
 
       <Tile i={2} x={X[2]} y={110} w={440} h={440} label="выручка сегодня">
@@ -361,7 +320,7 @@ const Stamp: React.FC = () => {
 const YouBake: React.FC = () => (
   <AbsoluteFill style={{ background: INK }}>
     <Hud label="05 — итог" color={CREAM} />
-    <Mascot clip="talk" from={6.6} x={1420} h={900} at={0} speaks={S5} />
+    <Mascot clip="talk" from={6.6} x={1420} h={900} at={0} speaks={S5} len={S6 - S5} />
     <div style={{ position: 'absolute', left: 120, top: 300 }}>
       <Line words={['Вы', { a: 'печёте.' }]} at={8} size={150} color={CREAM} accent={CREAM} />
       <div style={{ marginTop: 26 }}>
@@ -441,11 +400,8 @@ export const MascotPromo: React.FC = () => {
           <Audio src={staticFile(`sfx/ring${i + 1}.wav`)} loop volume={(f) => (speaking(f + 30 + i * 20) ? 0.07 : 0.16) * interpolate(f + 30 + i * 20, [S2 - 24, S2 - 2], [1, 0], clamp)} />
         </Sequence>
       ))}
-      {[34, 48, 62, 76].map((f) => (
-        <Sfx key={f} at={f} name="pop" volume={0.35} />
-      ))}
       <Sfx at={S2} name="whoosh" volume={0.5} />
-      {[30, 39, 48].map((f) => (
+      {[62, 70, 78].map((f) => (
         <Sfx key={f} at={S2 + f} name="pop" volume={0.45} />
       ))}
       <Sfx at={S3} name="whoosh" volume={0.3} />
