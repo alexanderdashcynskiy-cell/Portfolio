@@ -8,3 +8,4 @@ coverage/
 !.env.example
 promo/node_modules
 promo/out
+__pycache__/
