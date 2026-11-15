@@ -22,8 +22,8 @@ voice_wav, clips_dir = sys.argv[1], sys.argv[2]
 voice, _ = sf.read(voice_wav, dtype='float32')
 
 # Spoken chunks as [voice start, voice end, clip start, clip end], from the two tracks' pauses
-# and word timings. A chunk the clip never says (he skipped «и си-эр-эм») replays the words
-# just before it, so his mouth keeps moving.
+# and word timings. A chunk the clip never says may replay the words just before it, so his
+# mouth keeps moving.
 SHOTS = {
     'pain': {
         'rate': 1.35,
@@ -33,10 +33,10 @@ SHOTS = {
     'idea': {'rate': 1.9, 'start': 0.1, 'chunks': [[8.10, 8.76, 4.68, 5.18], [9.19, 11.50, 5.58, 7.80]]},
     'meet': {
         'rate': 1.35,
-        'start': 1.8,
-        'chunks': [[11.84, 12.55, 2.47, 3.34], [13.10, 14.09, 4.05, 5.10], [14.60, 15.47, 4.58, 5.10], [15.82, 16.56, 5.30, 6.10]],
+        'start': 0.3,
+        'chunks': [[11.84, 12.55, 1.17, 2.00], [13.10, 14.09, 2.25, 3.75], [14.60, 15.47, 4.29, 5.39], [15.82, 16.56, 5.63, 6.59]],
     },
-    'finale': {'rate': 1.35, 'start': 0.85, 'chunks': [[36.86, 37.65, 1.25, 2.04], [38.02, 39.16, 3.53, 4.59]]},
+    'finale': {'rate': 1.35, 'start': 0.8, 'chunks': [[36.86, 37.65, 1.30, 2.04], [38.02, 39.16, 3.35, 4.39]]},
 }
 
 
@@ -48,8 +48,13 @@ def chunk_warp(clip_audio, v0, v1, c0, c1):
     grid = np.arange(0, v1 - v0, 0.04)
     ct = np.interp(grid, p[:, 0], p[:, 1])
     ct = np.convolve(np.pad(ct, 2, mode='edge'), np.ones(5) / 5, mode='valid')
-    ct = np.maximum.accumulate(np.clip(ct, 0, c1 - c0))
-    ct[0], ct[-1] = 0, min(ct[-1], c1 - c0)
+    # DTW holds a frame wherever the two speakers differ in pace, and a held frame reads as the
+    # boy freezing. Keep the clip moving: its speed against the voice stays within 0.6–1.8×,
+    # then the whole chunk is rescaled to end exactly on the chunk's last word.
+    step = np.diff(ct, prepend=0.0)
+    step[1:] = np.clip(step[1:], 0.6 * 0.04, 1.8 * 0.04)
+    ct = np.cumsum(step) - step[0]
+    ct *= (c1 - c0) / max(ct[-1], 1e-6)
     return [[v0 + g, c0 + c] for g, c in zip(grid, ct)] + [[v1, c1]]
 
 

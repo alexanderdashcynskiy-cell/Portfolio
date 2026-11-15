@@ -158,7 +158,7 @@ const Question: React.FC = () => {
         <Hud label="02 — а если" color={INK} />
         <div style={{ position: 'absolute', left: 1180, top: 120 }}>
           <Line words={['А', 'если', 'заказы']} at={said(9.4) - S2} size={66} color={INK} accent={ORANGE} />
-          <Line words={['приходят', { a: 'сами?' }]} at={said(10.4) - S2} size={66} color={INK} accent={ORANGE} underline />
+          <Line words={['приходят', { a: 'без звонков?' }]} at={said(10.4) - S2} size={66} color={INK} accent={ORANGE} underline />
         </div>
         {PRODUCTS.map((pr, i) => {
           const p = spring({ frame: frame - cardsAt - i * 7, fps: 30, config: { stiffness: 150, damping: 17 } });
@@ -202,7 +202,7 @@ const Offer: React.FC<{ at: number; x: number; tag: string; name: string; lines:
 const Meet: React.FC = () => (
   <AbsoluteFill style={{ background: CREAM }}>
     <Hud label="03 — знакомьтесь" color={INK} />
-    <VeoClip clip="meet" src="mascot/meet2.webm" start={S3} transparent style={{ position: 'absolute', left: 77, top: 86, width: 1766, height: 994 }} />
+    <VeoClip clip="meet" src="mascot/meet3.webm" start={S3} transparent style={{ position: 'absolute', left: 77, top: 86, width: 1766, height: 994 }} />
     {/* Each card lands on its name in the voice. */}
     <Offer at={said(13.1) - S3} x={70} tag="ДЛЯ КЛИЕНТОВ" name="Telegram Mini App" lines={['меню и корзина в Telegram', 'заказ за минуту', 'ничего не скачивать']} />
     <Offer at={said(14.6) - S3} x={1380} tag="ДЛЯ ПЕКАРНИ" name="CRM" lines={['все заказы в одном окне', 'склад и выручка', 'отзывы и сверка кассы']} dark />
@@ -291,8 +291,8 @@ const Bot: React.FC = () => {
       <Hud label="06 — бот" color={INK} />
       <div style={{ position: 'absolute', left: 120, top: 260, width: 800 }}>
         <Line words={['Заказ', 'готов —']} at={4} size={74} />
-        <Line words={['бот', { a: 'напишет сам.' }]} at={14} size={74} underline />
-        <div style={{ fontFamily: SANS, fontWeight: 500, fontSize: 32, color: INK, opacity: ease(frame, 86, 100) * 0.65, marginTop: 34 }}>А после выдачи попросит оценку и отзыв.</div>
+        <Line words={['клиент', { a: 'уже знает.' }]} at={14} size={74} underline />
+        <div style={{ fontFamily: SANS, fontWeight: 500, fontSize: 32, color: INK, opacity: ease(frame, 86, 100) * 0.65, marginTop: 34 }}>Бот написал ему в Telegram, а после выдачи попросит оценку.</div>
       </div>
       <Phone>
         <TgChat messages={BOT} />
@@ -437,10 +437,18 @@ const Stamp: React.FC = () => {
 
 /* ───────────── 08: you bake ───────────── */
 
+/**
+ * The finale clip has its own dark-brown backdrop, a little lighter behind him. The frame is
+ * filled with the same brown, its light centred on wherever he stands, and the clip is
+ * feathered into it.
+ */
+const BROWN = (x: number, y: number) => `radial-gradient(ellipse 900px 620px at ${x}px ${y}px, #523727 0%, #48301F 55%, #3F2A1B 100%)`;
+const FEATHER = 'radial-gradient(ellipse 50% 50% at 50% 50%, #000 62%, transparent 100%)';
+
 const YouBake: React.FC = () => (
-  <AbsoluteFill style={{ background: INK }}>
+  <AbsoluteFill style={{ background: BROWN(1520, 540) }}>
     <Hud label="08 — итог" color={CREAM} />
-    <VeoClip clip="finale" src="mascot/finale2.webm" start={S8} transparent style={{ position: 'absolute', left: 560, top: 86, width: 1766, height: 994 }} />
+    <VeoClip clip="finale" src="mascot/finale3.mp4" start={S8} style={{ position: 'absolute', left: 560, top: 0, width: 1920, height: 1080, maskImage: FEATHER, WebkitMaskImage: FEATHER }} />
     <div style={{ position: 'absolute', left: 120, top: 330 }}>
       <Line words={['Вы', { a: 'печёте.' }]} at={10} size={140} color={CREAM} accent={CREAM} />
       <div style={{ marginTop: 26 }}>
@@ -456,24 +464,21 @@ const SignOff: React.FC = () => {
   const frame = useCurrentFrame();
   const btn = useSpring(20, 200, 18);
   return (
-    <AbsoluteFill style={{ background: CREAM }}>
+    <AbsoluteFill style={{ background: BROWN(960, 260) }}>
       {/* The same shot runs on: he winks over the wordmark. */}
-      <div style={{ position: 'absolute', left: 960 - 270, top: 40, width: 540, height: 460, overflow: 'hidden' }}>
-        <VeoClip clip="finale" src="mascot/finale2.webm" start={S9} transparent style={{ position: 'absolute', left: -(889 - 540) / 2, top: 0, width: 889, height: 500 }} />
-      </div>
-      <div style={{ position: 'absolute', left: 0, right: 0, top: 500, height: 600, background: CREAM }} />
+      <VeoClip clip="finale" src="mascot/finale3.mp4" start={S9} style={{ position: 'absolute', left: 960 - 444, top: 20, width: 889, height: 500, maskImage: FEATHER, WebkitMaskImage: FEATHER }} />
       <div style={{ position: 'absolute', left: 0, right: 0, top: 528, textAlign: 'center' }}>
-        <div style={{ fontFamily: MONO, fontSize: 24, letterSpacing: '0.14em', color: ORANGE }}>TELEGRAM MINI APP + CRM</div>
-        <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 130, lineHeight: 1.05, letterSpacing: '-0.03em', color: INK, marginTop: 4 }}>для пекарни</div>
+        <div style={{ fontFamily: MONO, fontSize: 24, letterSpacing: '0.14em', color: '#F09A5B' }}>TELEGRAM MINI APP + CRM</div>
+        <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 130, lineHeight: 1.05, letterSpacing: '-0.03em', color: CREAM, marginTop: 4 }}>для пекарни</div>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 22, marginTop: 34, opacity: btn, transform: `scale(${0.9 + 0.1 * btn})` }}>
-          <span style={{ padding: '18px 40px', borderRadius: 999, background: ORANGE, color: '#fff', fontFamily: SANS, fontWeight: 700, fontSize: 30, boxShadow: '0 12px 28px rgba(208,105,42,0.35)' }}>Покажу на вашей пекарне</span>
-          <span style={{ fontFamily: MONO, fontSize: 24, color: INK, opacity: 0.6 }}>15 минут</span>
+          <span style={{ padding: '18px 40px', borderRadius: 999, background: ORANGE, color: '#fff', fontFamily: SANS, fontWeight: 700, fontSize: 30, boxShadow: '0 12px 28px rgba(0,0,0,0.3)' }}>Покажу на вашей пекарне</span>
+          <span style={{ fontFamily: MONO, fontSize: 24, color: CREAM, opacity: 0.6 }}>15 минут</span>
         </div>
-        <div style={{ marginTop: 30, fontFamily: SANS, fontSize: 28, fontWeight: 600, color: INK, opacity: ease(frame, 28, 40) }}>
-          Александр · Telegram <span style={{ fontFamily: MONO, color: ORANGE }}>+375 33 360-49-02</span> · <span style={{ fontFamily: MONO, color: ORANGE }}>alexanderdashcynskiy@gmail.com</span>
+        <div style={{ marginTop: 30, fontFamily: SANS, fontSize: 28, fontWeight: 600, color: CREAM, opacity: ease(frame, 28, 40) }}>
+          Александр · Telegram <span style={{ fontFamily: MONO, color: '#F09A5B' }}>+375 33 360-49-02</span> · <span style={{ fontFamily: MONO, color: '#F09A5B' }}>alexanderdashcynskiy@gmail.com</span>
         </div>
       </div>
-      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 44, textAlign: 'center', fontFamily: MONO, fontSize: 19, color: INK, opacity: 0.45 }}>Alexander Dashcynskiy · дизайн и разработка</div>
+      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 44, textAlign: 'center', fontFamily: MONO, fontSize: 19, color: CREAM, opacity: 0.45 }}>Alexander Dashcynskiy · дизайн и разработка</div>
     </AbsoluteFill>
   );
 };
