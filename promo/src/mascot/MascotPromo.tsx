@@ -5,50 +5,44 @@ import { clamp, easeInOut, Sfx } from '../kit';
 import { Phone } from '../deck/devices';
 import { AcceptArt, GREETING, ISSUED, RATED, READY, TgChat } from '../deck/arts';
 import { MiniApp, ORDER } from '../oneorder/OneOrder';
-import warp from './warp.json';
+import timeline from './timeline.json';
 
 /*
- * The mascot promo, 43 seconds: a baker boy walks a bakery owner from «опять звонят?» to
+ * The mascot promo, about 49 seconds: a baker boy walks a bakery owner from «опять звонят?» to
  * «вы печёте, мы ведём заказы», and in between names the product — a Telegram Mini App for
  * customers and a CRM for the bakery — and shows what each does. Three colours from the
  * bakery's palette (cream, dark brown ink, orange), kinetic type with one italic accent word.
  *
  * The boy's four talking shots are Veo clips of him saying the same words as the voice-over
- * (ElevenLabs). Their own sound is dropped; each is re-timed so his mouth follows the voice:
- * footage/align_veo.py maps every moment of the voice to the moment of the clip where he says
- * the same thing (src/mascot/warp.json).
+ * (ElevenLabs). Their own sound is dropped; each is re-timed so his mouth follows the voice,
+ * and runs briskly between phrases: footage/plan_mascot.py plans the whole timeline
+ * (src/mascot/timeline.json).
  */
 
-export const MASCOT_FRAMES = 1290; // 43 s
+const T = timeline as { cues: number[][]; clips: Record<string, { anchors: number[][]; rate: number }>; scenes: Record<string, number> };
+const f30 = (s: number) => Math.round(s * 30);
 const INK = C.ink;
 const CREAM = C.cream;
 const ORANGE = C.orange;
-const PEACH = '#DFB47C'; // the idea clip's own backdrop
 
-/** Each phrase of public/voice-mascot40.mp3: where it plays in the film and its span in the file (s). */
-const P = {
-  pain: { at: 1.0, a: 0.25, b: 3.4 }, // Опять звонят? У меня руки в тесте!
-  idea: { at: 5.6, a: 4.18, b: 6.6 }, // А что, если заказы будут приходить сами?
-  meet: { at: 9.4, a: 6.9, b: 11.82 }, // Знакомьтесь: Telegram Mini App и CRM для пекарни!
-  store: { at: 15.2, a: 12.1, b: 18.35 }, // Клиент заказывает прямо в Телеграме… Выбрал, указал время — готово.
-  crm: { at: 22.0, a: 18.5, b: 23.95 }, // А у вас заказ сразу в CRM. Одно нажатие — и клиент получил подтверждение и чек.
-  ready: { at: 28.0, a: 24.15, b: 28.55 }, // Заказ готов — бот сам напишет клиенту. А потом попросит оценку.
-  sums: { at: 32.8, a: 28.65, b: 32.05 }, // Склад, выручка, сверка кассы — всё считается само.
-  finale: { at: 36.9, a: 32.25, b: 34.65 }, // Вы печёте. Мы ведём заказы.
+// Scene cuts, in frames, from the planned timeline (footage/plan_mascot.py).
+const S1 = f30(T.scenes.pain);
+const S2 = f30(T.scenes.idea);
+const S3 = f30(T.scenes.meet);
+const S4 = f30(T.scenes.store);
+const S5 = f30(T.scenes.crm);
+const S6 = f30(T.scenes.ready);
+const S7 = f30(T.scenes.sums);
+const S8 = f30(T.scenes.finale);
+const S9 = f30(T.scenes.signoff);
+export const MASCOT_FRAMES = f30(T.scenes.end);
+
+/** The film frame at which the voice says the moment `v` (seconds into the voice file). */
+const said = (v: number) => {
+  const c = T.cues.find(([, a, b]) => v >= a && v <= b) ?? T.cues[0];
+  return f30(c[0] + v - c[1]);
 };
-type Phrase = (typeof P)[keyof typeof P];
-
-// Scene cuts, in frames.
-const S1 = 0; // pain
-const S2 = 138; // the idea
-const S3 = 270; // «Знакомьтесь»: Mini App + CRM
-const S4 = 450; // the Mini App
-const S5 = 654; // the CRM
-const S6 = 834; // the bot: ready, rating
-const S7 = 978; // everything counted
-const STAMP = 1072; // lands on «само»
-const S8 = 1098; // you bake
-const S9 = 1194; // sign-off
+const STAMP = said(36.2) - 4; // lands on «само»
 
 const ease = (f: number, a: number, b: number) => easeInOut(interpolate(f, [a, b], [0, 1], clamp));
 const useSpring = (at: number, stiffness = 200, damping = 22) => {
@@ -59,39 +53,30 @@ const useSpring = (at: number, stiffness = 200, damping = 22) => {
 
 /* ───────────── The boy, re-timed to the voice ───────────── */
 
-/**
- * Where in the clip to be on a frame of the film (seconds). Inside the phrase it follows the
- * warp; after it the clip runs on at its own speed. Before it, the clip runs at its own speed
- * too, or — with `pre` — eases from `pre` at the scene's start, to fit a longer lead-in.
- */
-const clipTime = (clip: string, phrase: Phrase, frame: number, sceneStart: number, pre?: number) => {
-  const w = (warp as Record<string, number[][]>)[clip];
-  const vt = phrase.a + frame / 30 - phrase.at;
-  const [v0, c0] = w[0];
-  const [vn, cn] = w[w.length - 1];
-  let t: number;
-  if (vt <= v0) {
-    const vs = phrase.a + sceneStart / 30 - phrase.at;
-    t = pre === undefined ? c0 + (vt - v0) : pre + ((c0 - pre) * Math.max(0, vt - vs)) / (v0 - vs);
-  } else if (vt >= vn) {
-    t = cn + (vt - vn);
-  } else {
+/** Where in the clip to be at a film frame (seconds): the planned anchors, then on at the clip's brisk rate. */
+const clipTime = (clip: string, frame: number) => {
+  const { anchors, rate } = T.clips[clip];
+  const t = frame / 30;
+  const last = anchors[anchors.length - 1];
+  let c: number;
+  if (t <= anchors[0][0]) c = anchors[0][1];
+  else if (t >= last[0]) c = last[1] + (t - last[0]) * rate;
+  else {
     let i = 1;
-    while (w[i][0] < vt) i++;
-    const [va, ca] = w[i - 1];
-    const [vb, cb] = w[i];
-    t = ca + ((cb - ca) * (vt - va)) / (vb - va);
+    while (anchors[i][0] < t) i++;
+    const [fa, ca] = anchors[i - 1];
+    const [fb, cb] = anchors[i];
+    c = fb === fa ? cb : ca + ((cb - ca) * (t - fa)) / (fb - fa);
   }
-  return Math.max(0, Math.min(9.9, t));
+  return Math.max(0, Math.min(9.95, c));
 };
 
 /** A Veo clip shown frame by frame at the moment `clipTime` picks. `start` is the scene's first frame. */
-const VeoClip: React.FC<{ clip: string; src: string; phrase: Phrase; start: number; pre?: number; transparent?: boolean; style: React.CSSProperties }> = ({ clip, src, phrase, start, pre, transparent, style }) => {
+const VeoClip: React.FC<{ clip: string; src: string; start: number; transparent?: boolean; style: React.CSSProperties }> = ({ clip, src, start, transparent, style }) => {
   const frame = useCurrentFrame();
-  const t = clipTime(clip, phrase, start + frame, start, pre);
   return (
     <Freeze frame={0}>
-      <OffthreadVideo src={staticFile(src)} startFrom={Math.round(t * 30)} muted transparent={transparent} style={style} />
+      <OffthreadVideo src={staticFile(src)} startFrom={Math.round(clipTime(clip, start + frame) * 30)} muted transparent={transparent} style={style} />
     </Freeze>
   );
 };
@@ -141,12 +126,12 @@ const Pain: React.FC = () => (
   <AbsoluteFill style={{ background: CREAM }}>
     <Hud label="01 — боль" color={INK} />
     {/* Kneading, then phones ring all around; on «руки в тесте» he shows his doughy hands. */}
-    <VeoClip clip="pain" src="mascot/pain.mp4" phrase={P.pain} start={S1} style={{ position: 'absolute', left: 560, top: 216, width: 1536, height: 864, mixBlendMode: 'multiply', filter: 'brightness(1.06)', maskImage: 'linear-gradient(to right, transparent 0, #000 7%), linear-gradient(to bottom, transparent 0, #000 9%)', maskComposite: 'intersect', WebkitMaskImage: 'linear-gradient(to right, transparent 0, #000 7%), linear-gradient(to bottom, transparent 0, #000 9%)', WebkitMaskComposite: 'source-in' }} />
+    <VeoClip clip="pain" src="mascot/pain2.mp4" start={S1} style={{ position: 'absolute', left: 560, top: 216, width: 1536, height: 864, mixBlendMode: 'multiply', filter: 'brightness(1.06)', maskImage: 'linear-gradient(to right, transparent 0, #000 7%), linear-gradient(to bottom, transparent 0, #000 9%)', maskComposite: 'intersect', WebkitMaskImage: 'linear-gradient(to right, transparent 0, #000 7%), linear-gradient(to bottom, transparent 0, #000 9%)', WebkitMaskComposite: 'source-in' }} />
     <div style={{ position: 'absolute', left: 120, top: 300 }}>
       <div style={{ fontFamily: MONO, fontSize: 22, color: INK, opacity: 0.55, marginBottom: 22 }}>// пекарям</div>
-      <Line words={['Опять', 'звонят']} at={30} size={84} />
+      <Line words={['Опять', 'звонят']} at={said(0.36) - S1} size={84} />
       <div style={{ marginLeft: 30 }}>
-        <Line words={[{ a: 'за заказом?' }]} at={42} size={84} underline />
+        <Line words={[{ a: 'за заказом?' }]} at={said(0.9) - S1} size={84} underline />
       </div>
     </div>
   </AbsoluteFill>
@@ -162,16 +147,16 @@ const PRODUCTS = [
 const Question: React.FC = () => {
   const frame = useCurrentFrame();
   const open = ease(frame, 0, 16);
-  // He points right on «приходить сами» (≈ film 7.7 s): the cards fly in there.
-  const cardsAt = 90;
+  // He points right on «приходить сами»: the cards fly in there.
+  const cardsAt = said(10.7) - S2;
   return (
     <AbsoluteFill style={{ background: CREAM }}>
-      <AbsoluteFill style={{ background: PEACH, clipPath: `circle(${open * 2300}px at 640px 620px)` }}>
-        <VeoClip clip="idea" src="mascot/idea-ru.mp4" phrase={P.idea} start={S2} pre={1.0} style={{ position: 'absolute', left: -60, top: 194, width: 1574, height: 886, maskImage: 'linear-gradient(to bottom, transparent 0, #000 10%), linear-gradient(to left, transparent 0, #000 8%)', maskComposite: 'intersect', WebkitMaskImage: 'linear-gradient(to bottom, transparent 0, #000 10%), linear-gradient(to left, transparent 0, #000 8%)', WebkitMaskComposite: 'source-in' }} />
+      <AbsoluteFill style={{ background: CREAM, clipPath: `circle(${open * 2300}px at 400px 620px)` }}>
+        <VeoClip clip="idea" src="mascot/idea2.mp4" start={S2} style={{ position: 'absolute', inset: 0, width: 1920, height: 1080 }} />
         <Hud label="02 — а если" color={INK} />
         <div style={{ position: 'absolute', left: 1180, top: 120 }}>
-          <Line words={['А', 'если', 'заказы']} at={10} size={66} color={INK} accent={ORANGE} />
-          <Line words={['приходят', { a: 'сами?' }]} at={22} size={66} color={INK} accent={ORANGE} underline />
+          <Line words={['А', 'если', 'заказы']} at={said(9.4) - S2} size={66} color={INK} accent={ORANGE} />
+          <Line words={['приходят', { a: 'сами?' }]} at={said(10.4) - S2} size={66} color={INK} accent={ORANGE} underline />
         </div>
         {PRODUCTS.map((pr, i) => {
           const p = spring({ frame: frame - cardsAt - i * 7, fps: 30, config: { stiffness: 150, damping: 17 } });
@@ -215,10 +200,10 @@ const Offer: React.FC<{ at: number; x: number; tag: string; name: string; lines:
 const Meet: React.FC = () => (
   <AbsoluteFill style={{ background: CREAM }}>
     <Hud label="03 — знакомьтесь" color={INK} />
-    <VeoClip clip="meet" src="mascot/meet.webm" phrase={P.meet} start={S3} transparent style={{ position: 'absolute', left: 77, top: 86, width: 1766, height: 994 }} />
-    {/* «Telegram Mini App» — he points left; «и CRM» — right (≈ film 10.7 s and 12.3 s). */}
-    <Offer at={50} x={70} tag="ДЛЯ КЛИЕНТОВ" name="Telegram Mini App" lines={['меню и корзина в Telegram', 'заказ за минуту', 'ничего не скачивать']} />
-    <Offer at={98} x={1380} tag="ДЛЯ ПЕКАРНИ" name="CRM" lines={['все заказы в одном окне', 'склад и выручка', 'отзывы и сверка кассы']} dark />
+    <VeoClip clip="meet" src="mascot/meet2.webm" start={S3} transparent style={{ position: 'absolute', left: 77, top: 86, width: 1766, height: 994 }} />
+    {/* Each card lands on its name in the voice. */}
+    <Offer at={said(13.1) - S3} x={70} tag="ДЛЯ КЛИЕНТОВ" name="Telegram Mini App" lines={['меню и корзина в Telegram', 'заказ за минуту', 'ничего не скачивать']} />
+    <Offer at={said(14.6) - S3} x={1380} tag="ДЛЯ ПЕКАРНИ" name="CRM" lines={['все заказы в одном окне', 'склад и выручка', 'отзывы и сверка кассы']} dark />
   </AbsoluteFill>
 );
 
@@ -259,23 +244,24 @@ const Store: React.FC = () => (
 
 const Crm: React.FC = () => {
   const frame = useCurrentFrame();
+  const CLICK = said(25.5) - S5; // «одно нажатие»
   return (
     <AbsoluteFill style={{ background: CREAM }}>
       <Hud label="05 — crm" color={INK} />
       {/* The deck's «Принять» shot: the laptop holds until the click lands on «одно нажатие». */}
-      {frame < 50 ? (
+      {frame < CLICK - 34 ? (
         <Freeze frame={0}>
           <AcceptArt />
         </Freeze>
       ) : (
-        <Sequence from={50} layout="none">
+        <Sequence from={CLICK - 34} layout="none">
           <AcceptArt />
         </Sequence>
       )}
       <div style={{ position: 'absolute', left: 120, top: 260, width: 680 }}>
         <Line words={['Заказ —']} at={6} size={74} />
         <Line words={['сразу', { a: 'в CRM.' }]} at={14} size={74} underline />
-        <div style={{ fontFamily: SANS, fontWeight: 500, fontSize: 32, lineHeight: 1.35, color: INK, opacity: ease(frame, 80, 96) * 0.65, marginTop: 34 }}>
+        <div style={{ fontFamily: SANS, fontWeight: 500, fontSize: 32, lineHeight: 1.35, color: INK, opacity: ease(frame, CLICK, CLICK + 16) * 0.65, marginTop: 34 }}>
           Одно нажатие «Принять» — и клиент
           <br />
           получил подтверждение и чек.
@@ -450,11 +436,11 @@ const Stamp: React.FC = () => {
 const YouBake: React.FC = () => (
   <AbsoluteFill style={{ background: INK }}>
     <Hud label="08 — итог" color={CREAM} />
-    <VeoClip clip="finale" src="mascot/finale.webm" phrase={P.finale} start={S8} transparent style={{ position: 'absolute', left: 560, top: 86, width: 1766, height: 994 }} />
+    <VeoClip clip="finale" src="mascot/finale2.webm" start={S8} transparent style={{ position: 'absolute', left: 560, top: 86, width: 1766, height: 994 }} />
     <div style={{ position: 'absolute', left: 120, top: 330 }}>
       <Line words={['Вы', { a: 'печёте.' }]} at={10} size={140} color={CREAM} accent={CREAM} />
       <div style={{ marginTop: 26 }}>
-        <Line words={['Мы', 'ведём', { a: 'заказы.' }]} at={44} size={92} color="rgba(251,246,238,0.65)" accent="#F09A5B" />
+        <Line words={['Мы', 'ведём', { a: 'заказы.' }]} at={said(38.02) - S8} size={92} color="rgba(251,246,238,0.65)" accent="#F09A5B" />
       </div>
     </div>
   </AbsoluteFill>
@@ -469,7 +455,7 @@ const SignOff: React.FC = () => {
     <AbsoluteFill style={{ background: CREAM }}>
       {/* The same shot runs on: he winks over the wordmark. */}
       <div style={{ position: 'absolute', left: 960 - 270, top: 40, width: 540, height: 460, overflow: 'hidden' }}>
-        <VeoClip clip="finale" src="mascot/finale.webm" phrase={P.finale} start={S9} transparent style={{ position: 'absolute', left: -(889 - 540) / 2, top: 0, width: 889, height: 500 }} />
+        <VeoClip clip="finale" src="mascot/finale2.webm" start={S9} transparent style={{ position: 'absolute', left: -(889 - 540) / 2, top: 0, width: 889, height: 500 }} />
       </div>
       <div style={{ position: 'absolute', left: 0, right: 0, top: 500, height: 600, background: CREAM }} />
       <div style={{ position: 'absolute', left: 0, right: 0, top: 528, textAlign: 'center' }}>
@@ -490,8 +476,7 @@ const SignOff: React.FC = () => {
 
 /* ───────────── The promo ───────────── */
 
-const PHRASES = Object.values(P);
-const speaking = (f: number) => PHRASES.some(({ at, a, b }) => f >= at * 30 - 6 && f <= (at + b - a) * 30 + 6);
+const speaking = (f: number) => T.cues.some(([at, a, b]) => f >= at * 30 - 6 && f <= (at + b - a) * 30 + 6);
 
 export const MascotPromo: React.FC = () => {
   const frame = useCurrentFrame();
@@ -517,9 +502,9 @@ export const MascotPromo: React.FC = () => {
       </AbsoluteFill>
 
       {/* The voice, phrase by phrase, on its scenes */}
-      {PHRASES.map(({ at, a, b }, i) => (
-        <Sequence key={`v${i}`} from={Math.round(at * 30)} durationInFrames={Math.round((b - a) * 30) + 3} layout="none">
-          <Audio src={staticFile('voice-mascot40.mp3')} startFrom={Math.round(a * 30)} endAt={Math.round(b * 30) + 3} volume={1.15} />
+      {T.cues.map(([at, a, b], i) => (
+        <Sequence key={`v${i}`} from={f30(at)} durationInFrames={f30(b - a) + 3} layout="none">
+          <Audio src={staticFile('voice-mascot2.mp3')} startFrom={f30(a)} endAt={f30(b) + 3} volume={1.15} />
         </Sequence>
       ))}
       <Audio src={staticFile('music-deck.mp3')} volume={(f) => (speaking(f) ? 0.09 : 0.2) * interpolate(f, [0, 20], [0, 1], clamp) * interpolate(f, [MASCOT_FRAMES - 30, MASCOT_FRAMES], [1, 0], clamp)} />
@@ -530,12 +515,12 @@ export const MascotPromo: React.FC = () => {
         </Sequence>
       ))}
       <Sfx at={S2} name="whoosh" volume={0.5} />
-      {[90, 97, 104].map((f) => (
-        <Sfx key={f} at={S2 + f} name="pop" volume={0.45} />
+      {[0, 7, 14].map((f) => (
+        <Sfx key={f} at={said(10.7) + f} name="pop" volume={0.45} />
       ))}
       <Sfx at={S3} name="whoosh" volume={0.3} />
-      <Sfx at={S3 + 50} name="pop" volume={0.5} />
-      <Sfx at={S3 + 98} name="pop" volume={0.5} />
+      <Sfx at={said(13.1)} name="pop" volume={0.5} />
+      <Sfx at={said(14.6)} name="pop" volume={0.5} />
       <Sfx at={S4} name="whoosh" volume={0.3} />
       {[26, 38, 52, 92, 166].map((f) => (
         <Sfx key={f} at={S4 + f} name="tap" volume={0.55} />

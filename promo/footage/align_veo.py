@@ -57,23 +57,28 @@ def dtw(a, b):
     return path[::-1]
 
 
-voice, _ = sf.read(sys.argv[1], dtype='float32')
-out = {}
-for spec in sys.argv[2:]:
-    name, rest = spec.split('=')
-    path_, v0, v1, c0, c1 = rest.split(':')
-    v0, v1, c0, c1 = map(float, (v0, v1, c0, c1))
-    clip, _ = sf.read(path_, dtype='float32')
-    fa = features(voice[int(v0 * SR):int(v1 * SR)])
-    fb = features(clip[int(c0 * SR):int(c1 * SR)])
-    # Downsample to 20 ms steps so the plain-Python DTW stays quick.
-    fa, fb = fa[::2], fb[::2]
-    p = np.array(dtw(fa, fb), float) * 0.02
-    vt, ct = p[:, 0] + v0, p[:, 1] + c0
-    grid = np.arange(v0, v1, 0.04)
-    ct_g = np.interp(grid, vt, ct)
-    ct_g = np.convolve(np.pad(ct_g, 3, mode='edge'), np.ones(7) / 7, mode='valid')
-    ct_g = np.maximum.accumulate(ct_g)
-    out[name] = [[round(float(a), 3), round(float(b), 3)] for a, b in zip(grid, ct_g)]
-    print(name, f'voice {v0}-{v1}s → clip {ct_g[0]:.2f}-{ct_g[-1]:.2f}s')
-json.dump(out, open('src/mascot/warp.json', 'w'))
+def main():
+    voice, _ = sf.read(sys.argv[1], dtype='float32')
+    out = {}
+    for spec in sys.argv[2:]:
+        name, rest = spec.split('=')
+        path_, v0, v1, c0, c1 = rest.split(':')
+        v0, v1, c0, c1 = map(float, (v0, v1, c0, c1))
+        clip, _ = sf.read(path_, dtype='float32')
+        fa = features(voice[int(v0 * SR):int(v1 * SR)])
+        fb = features(clip[int(c0 * SR):int(c1 * SR)])
+        # Downsample to 20 ms steps so the plain-Python DTW stays quick.
+        fa, fb = fa[::2], fb[::2]
+        p = np.array(dtw(fa, fb), float) * 0.02
+        vt, ct = p[:, 0] + v0, p[:, 1] + c0
+        grid = np.arange(v0, v1, 0.04)
+        ct_g = np.interp(grid, vt, ct)
+        ct_g = np.convolve(np.pad(ct_g, 3, mode='edge'), np.ones(7) / 7, mode='valid')
+        ct_g = np.maximum.accumulate(ct_g)
+        out[name] = [[round(float(a), 3), round(float(b), 3)] for a, b in zip(grid, ct_g)]
+        print(name, f'voice {v0}-{v1}s → clip {ct_g[0]:.2f}-{ct_g[-1]:.2f}s')
+    json.dump(out, open('src/mascot/warp.json', 'w'))
+
+
+if __name__ == '__main__':
+    main()
