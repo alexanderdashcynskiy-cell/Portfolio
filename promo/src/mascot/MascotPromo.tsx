@@ -349,6 +349,9 @@ const SignOff: React.FC = () => {
           <span style={{ padding: '18px 40px', borderRadius: 999, background: ORANGE, color: '#fff', fontFamily: SANS, fontWeight: 700, fontSize: 30, boxShadow: '0 12px 28px rgba(208,105,42,0.35)' }}>Показать на вашей пекарне</span>
           <span style={{ fontFamily: MONO, fontSize: 24, color: INK, opacity: 0.6 }}>15 минут</span>
         </div>
+        <div style={{ marginTop: 34, fontFamily: SANS, fontSize: 28, fontWeight: 600, color: INK, opacity: ease(frame, 34, 46) }}>
+          Александр · Telegram <span style={{ fontFamily: MONO, color: ORANGE }}>+375 33 360-49-02</span> · <span style={{ fontFamily: MONO, color: ORANGE }}>alexanderdashcynskiy@gmail.com</span>
+        </div>
       </div>
       <div style={{ position: 'absolute', left: 0, right: 0, bottom: 54, textAlign: 'center', fontFamily: MONO, fontSize: 19, color: INK, opacity: 0.45 }}>Alexander Dashcynskiy · дизайн и разработка</div>
     </AbsoluteFill>

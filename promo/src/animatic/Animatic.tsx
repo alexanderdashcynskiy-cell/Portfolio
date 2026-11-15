@@ -164,7 +164,7 @@ export const Finale: React.FC<{ len: number; contact?: string }> = ({ len, conta
         <div style={{ display: 'inline-block', padding: '16px 36px', borderRadius: 999, border: '1.5px solid rgba(251,246,238,0.5)', fontFamily: SANS, fontSize: 28, fontWeight: 600, color: C.cream }}>
           Покажу на вашей пекарне за 15 минут{contact && <> · <span style={{ fontFamily: MONO, color: '#F3B27A' }}>{contact}</span></>}
         </div>
-        <div style={{ marginTop: 18, fontFamily: MONO, fontSize: 20, color: 'rgba(251,246,238,0.6)' }}>Mini App + CRM для пекарни · Alexander Dashcynskiy — дизайн и разработка</div>
+        <div style={{ marginTop: 18, fontFamily: MONO, fontSize: 20, color: 'rgba(251,246,238,0.6)' }}>Mini App + CRM для пекарни · Alexander Dashcynskiy — дизайн и разработка{contact && ' · alexanderdashcynskiy@gmail.com'}</div>
       </div>
     </AbsoluteFill>
   );

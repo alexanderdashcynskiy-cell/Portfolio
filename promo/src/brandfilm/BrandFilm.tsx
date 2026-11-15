@@ -216,7 +216,7 @@ const CUTS: Cut[] = [
   // Act 5 — finale
   { at: 1760, len: 92, el: <Plate src="film/bread-break.mp4" len={92} push={0.05} /> },
   { at: 1852, len: 66, el: <Plate src="film/portrait.mp4" len={66} push={0.04} origin="40% 40%" /> },
-  { at: 1918, len: BRAND_FRAMES - 1918, el: <Finale len={BRAND_FRAMES - 1918} contact="" /> },
+  { at: 1918, len: BRAND_FRAMES - 1918, el: <Finale len={BRAND_FRAMES - 1918} contact="Telegram +375 33 360-49-02" /> },
 ];
 
 /** Each shot's own sound (the generator's room tone, fire, flour), under the score. */
